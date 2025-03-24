@@ -1,0 +1,76 @@
+:root {
+  --sidebarBackgroundColor: #353535;
+  --sidebarActiveBackgroundColor: #252525;
+  --offWhite: #F5F7FA;
+  --textWhite: #D5D7DB;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  background-color: var(--offWhite);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+
+  --mainColor: #e0dd2e;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  color: var(--offWhite);
+  padding: 0;
+  border: none;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--sidebarBackgroundColor);
+  cursor: pointer;
+  width: 100%;
+  min-height: 40px;
+}
+button:hover {
+  color: var(--mainColor);
+}
+button:focus,
+button:focus-visible {
+  background-color: var(--sidebarActiveBackgroundColor);
+}
+
+#app {
+  /* max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  */
+  display: flex;
+  flex-direction: column;
+}
+
+@media (prefers-color-scheme: light) {
+  
+}
