@@ -11,7 +11,7 @@ class Reihe(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)
     name: str
     
-    books: List["Book"] = Relationship(back_populates="serie")
+    books: List["Book"] = Relationship(back_populates="reihe", sa_relationship_kwargs={"order_by": "Book.reihe_position"})
     
 class Book(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)
@@ -27,9 +27,10 @@ class Book(SQLModel, table=True):
     bild_hardcover: str = Field(default=None)
     ebook: str = Field(default=None, unique=True)
     bild_ebook: str = Field(default=None)
-    serie_key: str = Field(default=None, foreign_key="reihe.key")
+    reihe_key: str = Field(default=None, foreign_key="reihe.key")
+    reihe_position: int = Field(default=None)
     
-    serie: Optional["Reihe"] = Relationship(back_populates="books")
+    reihe: Optional["Reihe"] = Relationship(back_populates="books")
     
 
 class SearchResult(pydantic.BaseModel):
