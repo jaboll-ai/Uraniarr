@@ -1,28 +1,30 @@
 
 <template>
   <TopBar/>
-  <div class="content">
-    <Sidebar/>
-    <div class="page-container">
-      <TestPage/>
-    </div>
-  </div>
   <Sidebar/>
+  <div class="page-container">
+    <router-view/>
+  </div>
 </template>
 
 <script setup lang="ts">
 import Sidebar from './components/Sidebar.vue';
 import TopBar from './components/TopBar.vue';
-import TestPage from './pages/TestPage.vue';
 </script>
 
 <style scoped>
-.content{
-  display: flex;
-  flex-direction: row;
-}
-
 .page-container{
-  padding: 1em;
+  position: relative;
+  display: flex;
+  overflow-x: hidden;
+  padding: 10px;
+  margin-left : 200px;
+  top: 60px;
+  box-sizing: border-box;
+}
+@media (max-width: 768px) {
+  .page-container {
+    margin-left : 0;
+  }
 }
 </style>

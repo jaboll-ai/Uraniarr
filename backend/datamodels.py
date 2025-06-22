@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, case
 from datetime import date
 import pydantic
 from uuid import uuid4
@@ -7,30 +7,61 @@ from uuid import uuid4
 def id_generator():
     return uuid4().hex[:12].upper()
 
+medium_priority = {"audiobook": 0, "MP3": 1, "ebook": 2, "book": 3, "hardcover": 4, "magazine": 5, None: 10}
+
 class Reihe(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)
     name: str
+    autor_key: str = Field(foreign_key="author.key")
     
+    autor: "Author" = Relationship(back_populates="reihen")
     books: List["Book"] = Relationship(back_populates="reihe", sa_relationship_kwargs={"order_by": "Book.reihe_position"})
+
+class Edition(SQLModel, table=True):
+    key: str = Field(primary_key=True)
+    book_key: str = Field(foreign_key="book.key")
+    titel: str
+    autor_key: str = Field(foreign_key="author.key")
+    bild: str
+    einband: Optional[str] = None
+    altersempfehlung: Optional[str] = None
+    erscheinungsdatum: Optional[str] = None
+    herausgeber: Optional[str] = None
+    verlag: Optional[str] = None 
+    auflage: Optional[str] = None
+    übersetzt_von: Optional[str] = None
+    sprache: Optional[str] = None
+    isbn: Optional[str] = None
+    ean: Optional[str] = None
+    medium: Optional[str] = None
     
+    autor: "Author" = Relationship(back_populates="editions")
+    book: "Book" = Relationship(back_populates="editions")
+ 
 class Book(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)
-    titel: str
-    autor: str
-    sprache: str
-    erscheinungsdatum: str
-    hörbuch: str = Field(default=None, unique=True)
-    bild_hörbuch: str = Field(default=None)
-    taschenbuch: str = Field(default=None, unique=True)
-    bild_taschenbuch: str = Field(default=None)
-    hardcover: str = Field(default=None, unique=True)
-    bild_hardcover: str = Field(default=None)
-    ebook: str = Field(default=None, unique=True)
-    bild_ebook: str = Field(default=None)
-    reihe_key: str = Field(default=None, foreign_key="reihe.key")
-    reihe_position: int = Field(default=None)
+    name: str
+    autor_key: str = Field(foreign_key="author.key")
+    bild: Optional[str] = None
+    reihe_key: Optional[str] = Field(default=None, foreign_key="reihe.key")
+    reihe_position: Optional[float] = None
     
+    autor: "Author" = Relationship(back_populates="books")
     reihe: Optional["Reihe"] = Relationship(back_populates="books")
+    editions: List["Edition"] = Relationship(back_populates="book", sa_relationship_kwargs={"order_by": case(medium_priority, value=Edition.medium, else_=10), "cascade": "all, delete-orphan"})
+    
+
+class Author(SQLModel, table=True):
+    key: str = Field(primary_key=True)
+    name: str
+    bild: Optional[str] = None
+    bio: Optional[str] = None
+    
+    editions: List["Edition"] = Relationship(back_populates="autor")
+    books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    
+    
     
 
 class SearchResult(pydantic.BaseModel):

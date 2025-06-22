@@ -1,8 +1,8 @@
 :root {
-  --sidebarBackgroundColor: #353535;
-  --sidebarActiveBackgroundColor: #252525;
-  --offWhite: #F5F7FA;
-  --textWhite: #D5D7DB;
+  --lightGray: #353535;
+  --darkGray: #252525;
+  --offWhite: #fafaf5;
+  --textWhite: #fafaf5;
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -17,7 +17,7 @@
   -moz-osx-font-smoothing: grayscale;
 
 
-  --mainColor: #e0dd2e;
+  --mainColor: #9e8808;
 }
 
 a {
@@ -48,7 +48,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--sidebarBackgroundColor);
+  background-color: var(--lightGray);
   cursor: pointer;
   width: 100%;
   min-height: 40px;
@@ -58,7 +58,7 @@ button:hover {
 }
 button:focus,
 button:focus-visible {
-  background-color: var(--sidebarActiveBackgroundColor);
+  background-color: var(--darkGray);
 }
 
 #app {
@@ -69,6 +69,7 @@ button:focus-visible {
   */
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 @media (prefers-color-scheme: light) {
