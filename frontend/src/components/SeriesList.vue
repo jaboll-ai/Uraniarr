@@ -7,19 +7,15 @@
     >
       <h3 class="series-name">{{ group.series.name }}</h3>
       <div class="book-list">
-        <div
-          v-for="book in group.books"
-          :key="book.key"
-          class="book-item"
-        >
+        <div class="book-item" v-for="book in group.books" :key="book.key">
           <img
+            class="book-icon"
             :src="book.bild"
             :alt="book.name"
-            class="book-icon"
           />
-          <div class="book-info">
-            <span class="book-title">{{ book.name }}</span>
-          </div>
+          <span class="book-title">{{ book.name }}</span>
+          <span class="book-author">{{ "authorrrrrr" }}</span>
+          <span class="book-year">{{ "yearrrrrrrr" }}</span>
         </div>
       </div>
     </div>
@@ -93,30 +89,33 @@ onMounted(async () => {
 }
 
 .book-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 
+    50px      /* 📷 icon */
+    2fr       /* title */
+    1fr       /* author */
+    1fr;      /* year */
+  column-gap: 12px;
+  row-gap:    8px;
+  padding:   16px;
+  box-sizing: border-box;
 }
 
+/* make the wrapper “disappear” so its children join the parent grid */
 .book-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--borderColor);
-  border-radius: 8px;
-  background-color: var(--backgroundWhite);
+  display: contents;
 }
 
+/* assign each child to its column */
 .book-icon {
+  grid-column: 1; 
   width: 50px;
   height: 50px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: 4px;
 }
-
-.book-title {
-  font-size: 1rem;
-  font-weight: 500;
-}
+.book-title  { grid-column: 2; }
+.book-author { grid-column: 3; }
+.book-year   { grid-column: 4; }
 </style>
