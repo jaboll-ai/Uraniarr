@@ -26,8 +26,8 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { tapi, mapi } from '../main.ts'
-import { getInitials } from './utils.ts'
+import { tapi, mapi } from '@/main.ts'
+import { getInitials } from '@/utils.ts'
 
 const route = useRoute()
 

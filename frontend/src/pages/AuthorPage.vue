@@ -8,23 +8,31 @@
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
     </div>
-    <div class="book-list">
-      <div class="book-item" v-for="book in books" :key="book.key">
-        <img :src="book.bild" :alt="book.name" class="book-icon" />
-        <div class="book-info">
-          <span class="book-title">{{ book.name }}</span>
-        </div>
-      </div>
+    <div class="tabs">
+      <button
+        v-for="tab in tabs"
+        :key="tab.name"
+        @click="current = tab.name"
+        :class="{ active: current === tab.name }"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
+    <div class="panel">
+      <keep-alive>
+        <component :is="currentComponent" />
+      </keep-alive>
     </div>
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { ref, onMounted } from 'vue'
-import { api } from '../main.ts'
-import { getInitials } from './utils.ts'
+import { ref, onMounted, computed } from 'vue'
+import { api } from '@/main.ts'
+import BookList from '@/components/BookList.vue'
+import SeriesList from '@/components/SeriesList.vue'
+import { getInitials } from '@/utils.ts'
 
 const route = useRoute()
 
@@ -34,74 +42,67 @@ interface Author {
   bild: string
   bio: string
 }
-interface Book {
-  name: string
-  key: string
-  autor_key: string
-  reihe_key: string | null
-  bild: string
-  reihe_position: number | null
-}
-
-const books = ref<Book[]>([])
 const author = ref<Author | null>(null)
 
 onMounted(async () => {
   try {
     const responseA = await api.get<Author>(`/author/${route.params.key}`)
-    const responseB = await api.get<Book[]>(`/author/${route.params.key}/books`)
     author.value = responseA.data
-    books.value = responseB.data
   } catch (error) {
     console.error('Failed to fetch books:', error)
   }
 })
+
+const tabs = [
+  { name: 'BookList',     label: 'Books'    },
+  { name: 'SeriesList',  label: 'Series'  },
+  { name: 'SettingsPage', label: 'Settings' },
+]
+
+const current = ref<string>('BookList')
+const componentsMap: Record<string, any> = {
+  BookList,
+  SeriesList,
+  // ProfilePage,
+}
+const currentComponent = computed(() => componentsMap[current.value])
 </script>
 
-<style scoped>
-.book-list {
+<style>
+.tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+.tabs button {
+  flex: 1;
+  padding: 0.5em;
+  color: var(--mainColor);
+  background-color: var(--offWhite);
+  border: none;
+  border-radius: 8px;
+}
+.tabs button.active {
+  background: var(--mainColor);
+  color: var(--backgroundWhite);
+  font-weight: bold;
+}
+.author-page {
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  gap: 12px;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-.book-item {
-  display: flex;
-  /* justify-content: space-between; */
-  gap: 10%;
-  align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 12px;
-  background-color: #f9f9f9;
-}
-
-.book-title {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.book-icon {
-  width: 50px;
-  height: 50px;
-  aspect-ratio: 1/1;
-  object-fit: cover;
-  border-radius: 4px;
 }
 .author-name {
   display: flex;
   justify-content: center;
 }
-
 .author-header {
   max-height: 300px;
   display: flex;
   gap: 16px;
   padding: 10px 10px;
-  background-color: #EEE;
+  background-color: var(--offWhite);
   border-radius: 10px;
 }
 .author-image {
@@ -113,12 +114,14 @@ onMounted(async () => {
   
 }
 .author-bio {
-  border: 1px solid #ddd;
-  background-color: #f9f9f9;
+  border: 1px solid var(--borderColor);
+  background-color: var(--backgroundWhite);
   border-radius: 8px;
   overflow: scroll;
   padding: 12px;
   box-sizing: border-box;
+  margin: 0;
+  margin-top: 75px;
 }
 div.author-image {
   display: flex;

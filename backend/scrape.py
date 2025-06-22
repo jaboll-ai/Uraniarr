@@ -45,7 +45,7 @@ def scrape_author_id_from_book(book_id: str):
     if (a:=soup.find(class_="autor-name")) and (href:=a.get("href")):
             return strip_author_id(href)
             
-def scrape_book_editions(book_id: str):
+def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
     ed_ids = []
     soup = soup_or_cached(base+book+book_id)
     for a in soup.find_all(class_="layered-link"):
@@ -67,9 +67,9 @@ def scrape_book_editions(book_id: str):
             ed_infos["titel"] = titel.strip()
         if (a:=e_soup.find(class_="autor-name")) and (href:=a.get("href")):
             ed_infos["autor_key"] = strip_author_id(href)
-        if (div:=e_soup.find(class_="artikelbild-container")) and (img:=div.find("img")): 
+        if (panel:=e_soup.find("tab-panel", attrs={"data-tab": "bilder", "role": "tabpanel"})) and (li:=panel.find("li", attrs={"data-type": "image"})) and (img:=li.find("img")):
             ed_infos[f"bild"] = img.get("src")
-        elif (panel:=e_soup.find("tab-panel", attrs={"data-tab": "bilder", "role": "tabpanel"})) and (li:=panel.find("li", attrs={"data-type": "image"})) and (img:=li.find("img")):
+        elif (div:=e_soup.find(class_="artikelbild-container")) and (img:=div.find("img")): 
             ed_infos[f"bild"] = img.get("src")
         details = e_soup.find("div", class_="details-default")
         for ad in details.find_all("section", class_="artikeldetail"):
@@ -84,6 +84,10 @@ def scrape_book_editions(book_id: str):
                 if (typ:=span.get("data-typ")):
                     ed_infos["medium"] = typ
                     continue
+        for flag in e_soup.find_all(class_="flag"):
+            if "Band" in (band:=flag.get_text(strip=True)):
+                ed_infos["_pos"] = band.lower().replace("band", "").strip()
+                break
             
         editions.append(ed_infos)
                     
@@ -114,7 +118,8 @@ def scrape_author_data(author_id: str, metadata_only: bool = False):
     params = {
         "p": 1,
         "pagesize": 48,
-        "filterSPRACHE": 3
+        "filterSPRACHE": 3,
+        "sort": "sfea"
     }
     while True:
         books_soup = soup_or_cached(base+author_books+author_id, params=params)
@@ -153,13 +158,14 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None):
     
     series_pos = series_pos or ""
     title = strip_non_word(title)
-    title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|)\W*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
+    title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
     title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|)\W*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
     #### Known patterns ####
     title = title.replace(" - , Teil", "")
     ########################
     title = strip_non_word(title)
     title = reconstruct_parentheses(title)
+    print("cleaned", bak, "->", title)
     return title or bak.strip() # sanity check dont return empty string
 
 def clean_series_title(title: str):
@@ -191,12 +197,12 @@ def strip_non_word(text: str):
     text = re.sub(r"^[\W]*", "", text, flags=re.UNICODE | re.M)
     return re.sub(r"[\W]*$", "", text, flags=re.UNICODE | re.M)
 
-def soup_or_cached(url: str, params: dict = {}, skip_cache=False):
+def soup_or_cached(url: str, params: dict = {}, debug=False, skip_cache=False):
     key = (url, tuple(sorted(params.items())))
 
     if not skip_cache and key in _cache:
         if time() - _cache[key]["time"] < 60*60*24*5:
-            print(f"read entry from cache for {key=}")
+            if debug:print(f"read entry from cache for {key=}")
             return _cache[key]["soup"]
 
     soup = get_soup(url, params)
