@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { getInitials } from '../utils.ts'
+import { getInitials } from '@/utils.ts'
 
 interface Author {
   name: string

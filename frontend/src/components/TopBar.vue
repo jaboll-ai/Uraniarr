@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { toggleSidebar } from './sidebar'
+import { toggleSidebar } from './sidebar.ts'
 
 
 const search = ref<string>('')

@@ -50,41 +50,30 @@ def import_author(author_id: str, override: bool = False, session: Session = Dep
         else: session.delete(author)
     author_data = scrape_author_data(author_id)
     author = Author(**author_data)
-    series: dict[str, Edition] = {}
-    for book_edition_id in author_data.get("_books", []): 
+    reihen: dict[str, Reihe] = {}
+    for book_edition_id in author_data.get("_books", []):
         eds, series_title = scrape_book_editions(book_edition_id)
-        _ed = min(eds, key=lambda x: medium_priority.get(x["medium"], 10))
+        eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
         book = Book(autor_key=author.key)
-        book.name, book.bild = _ed["titel"], _ed["bild"]
-        if series_title and not series.get(series_title):
-            series[series_title] = _ed
+        book.name, book.bild, book.reihe_position = eds[0].get("titel"), eds[0].get("bild"), eds[0].get("_pos")
+        if series_title:
+            ctitle = clean_title(book.name, series_title, book.reihe_position)
+            if book.name == ctitle:
+                for ed in eds:
+                    ctitle = clean_title(ed.get("titel"), series_title, ed.get("_pos")) # if fallback was used e.g. Title of Edition was only Book + Series Pos we check if there is a better title
+                    if book.name != ctitle:
+                        break
+            book.name = ctitle
+            reihe = reihen.setdefault(series_title, Reihe(name=series_title, autor_key=author.key))
+            reihe.books.append(book)
+            if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
+                for idx, b in enumerate(bs):
+                    b.reihe_position = round(0.1*idx + int(book.reihe_position), 1)
         editions = [Edition(**i) for i in eds]
         book.editions = editions
         author.books.append(book)
+        author.reihen = list(reihen.values())
     session.add(author)
-    session.flush()
-    for name in series:
-        ser: dict[int, list[str]] = scrape_book_series(series[name]["key"])
-        # if (cname:=clean_series_title(name)) in [i.name for i in author.reihen]: #TODO technically using series name as key
-        #     reihe = session.exec(select(Reihe).where(Reihe.name == cname)).one()
-        #     print("series already exists")
-        # else:
-        reihe = Reihe(name=clean_series_title(name), autor_key=author.key)
-        for pos in ser:
-            for i, ed_id in enumerate(ser[pos]):
-                edition = session.get(Edition, ed_id)
-                if not edition: #TODO revisit for multi autor series, if its not there the autor is not there thus, series contains book of diffrent author
-                    continue
-                book = edition.book
-                print(book.name)
-                if pos is not None:
-                    if i != 0:
-                        book.reihe_position =f"{pos+(i)/len(ser[pos]):.1f}"
-                    else: book.reihe_position = f"{pos:.0f}"
-                else: book.reihe_position = None
-                book.name = clean_title(book.name, reihe.name, book.reihe_position)
-                book.reihe_key = reihe.key
-        author.reihen.append(reihe)
     session.commit()
     return author.key
 

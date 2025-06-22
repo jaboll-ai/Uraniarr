@@ -10,8 +10,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import AuthorCard from './components/AuthorCard.vue'
-import { api } from '../main.ts'
+import AuthorCard from '@/components/AuthorCard.vue'
+import { api } from '@/main.ts'
 
 interface Author {
   name: string

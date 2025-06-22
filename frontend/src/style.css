@@ -1,15 +1,16 @@
 :root {
   --lightGray: #353535;
   --darkGray: #252525;
-  --offWhite: #fafaf5;
-  --textWhite: #fafaf5;
+  --offWhite: #f3f0e7;
+  --borderColor: #dad6cd;
+  --backgroundWhite: #fafaf5;
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  background-color: var(--offWhite);
+  background-color: var(--backgroundWhite);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

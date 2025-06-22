@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useSidebar } from './sidebar.ts'
+import { useSidebar } from '@/components/sidebar.ts'
 const { isOpen } = useSidebar()
 const isMobile = ref(window.innerWidth <= 768)
 
