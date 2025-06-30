@@ -8,14 +8,15 @@
       <h3 class="series-name">{{ group.series.name }}</h3>
       <div class="book-list">
         <div class="book-item" v-for="book in group.books" :key="book.key">
-          <img
-            class="book-icon"
-            :src="book.bild"
-            :alt="book.name"
-          />
-          <span class="book-title">{{ book.name }}</span>
-          <span class="book-author">{{ "authorrrrrr" }}</span>
-          <span class="book-year">{{ "yearrrrrrrr" }}</span>
+          <div class="cell">
+            <img class="book-icon"  :src="book.bild" :alt="book.name" />
+          </div>
+          <div class="cell book-title">{{ book.name }}</div>
+          <div class="cell book-key">{{ book.key  }}</div>
+          <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
+          <div class="cell book-edit">
+            <button class="edit-btn" @click="$emit('openBook', book.key)">Buch anzeigen</button>
+          </div>
         </div>
       </div>
     </div>
@@ -89,33 +90,51 @@ onMounted(async () => {
 }
 
 .book-list {
-  display: grid;
-  grid-template-columns: 
-    50px      /* 📷 icon */
-    2fr       /* title */
-    1fr       /* author */
-    1fr;      /* year */
-  column-gap: 12px;
-  row-gap:    8px;
-  padding:   16px;
-  box-sizing: border-box;
+  display: table;
+  border-collapse: separate;   /* allow border-spacing */
+  border-spacing: 0 8px;       /* vertical gutter between rows */
 }
 
-/* make the wrapper “disappear” so its children join the parent grid */
 .book-item {
-  display: contents;
+  display: table-row;
 }
 
-/* assign each child to its column */
+/* Each “cell” forms the row’s box */
+.cell {
+  display: table-cell;
+  border-top : 1px solid var(--borderColor);
+  border-bottom : 1px solid var(--borderColor);
+  background: var(--backgroundWhite);
+}
+
+/* Round the left corners of each row */
+.book-item .cell:first-child {
+  border-left : 1px solid var(--borderColor);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+/* Round the right corners of each row */
+.book-item .cell:last-child {
+  border-right : 1px solid var(--borderColor);
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.book-icon,
+.book-title,
+.book-key,
+.book-edit,
+.book-pos {
+  display: table-cell;
+  vertical-align: middle;
+}
 .book-icon {
-  grid-column: 1; 
   width: 50px;
   height: 50px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 4px;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
 }
-.book-title  { grid-column: 2; }
-.book-author { grid-column: 3; }
-.book-year   { grid-column: 4; }
 </style>
