@@ -14,6 +14,7 @@ app = FastAPI()
 tapi = APIRouter(prefix="/tapi", tags=["scraped"])
 mapi = APIRouter(prefix="/mapi", tags=["middleware (very I/O heavy, careful!)"])
 api = APIRouter(prefix="/api", tags=["database"])
+uapi = APIRouter(prefix="/uapi", tags=["usenet"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Might make docker env var
@@ -60,7 +61,7 @@ def import_author(author_id: str, override: bool = False, session: Session = Dep
             ctitle = clean_title(book.name, series_title, book.reihe_position)
             if book.name == ctitle:
                 for ed in eds:
-                    ctitle = clean_title(ed.get("titel"), series_title, ed.get("_pos")) # if fallback was used e.g. Title of Edition was only Book + Series Pos we check if there is a better title
+                    ctitle = clean_title(ed.get("titel"), series_title, ed.get("_pos")) # if fallback was used e.g. Title of Edition was only Series Name + Series Pos we check if there is a better title
                     if book.name != ctitle:
                         break
             book.name = ctitle
@@ -74,6 +75,19 @@ def import_author(author_id: str, override: bool = False, session: Session = Dep
         author.books.append(book)
         author.reihen = list(reihen.values())
     session.add(author)
+    session.flush()
+    ### black magic to join series that got detected as 2 separate ###
+    for reihe1 in author.reihen:
+        rp1 = { b.reihe_position for b in reihe1.books }
+        for reihe2 in author.reihen:
+            if reihe1.key == reihe2.key: continue
+            rp2 = { b.reihe_position for b in reihe2.books }
+            if fuzz.ratio(reihe1.name, reihe2.name) > 45 and not rp1.intersection(rp2):
+                if len(reihe1.name) > len(reihe2.name): reihe1, reihe2 = reihe2, reihe1
+                while reihe2.books:
+                    b = reihe2.books.pop(0)
+                    reihe1.books.append(b)
+                author.reihen.remove(reihe2)
     session.commit()
     return author.key
 
@@ -112,7 +126,7 @@ def get_books_of_series(series_id: str, session: Session = Depends(get_session))
     raise HTTPException(status_code=404, detail="Series not found") 
 
 @api.post("/author/{author_id}/unify")
-def unify_books_of_author(author_id: str, session: Session = Depends(get_session)):
+def unify_series_of_author(author_id: str, session: Session = Depends(get_session)):
     books = session.get(Author, author_id).books
     grouped = {}
     for book in books:
@@ -141,5 +155,6 @@ def delete_author(author_id: str, session: Session = Depends(get_session)):
 # Includings
 app.include_router(tapi)
 app.include_router(mapi)
+app.include_router(uapi)
 app.include_router(api)
 
