@@ -63,7 +63,8 @@ onMounted(async () => {
   height: 50px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 4px;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
 }
 
 .book-title {

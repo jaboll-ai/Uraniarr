@@ -56,7 +56,7 @@ function handleSubmit(): void {
 .search-input,
 .search-icon,
 .search-input::placeholder {
-  color: var(--textWhite);
+  color: var(--offWhite);
 }
 
 .logo{
@@ -85,7 +85,7 @@ function handleSubmit(): void {
   background-color: transparent;
 }
 .topbutton:hover{
-  color: var(--sidebarBackgroundColor)
+  color: var(--lightGray)
 }
 
 .menu{
