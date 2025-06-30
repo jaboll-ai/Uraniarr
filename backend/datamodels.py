@@ -7,7 +7,7 @@ from uuid import uuid4
 def id_generator():
     return uuid4().hex[:12].upper()
 
-medium_priority = {"audiobook": 0, "MP3": 1, "ebook": 2, "book": 3, "hardcover": 4, "magazine": 5, None: 10}
+medium_priority = {"3677": 0, "3714": 1, "4893": 2, "2": 3}
 
 class Reihe(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)

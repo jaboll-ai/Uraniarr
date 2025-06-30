@@ -43,18 +43,21 @@ def scrape_search(q: str, page: int = 1):
 def scrape_author_id_from_book(book_id: str):
     soup = soup_or_cached(base+book+book_id)
     if (a:=soup.find(class_="autor-name")) and (href:=a.get("href")):
-            return strip_author_id(href)
+            return strip_id_from_slug(href)
             
 def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
-    ed_ids = []
+    ed_ids = set()
     soup = soup_or_cached(base+book+book_id)
+    # with open(".mimo.html", "w") as f:
+    #     f.write(soup.prettify())
+    # return
     for a in soup.find_all(class_="layered-link"):
-        ed_ids.append(strip_id(a["href"]))
-     # just so we dont miss anything
-    for ul in soup.find_all("ul",class_="optionen", attrs={'data-formattyp': 'format'}):
-        for a in ul.find_all("a", class_="element-card-select formatkachel-link"):
-            if not (e:=strip_id(a["href"])) in ed_ids: 
-                ed_ids.append(e)
+        ed_ids.add(strip_id(a["href"]))
+    # inconsistent handling on thalias end
+    for optionen in soup.find_all("ul",class_="optionen", attrs={'data-formattyp': 'format'}):
+        for a in optionen.find_all("a", class_="element-card-select formatkachel-link"):
+                ed_ids.add(strip_id(a["href"]))
+
     if len(ed_ids) == 0:
         ed_ids = [book_id] # if the only edition is the one we are looking at
     series = clean_series_title(s) if (h2:=soup.find("h2", id="serien-slider")) and (s:=h2.find(string=True)) else None
@@ -66,7 +69,7 @@ def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         if (t:=e_soup.find(class_="element-headline-medium titel")) and (titel:=t.find(string=True, recursive=False)):
             ed_infos["titel"] = titel.strip()
         if (a:=e_soup.find(class_="autor-name")) and (href:=a.get("href")):
-            ed_infos["autor_key"] = strip_author_id(href)
+            ed_infos["autor_key"] = strip_id_from_slug(href)
         if (panel:=e_soup.find("tab-panel", attrs={"data-tab": "bilder", "role": "tabpanel"})) and (li:=panel.find("li", attrs={"data-type": "image"})) and (img:=li.find("img")):
             ed_infos[f"bild"] = img.get("src")
         elif (div:=e_soup.find(class_="artikelbild-container")) and (img:=div.find("img")): 
@@ -78,17 +81,15 @@ def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
             d = ad.find("p") or ad.find("a")
             if d:
                 ed_infos[info.lower()] = d.get_text(strip=True)
-        ed_infos["medium"] = None #init
-        if (a:=e_soup.find("a",attrs={"data-status": "active"})):
-            for span in a.find_all("span"):
-                if (typ:=span.get("data-typ")):
-                    ed_infos["medium"] = typ
-                    continue
+        for breadcrumbs in e_soup.find_all("ul", class_="breadcrumbs"):
+            for a in breadcrumbs.find_all("a"):
+                if (cat:=a.get("href")) and "kategorie" in cat:
+                    ed_infos["medium"] = strip_id_from_slug(cat)
+                    break # we only want the first breadcrumb here
         for flag in e_soup.find_all(class_="flag"):
             if "Band" in (band:=flag.get_text(strip=True)):
-                ed_infos["_pos"] = band.lower().replace("band", "").strip()
-                break
-            
+                ed_infos["_pos"] = band.replace("Band", "").strip()
+                break   
         editions.append(ed_infos)
                     
     return editions, series
@@ -148,7 +149,7 @@ def scrape_book_series(book_id: str):
 
 def strip_id(url: str):
     return url.strip("/").split("/")[-1].split("?")[0]
-def strip_author_id(url: str):
+def strip_id_from_slug(url: str):
     return url.strip("/").split("/")[-1].split("?")[0].split("-")[-1]
 
 def clean_title(title: str, series_title: str = None, series_pos: int = None):
@@ -165,7 +166,6 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None):
     ########################
     title = strip_non_word(title)
     title = reconstruct_parentheses(title)
-    print("cleaned", bak, "->", title)
     return title or bak.strip() # sanity check dont return empty string
 
 def clean_series_title(title: str):
@@ -221,7 +221,7 @@ def get_soup(url: str, params = {}):
         response = scraper.get(url, params=params)
     except Exception as e:
         raise HTTPException(status_code=500, detail="at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
-    if response.status_code != 200: raise HTTPException(status_code=response.status_code, detail="at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
+    if response.status_code != 200: raise HTTPException(status_code=response.status_code, detail="at "+ url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]) if params else url)
     soup = BeautifulSoup(response.text, "html.parser")
     with open("fuckyou.html", "w") as f:
         f.write(soup.prettify())
