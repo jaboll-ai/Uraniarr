@@ -20,7 +20,7 @@
     </div>
     <div class="panel">
       <keep-alive>
-        <component :is="currentComponent" />
+        <component :is="currentComponent"  @downloadBook="downloadBook"/>
       </keep-alive>
     </div>
   </div>
@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { api } from '@/main.ts'
+import { api, nzbapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
@@ -66,6 +66,15 @@ const componentsMap: Record<string, any> = {
   // ProfilePage,
 }
 const currentComponent = computed(() => componentsMap[current.value])
+
+async function downloadBook(key: string) {
+  try {
+    nzbapi.post(`/book/${key}`)
+  } catch (err) {
+    console.error('Failed to send or grab nzb', err)
+  }
+}
+
 </script>
 
 <style>
