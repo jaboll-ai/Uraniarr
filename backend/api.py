@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, SQLModel, create_engine, select
 from backend.datamodels import Book, Reihe, Edition, Author, medium_priority
 from backend.scrape import *
-from datetime import datetime
+from itertools import combinations
 from rapidfuzz import fuzz
 
 base="https://www.thalia.de"
@@ -69,25 +69,19 @@ def import_author(author_id: str, override: bool = False, session: Session = Dep
             reihe.books.append(book)
             if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
                 for idx, b in enumerate(bs):
-                    b.reihe_position = round(0.1*idx + int(book.reihe_position), 1)
+                    b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
         editions = [Edition(**i) for i in eds]
         book.editions = editions
         author.books.append(book)
         author.reihen = list(reihen.values())
     session.add(author)
     session.flush()
-    ### black magic to join series that got detected as 2 separate ###
-    for reihe1 in author.reihen:
-        rp1 = { b.reihe_position for b in reihe1.books }
-        for reihe2 in author.reihen:
-            if reihe1.key == reihe2.key: continue
-            rp2 = { b.reihe_position for b in reihe2.books }
-            if fuzz.ratio(reihe1.name, reihe2.name) > 45 and not rp1.intersection(rp2):
-                if len(reihe1.name) > len(reihe2.name): reihe1, reihe2 = reihe2, reihe1
-                while reihe2.books:
-                    b = reihe2.books.pop(0)
-                    reihe1.books.append(b)
-                author.reihen.remove(reihe2)
+    for reihe in author.reihen: #really inefficient needs revisit #TODO
+        for book, book2 in combinations(reihe.books, 2):
+            if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
+                for edition in book2.editions:
+                    book.editions.append(edition)
+                author.books.remove(book2)
     session.commit()
     return author.key
 
