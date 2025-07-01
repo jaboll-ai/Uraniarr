@@ -7,17 +7,12 @@
     >
       <h3 class="series-name">{{ group.series.name }}</h3>
       <div class="book-list">
-        <div class="book-item" v-for="book in group.books" :key="book.key">
-          <div class="cell">
-            <img class="book-icon"  :src="book.bild" :alt="book.name" />
-          </div>
-          <div class="cell book-title">{{ book.name }}</div>
-          <div class="cell book-key">{{ book.key  }}</div>
-          <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
-          <div class="cell book-edit">
-            <button class="edit-btn" @click="$emit('openBook', book.key)">Buch anzeigen</button>
-          </div>
-        </div>
+        <BookItem
+          v-for="book in group.books"
+          :key="book.key"
+          :book="book"
+          @downloadBook="$emit('downloadBook', $event)"
+        />
       </div>
     </div>
   </div>
@@ -27,6 +22,7 @@
 import { useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { api } from '@/main.ts'
+import BookItem from '@/components/BookItem.vue'
 
 interface Series {
   autor_key: string
@@ -93,48 +89,5 @@ onMounted(async () => {
   display: table;
   border-collapse: separate;   /* allow border-spacing */
   border-spacing: 0 8px;       /* vertical gutter between rows */
-}
-
-.book-item {
-  display: table-row;
-}
-
-/* Each “cell” forms the row’s box */
-.cell {
-  display: table-cell;
-  border-top : 1px solid var(--borderColor);
-  border-bottom : 1px solid var(--borderColor);
-  background: var(--backgroundWhite);
-}
-
-/* Round the left corners of each row */
-.book-item .cell:first-child {
-  border-left : 1px solid var(--borderColor);
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-}
-
-/* Round the right corners of each row */
-.book-item .cell:last-child {
-  border-right : 1px solid var(--borderColor);
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
-}
-
-.book-icon,
-.book-title,
-.book-key,
-.book-edit,
-.book-pos {
-  display: table-cell;
-  vertical-align: middle;
-}
-.book-icon {
-  width: 50px;
-  height: 50px;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
 }
 </style>
