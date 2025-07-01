@@ -51,8 +51,9 @@ button {
   font-family: inherit;
   background-color: var(--lightGray);
   cursor: pointer;
-  width: 100%;
   min-height: 40px;
+  border-radius: 8px;
+  flex-grow: 0 1;
 }
 button:hover {
   color: var(--mainColor);

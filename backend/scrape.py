@@ -158,6 +158,8 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None):
     bak = title
     if series_title:
         title = title.replace(series_title, "")
+    if series_title and title == bak:
+        title = title.replace(series_title.replace("-", " "), "")
     
     series_pos = series_pos or ""
     title = strip_non_word(title)

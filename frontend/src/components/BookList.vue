@@ -44,7 +44,6 @@ onMounted(async () => {
 <style scoped>
 .book-list {
   display: table;
-  border-collapse: separate;   /* allow border-spacing */
   border-spacing: 0 8px;       /* vertical gutter between rows */
 }
 .group {
