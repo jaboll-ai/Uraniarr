@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship, case
 from datetime import date
-import pydantic
+from pydantic import BaseModel
 from uuid import uuid4
 
 def id_generator():
@@ -61,10 +61,3 @@ class Author(SQLModel, table=True):
     books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     
-    
-    
-
-class SearchResult(pydantic.BaseModel):
-    query: str
-    books: list
-    autors: list

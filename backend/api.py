@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, SQLModel, create_engine, select
-from backend.datamodels import Book, Reihe, Edition, Author, medium_priority
+from backend.datamodels import *
 from backend.scrape import *
+from backend.nzbapi import *
+from backend.config import ConfigManager
 from itertools import combinations
 from rapidfuzz import fuzz
+from uuid import uuid4
 
 base="***REMOVED***"
 book="/shop/home/artikeldetails/"
@@ -14,7 +17,7 @@ app = FastAPI()
 tapi = APIRouter(prefix="/tapi", tags=["scraped"])
 mapi = APIRouter(prefix="/mapi", tags=["middleware (very I/O heavy, careful!)"])
 api = APIRouter(prefix="/api", tags=["database"])
-uapi = APIRouter(prefix="/uapi", tags=["usenet"])
+nzbapi = APIRouter(prefix="/nzbapi", tags=["NZB Handling"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Might make docker env var
@@ -29,6 +32,8 @@ SQLModel.metadata.create_all(engine)
 def get_session():
     with Session(engine) as session:
         yield session
+def get_cfg_manager():
+    return ConfigManager()
 
 @tapi.get("/books/editions/{book_id}")
 def fetch_book_editions(book_id: str):
@@ -146,9 +151,37 @@ def delete_author(author_id: str, session: Session = Depends(get_session)):
     session.commit()
     return {"deleted": author_id}
 
+@api.get("/settings")
+def get_settings(cfg: ConfigManager = Depends(get_cfg_manager)):
+    """Retrieve all configuration settings."""
+    return cfg.get()
+
+@api.patch("/settings")
+def update_settings(settings: dict, cfg: ConfigManager = Depends(get_cfg_manager)):
+    """Update all configuration settings in one call using attribute access."""
+    for key in settings:
+        setattr(cfg, key, settings[key])
+    return cfg.get()
+
+@nzbapi.post("/book/{book_id}")
+def download_book(book_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+    book = session.get(Book, book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    data = indexer_search(f"{book.autor.name} {book.name}", cfg=cfg)
+    query = data["channel"]
+    if (total:=query["response"]["@attributes"]["total"]) == "0": raise HTTPException(status_code=404, detail="Book not found")
+    else: #maybe do fuzzy ratio?
+        item = query["item"] if total == "1" else query["item"][0] 
+        guid=item["attr"][2]["@attributes"]["value"]
+        nzb = indexer_nzb(guid, cfg=cfg)
+        download(nzb, nzbname=book.key, cfg=cfg)
+    return
+
+
 # Includings
 app.include_router(tapi)
 app.include_router(mapi)
-app.include_router(uapi)
+app.include_router(nzbapi)
 app.include_router(api)
 

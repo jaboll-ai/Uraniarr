@@ -1,29 +1,22 @@
 
 <template>
   <div class="sidebar" :style="sidebarStyle">
-    <div class="button-wrapper">
-      <router-link to="/" custom v-slot="{ navigate, isActive }">
-        <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
-          Library
-        </button>
-      </router-link>
-    </div>
+    <router-link to="/" custom v-slot="{ navigate, isActive }">
+      <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
+        Library
+      </button>
+    </router-link>
 
-    <div class="button-wrapper">
-      <router-link to="/settings" custom v-slot="{ navigate, isActive }">
-        <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
-          Settings
-        </button>
-      </router-link>
-    </div>
-
-    <div class="button-wrapper">
-      <router-link to="/activity" custom v-slot="{ navigate, isActive }">
-        <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
-          Activity
-        </button>
-      </router-link>
-    </div>
+    <router-link to="/settings" custom v-slot="{ navigate, isActive }">
+      <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
+        Settings
+      </button>
+    </router-link>
+    <router-link to="/activity" custom v-slot="{ navigate, isActive }">
+      <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
+        Activity
+      </button>
+    </router-link>
   </div>
 </template>
 
@@ -64,6 +57,8 @@ const sidebarStyle = computed(() => ({
   background-color: var(--lightGray);
   transform: translateX(0);
   transition: transform 0.3s ease;
+  display:flex;
+  flex-direction: column;
 }
 
 .active{

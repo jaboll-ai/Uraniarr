@@ -36,12 +36,15 @@ const props = defineProps<{ book: Book }>()
   border-top: 1px solid var(--borderColor);
   border-bottom: 1px solid var(--borderColor);
   background: var(--backgroundWhite);
+  padding: 0 10px;
+  line-height: 0;
 }
 
 .book-item .cell:first-child {
   border-left: 1px solid var(--borderColor);
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
+  padding-left: 0;
 }
 
 .book-item .cell:last-child {
@@ -65,5 +68,13 @@ const props = defineProps<{ book: Book }>()
 .book-pos,
 .book-edit {
   vertical-align: middle;
+}
+
+.book-edit {
+  text-align: right;
+}
+.edit-btn{
+  color: var(--lightGray);
+  background-color: transparent;
 }
 </style>
