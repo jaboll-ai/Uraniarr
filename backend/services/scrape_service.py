@@ -3,7 +3,7 @@ import cloudscraper
 import re
 from pickle import dump, load
 from time import time
-from fastapi import HTTPException
+from backend.exceptions import ScrapeError
 
 base="***REMOVED***"
 book="/shop/home/artikeldetails/"
@@ -224,17 +224,7 @@ def get_soup(url: str, params = {}):
     try:
         response = scraper.get(url, params=params)
     except Exception as e:
-        raise HTTPException(status_code=500, detail="at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
-    if response.status_code != 200: raise HTTPException(status_code=response.status_code, detail="at "+ url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]) if params else url)
+        raise ScrapeError(detail = "at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
+    if response.status_code != 200: raise ScrapeError(detail="at "+ url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]) if params else url)
     soup = BeautifulSoup(response.text, "html.parser")
     return soup
-
-
-if __name__ == "__main__":
-    pass
-    #data["titel"] = soup.find(class_="element-headline-medium titel").find(string=True, recursive=False).strip()
-    # infos = ["Erscheinungsdatum", "Sprache"]
-    # for ad in soup.find_all(class_="artikeldetail"):
-    #     info = ad.find(class_="element-text-standard-strong detailbezeichnung").get_text(strip=True) 
-    #     if info in infos:
-    #         data[info.lower()] = ad.find("p").text.strip()

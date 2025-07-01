@@ -29,7 +29,7 @@ onMounted(async () => {
 async function saveSettings() {
   try {
     // send the full list back — your server can diff or overwrite
-    await api.post('/settings', { settings: settings.value })
+    await api.patch('/settings', settings.value )
     alert('Settings saved!')
   } catch (err) {
     console.error('Failed to save settings', err)
