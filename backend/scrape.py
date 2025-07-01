@@ -60,11 +60,13 @@ def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
 
     if len(ed_ids) == 0:
         ed_ids = [book_id] # if the only edition is the one we are looking at
-    series = clean_series_title(s) if (h2:=soup.find("h2", id="serien-slider")) and (s:=h2.find(string=True)) else None
+    series = None
     editions = []
     for e_id in ed_ids:
         ed_infos = {}
         e_soup = soup if e_id == book_id else soup_or_cached(base+book+e_id) #use cached soup for one api-hit less
+        if not series and (h2:=e_soup.find("h2", id="serien-slider")) and (s:=h2.find(string=True)):
+            series = clean_series_title(s)
         ed_infos["key"] = e_id
         if (t:=e_soup.find(class_="element-headline-medium titel")) and (titel:=t.find(string=True, recursive=False)):
             ed_infos["titel"] = titel.strip()
@@ -223,8 +225,6 @@ def get_soup(url: str, params = {}):
         raise HTTPException(status_code=500, detail="at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
     if response.status_code != 200: raise HTTPException(status_code=response.status_code, detail="at "+ url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]) if params else url)
     soup = BeautifulSoup(response.text, "html.parser")
-    with open("fuckyou.html", "w") as f:
-        f.write(soup.prettify())
     return soup
 
 
