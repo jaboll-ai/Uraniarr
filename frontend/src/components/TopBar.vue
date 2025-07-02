@@ -1,7 +1,7 @@
 <template>
     <div class="top-bar">
         <div class="logo">
-          <img class="logo-image" src="/lesarr.svg" alt="Logo" />
+          <img class="logo-image" src="/assets/lesarr.svg" alt="Logo" />
         </div>
         <div class="menu">
           <button class="material-icons topbutton"  @click="toggleSidebar()">menu</button>
