@@ -1,12 +1,11 @@
 from itertools import combinations
 from rapidfuzz import fuzz
 from sqlmodel import Session
-from uuid import uuid4
 from backend.datamodels import *
 from backend.exceptions import AuthorError
 from backend.services.scrape_service import scrape_author_data, scrape_book_editions, clean_title
 
-def import_author(author_id: str, session: Session, override: bool = False, ):
+def import_author(author_id: str, session: Session, override: bool = False):
     if (author:=session.get(Author, author_id)):
         if not override:
             raise AuthorError(detail=f"Author {author_id} already exists", status_code=403)
