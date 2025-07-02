@@ -18,7 +18,13 @@ class ConfigManager:
         if self.config_file.exists():
             data = json.loads(self.config_file.read_text(encoding='utf-8'))
         else:
-            data = {}
+            data = {
+                "indexer_path": "",
+                "indexer_apikey": "",
+                "downloader_path": "",
+                "downloader_apikey": "",
+                "devTest": False
+            }
         object.__setattr__(self, '_data', data)
 
     def _save(self) -> None:
