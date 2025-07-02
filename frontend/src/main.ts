@@ -20,10 +20,11 @@ const router = createRouter({
   routes,
 })
 
-export const api = axios.create({ baseURL: 'http://localhost:8000/api' })
-export const tapi = axios.create({ baseURL: 'http://localhost:8000/tapi' })
-export const mapi = axios.create({ baseURL: 'http://localhost:8000/mapi' })
-export const nzbapi = axios.create({ baseURL: 'http://localhost:8000/nzbapi' })
+const BASE = import.meta.env.VITE_API_BASE || '';
+export const api    = axios.create({ baseURL: `${BASE}/api` });
+export const tapi   = axios.create({ baseURL: `${BASE}/tapi` });
+export const mapi   = axios.create({ baseURL: `${BASE}/mapi` });
+export const nzbapi = axios.create({ baseURL: `${BASE}/nzbapi` });
 
 
 createApp(App).use(router).mount('#app')
