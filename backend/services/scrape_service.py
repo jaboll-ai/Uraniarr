@@ -201,6 +201,13 @@ def strip_non_word(text: str):
     text = re.sub(r"^[\W]*", "", text, flags=re.UNICODE | re.M)
     return re.sub(r"[\W]*$", "", text, flags=re.UNICODE | re.M)
 
+def fix_umlaut(text: str) -> str:
+    text = re.sub(r"ä", "ae", text, flags=re.IGNORECASE)
+    text = re.sub(r"ö", "oe", text, flags=re.IGNORECASE)
+    text = re.sub(r"ü", "ue", text, flags=re.IGNORECASE)
+    text = re.sub(r"ß", "ss", text, flags=re.IGNORECASE)
+    return text
+
 def soup_or_cached(url: str, params: dict = {}, debug=False, skip_cache=False):
     key = (url, tuple(sorted(params.items())))
 

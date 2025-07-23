@@ -2,9 +2,12 @@
   <div class="settings-container">
     <h2>Settings</h2>
     <form @submit.prevent="saveSettings" class="settings-form">
-      <div class="setting-item" v-for="(_, key) in settings" :key="key">
+      <div class="setting-item" v-for="(cfg, key) in settings" :key="key">
         <label :for="key + '-input'" class="setting-label">{{ key }}</label>
-        <input :id="key + '-input'" v-model="settings[key]" type="text" class="setting-input"/>
+        <input v-if="cfg.input_type !== 'select'" :id="key + '-input'" v-model="cfg.value" :type="cfg.input_type" class="setting-input"/>
+        <select v-else :id="key + '-input'" v-model="cfg.value" class="setting-select">
+          <option v-for="opt in cfg.options" :key="opt" :value="opt">{{ opt }}</option>
+        </select>
       </div>
       <button type="submit" class="save-btn">Save</button>
     </form>
@@ -15,11 +18,16 @@
 import { ref, onMounted } from 'vue'
 import { api } from '@/main.ts'
 
-const settings = ref<Record<string, string>>({})
+interface ConfigEntry {
+  value: string;
+  input_type: string;
+  options?: string[];
+}
+const settings = ref<Record<string, ConfigEntry>>({})
 
 onMounted(async () => {
   try {
-    const { data } = await api.get<Record<string, string>>('/settings')
+    const { data } = await api.get<Record<string, ConfigEntry>>('/settings')
     settings.value = data
   } catch (err) {
     console.error('Failed to load settings', err)
@@ -29,7 +37,9 @@ onMounted(async () => {
 async function saveSettings() {
   try {
     // send the full list back — your server can diff or overwrite
-    await api.patch('/settings', settings.value )
+    await api.patch('/settings', Object.fromEntries(
+      Object.entries(settings.value).map(([key, cfg]) => [key, cfg.value])
+    ) )
     alert('Settings saved!')
   } catch (err) {
     console.error('Failed to save settings', err)

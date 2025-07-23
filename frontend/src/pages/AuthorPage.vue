@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { api, nzbapi } from '@/main.ts'
+import { api, nzbapi as sabnzbdapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
@@ -69,7 +69,7 @@ const currentComponent = computed(() => componentsMap[current.value])
 
 async function downloadBook(key: string) {
   try {
-    nzbapi.post(`/book/${key}`)
+    sabnzbdapi.post(`/book/${key}`)
   } catch (err) {
     console.error('Failed to send or grab nzb', err)
   }

@@ -13,3 +13,6 @@ class AuthorError(BaseError):
 
 class NzbsError(BaseError):
     pass
+
+class FileError(BaseError):
+    pass
