@@ -163,8 +163,8 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None):
     
     series_pos = series_pos or ""
     title = strip_non_word(title)
-    title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
-    title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|)\W*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
+    title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*0*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
+    title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|)\W*0*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
     #### Known patterns ####
     title = title.replace(" - , Teil", "")
     ########################
