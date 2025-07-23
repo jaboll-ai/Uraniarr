@@ -11,7 +11,7 @@ class ConfigManager:
     _SPECIAL_ATTRS = {"config_dir", "config_file", "_data", "_save"}
 
     def __init__(
-        self, config_folder: Path = Path(".") / ".config", filename: str = "config.json"
+        self, config_folder: Path = Path(".") / "config", filename: str = "config.json"
     ):
         # Set up paths without triggering __setattr__ for config data
         object.__setattr__(self, "config_dir", config_folder)

@@ -6,3 +6,4 @@ frontend/*
 !frontend/dist
 .dockerignore
 Dockerfile
+config
