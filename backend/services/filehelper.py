@@ -47,7 +47,6 @@ def move_file(src: Path):
 def scan_and_move_all_files():
     cfg = ConfigManager()
     complete_base = Path(get_config(cfg, "misc", "complete_dir"))
-    complete_base = Path(r"C:\Users\janni\Downloads\sab") # dev REMOVE!!!!
     cats = get_config(cfg, "categories")  # this returns your list of dicts
     entry = next((c for c in cats if c["name"] == cfg.downloader_category), None) #TIL lol
     if not entry:
