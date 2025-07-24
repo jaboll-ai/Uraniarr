@@ -19,9 +19,9 @@ Lesarr is a FastAPI-based application for scraping book metadata from ***REMOVED
 ## Features
 
 - **Web Scraping**  
-  Fetch book editions, author information, and search results using BeautifulSoup and cloudscraper yourself. Because german metadata for books sucks.
+  Fetch book editions, author information, and search results using BeautifulSoup and playwright yourself. Because german metadata for books sucks.
 - **RESTful API**  
-  Routes organized into `tapi`, `mapi`, `api`, and `nzbapi` for scraping, middleware imports, database access, and NZB handling.
+  Routes organized into `tapi`, `api`, and `nzbapi` for scraping, middleware imports, database access, and NZB handling.
 - **Database Integration**  
   SQLite database powered by SQLModel, with automatic table creation and session management.
 - **NZB Downloading**  

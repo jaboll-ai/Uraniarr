@@ -3,5 +3,4 @@ sqlmodel==0.0.24
 RapidFuzz==3.13.0
 bs4==0.0.2
 playwright-stealth==2.0.0
-cloudscraper==1.2.71
 uvicorn==0.34.0
