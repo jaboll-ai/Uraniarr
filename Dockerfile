@@ -8,7 +8,7 @@ WORKDIR /app
 COPY requirements.txt entry.py ./
 COPY backend/ ./backend
 COPY --from=build-env /app/frontend/dist ./frontend/dist
-RUN pip install --no-cache-dir -r requirements.txt && playwrite install chromium
+RUN pip install --no-cache-dir -r requirements.txt && playwright install chromium
 EXPOSE 8000
 CMD ["python","entry.py"]
 
