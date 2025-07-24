@@ -37,8 +37,8 @@ def move_file(src: Path):
         exts = sorted(counts, key=counts.get)
         
         for ext in exts[::-1]:
-            wanted_ext = ext
-            if wanted_ext not in cfg.unwanted_extensions.split(","):
+            if ext not in cfg.unwanted_extensions.split(","):
+                wanted_ext = ext
                 break
         else: wanted_ext = ""
         for file in Path(src).iterdir():
