@@ -46,7 +46,7 @@ async def scrape_search(q: str, page: int = 1):
         "filterSPRACHE": "3",
         "ajax": "true"
     }
-    soup = await soup_or_cached(url, params=params)
+    soup = await soup_or_cached(base+url, params=params)
     i = 0
     author_datas = {}
     for artikel in soup.find_all(class_="artikel"):
