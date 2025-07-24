@@ -35,7 +35,7 @@ async def scrape_search(browser, q: str, page: int = 1):
         if i >= 5: break
         if artikel.find(class_="autoren-wrapper"):
             if a:=artikel.find("a", class_="element-link-toplevel"):
-                author_id=await scrape_author_id_from_book(strip_id(a["href"]))
+                author_id=await scrape_author_id_from_book(browser, strip_id(a["href"]))
                 i+=1
                 if author_id in author_datas: continue
                 data = await scrape_author_data(browser,author_id, metadata_only=True)
