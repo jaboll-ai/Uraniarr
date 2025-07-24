@@ -233,5 +233,5 @@ async def soup_or_cached(browser, url: str, params: dict = {}, skip_cache: bool 
     else:
         html = await fetch_html(browser, url, params)
         _cache[key] = {"time": now, "html": html}
-        dump(_cache, open("cache", "wb"))
+        dump(_cache, open("/config/cache", "wb"))
     return await asyncio.to_thread(BeautifulSoup, html, "html.parser")
