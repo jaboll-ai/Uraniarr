@@ -14,7 +14,7 @@ series="/api/serienslider/v2/"
 author="/autor/-"
 author_books="/include/suche/personenportrait/v1/backliste/"
 
-try: _cache = load(open("/config/cache.pkl","rb"))
+try: _cache = load(open("/config/cache","rb"))
 except FileNotFoundError: _cache = {}
 
 async def scrape_search(browser, q: str, page: int = 1):
@@ -233,5 +233,5 @@ async def soup_or_cached(browser, url: str, params: dict = {}, skip_cache: bool 
     else:
         html = await fetch_html(browser, url, params)
         _cache[key] = {"time": now, "html": html}
-        dump(_cache, open("/config/cache", "wb"))
+        dump(_cache, open("./config/cache", "wb"))
     return await asyncio.to_thread(BeautifulSoup, html, "html.parser")
