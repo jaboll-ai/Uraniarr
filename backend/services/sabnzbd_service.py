@@ -33,7 +33,7 @@ def indexer_nzb(guid: str, cfg: ConfigManager):
     return response.content
 
 def download(nzb : bytes, cfg: ConfigManager, nzbname: str = str(uuid4())):
-    resp=httpx.post(cfg.downloader_url, params={"apikey": cfg.downloader_apikey}, data={"mode": "addfile", "nzbname": nzbname, "cat": cfg.downloader_category or ""}, files={"nzbfile": nzb})
+    resp=httpx.post(cfg.downloader_url, params={"apikey": cfg.downloader_apikey}, data={"mode": "addfile", "nzbname": nzbname, "cat": cfg.downloader_category or ""}, files={"nzbfile": ("upload.nzb", nzb, "application/x-nzb")})
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
 
 def get_config(cfg: ConfigManager, section: str, keyword: str = None) -> dict:
