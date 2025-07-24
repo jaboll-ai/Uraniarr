@@ -4,4 +4,4 @@ RapidFuzz==3.13.0
 bs4==0.0.2
 playwright-stealth==2.0.0
 uvicorn==0.34.0
-httpx==0.28.1
+requests==2.32.4
