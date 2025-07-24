@@ -4,11 +4,10 @@
 </p>
 
 > [!WARNING]
-> Doesn't work behind a VPN... yet.. maybe soon(tm)
+> Doesn't work behind a VPN... yet.. maybe soon(tm). The scraping sometimes, repeatedly fails... just try again until it works. 
 
 > [!CAUTION]
 > This project is really experimental and might not work/break something on your system. There will be dragons!
-> The scraping sometimes, repeatedly fails... just try again until it works.  
 
 > [!NOTE]  
 > I know the CSS sucks. I know there is no download all button for an author yet. Shoot me a PR tho :)
