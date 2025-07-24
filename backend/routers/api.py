@@ -3,6 +3,11 @@ from backend.dependencies import get_session, get_cfg_manager
 from sqlmodel import Session, select
 from backend.datamodels import *
 from backend.config import ConfigManager
+from backend.services.scrape_service import scrape_all_author_data
+from backend.services.author_service import save_author_to_db
+from playwright_stealth import Stealth
+from playwright.async_api import async_playwright
+import asyncio
 
 router = APIRouter(prefix="/api", tags=["database"])
 
@@ -58,4 +63,10 @@ def update_settings(settings: dict, cfg: ConfigManager = Depends(get_cfg_manager
         setattr(cfg, key, settings[key])
     return cfg.get()
 
-
+@router.post("/author/{author_id}")
+async def add_author(author_id: str, session: Session = Depends(get_session), override: bool = False):
+    async with Stealth().use_async(async_playwright()) as p:
+        browser = await p.chromium.launch(headless=True)
+        data = await scrape_all_author_data(browser, author_id)
+    resp = await asyncio.to_thread(save_author_to_db(author_id, session, data, override))
+    return resp

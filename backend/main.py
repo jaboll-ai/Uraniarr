@@ -39,6 +39,5 @@ async def handle_scrape_error(request: Request, exc: BaseError):
 
 
 app.include_router(tapi.router)
-app.include_router(mapi.router)
 app.include_router(sabnzbdapi.router)
 app.include_router(api.router)
