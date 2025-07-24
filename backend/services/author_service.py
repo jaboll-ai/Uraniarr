@@ -4,18 +4,19 @@ from rapidfuzz import fuzz
 from sqlmodel import Session
 from backend.datamodels import *
 from backend.exceptions import AuthorError
-from backend.services.scrape_service import scrape_author_data, scrape_book_editions, clean_title
+from backend.services.scrape_service import clean_title
 
-def import_author(author_id: str, session: Session, override: bool = False):
+def save_author_to_db(author_id: str, session: Session, scraped: dict, override: bool = False):
+    author_data = scraped["author_data"]
+    books_data = scraped["books"]
     if (author:=session.get(Author, author_id)):
         if not override:
             raise AuthorError(detail=f"Author {author_id} already exists", status_code=403)
         else: session.delete(author)
-    author_data = asyncio.run(scrape_author_data(author_id))
     author = Author(**author_data)
     reihen: dict[str, Reihe] = {}
-    for book_edition_id in author_data.get("_books", []):
-        eds, series_title = asyncio.run(scrape_book_editions(book_edition_id))
+
+    for eds, series_title in books_data:
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
         book = Book(autor_key=author.key)
         book.name, book.bild, book.reihe_position = eds[0].get("titel"), eds[0].get("bild"), eds[0].get("_pos")

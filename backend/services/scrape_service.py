@@ -137,6 +137,12 @@ async def scrape_author_data(browser, author_id: str, metadata_only: bool = Fals
         params["p"] += 1
     return author_data
 
+async def scrape_all_author_data(author_id: str, browser) -> dict:
+    author_data = await scrape_author_data(browser, author_id)
+    coros = [scrape_book_editions(browser, book_edition_id) for book_edition_id in author_data.get("_books", [])]
+    books = await asyncio.gather(*coros)
+    return {"author_data": author_data, "books": books}
+
 async def scrape_book_series(browser, book_id: str):
     books = {}
     params = {"seite": 1}
