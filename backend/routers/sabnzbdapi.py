@@ -22,6 +22,8 @@ def download_book(book_id: str, session: Session = Depends(get_session), cfg: Co
         (fix_umlaut(book.autor.name), book.name),
         (book.autor.name, fix_umlaut(book.name)),
     ]
+    if book.reihe_key:
+        base_queries.extend([(fix_umlaut(book.autor.name), f"{book.reihe.name} {book.reihe_position}"), (book.autor.name, f"{book.reihe.name} {book.reihe_position}")])
     for autor, name in base_queries:
         data = indexer_search(f"{autor} {name}", cfg=cfg)
         query = data["channel"]
