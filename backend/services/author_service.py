@@ -1,3 +1,4 @@
+import asyncio
 from itertools import combinations
 from rapidfuzz import fuzz
 from sqlmodel import Session
@@ -10,11 +11,11 @@ def import_author(author_id: str, session: Session, override: bool = False):
         if not override:
             raise AuthorError(detail=f"Author {author_id} already exists", status_code=403)
         else: session.delete(author)
-    author_data = scrape_author_data(author_id)
+    author_data = asyncio.run(scrape_author_data(author_id))
     author = Author(**author_data)
     reihen: dict[str, Reihe] = {}
     for book_edition_id in author_data.get("_books", []):
-        eds, series_title = scrape_book_editions(book_edition_id)
+        eds, series_title = asyncio.run(scrape_book_editions(book_edition_id))
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
         book = Book(autor_key=author.key)
         book.name, book.bild, book.reihe_position = eds[0].get("titel"), eds[0].get("bild"), eds[0].get("_pos")
