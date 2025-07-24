@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  lesarr:
+    container_name: lesarr
+    build: https://github.com/jaboll-ai/Lesarr.git#main
+    image: lesarr
+    ports:
+      - "8000:8000"
+    # volumes:
+      # - <on-host-config>:/config
+      # - <on-host-data>:/data
