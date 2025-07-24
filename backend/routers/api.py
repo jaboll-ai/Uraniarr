@@ -68,5 +68,5 @@ async def add_author(author_id: str, session: Session = Depends(get_session), ov
     async with Stealth().use_async(async_playwright()) as p:
         browser = await p.chromium.launch(headless=True)
         data = await scrape_all_author_data(browser, author_id)
-    resp = await asyncio.to_thread(save_author_to_db(author_id, session, data, override))
+    resp = save_author_to_db(author_id, session, data, override)
     return resp
