@@ -19,25 +19,7 @@ scraper = cloudscraper.create_scraper()
 try: _cache = load(open("cache","rb"))
 except FileNotFoundError: _cache = {}
 
-_playwright = None  # the Playwright driver
-_browser    = None  # the Chromium Browser
-_stealth    = Stealth()
-
-async def init_browser():
-    global _playwright, _browser
-    if _browser is None:
-        _playwright = await async_playwright().start()
-        _browser    = await _playwright.chromium.launch(headless=True)
-    return _browser
-
-async def shutdown_browser():
-    global _playwright, _browser
-    if _browser:
-        await _browser.close()
-    if _playwright:
-        await _playwright.stop()
-
-async def scrape_search(q: str, page: int = 1):
+async def scrape_search(browser, q: str, page: int = 1):
     url = "/suche"
     params = {
         "sq": q,
@@ -46,7 +28,7 @@ async def scrape_search(q: str, page: int = 1):
         "filterSPRACHE": "3",
         "ajax": "true"
     }
-    soup = await soup_or_cached(base+url, params=params)
+    soup = await soup_or_cached(browser, base+url, params=params)
     i = 0
     author_datas = {}
     for artikel in soup.find_all(class_="artikel"):
@@ -56,19 +38,19 @@ async def scrape_search(q: str, page: int = 1):
                 author_id=scrape_author_id_from_book(strip_id(a["href"]))
                 i+=1
                 if author_id in author_datas: continue
-                data = await scrape_author_data(author_id, metadata_only=True)
+                data = await scrape_author_data(browser,author_id, metadata_only=True)
                 if data.get("key") and data.get("name"): author_datas[author_id] = data
     return list(author_datas.values())
 
 
-async def scrape_author_id_from_book(book_id: str):
-    soup = await soup_or_cached(base+book+book_id)
+async def scrape_author_id_from_book(browser, book_id: str):
+    soup = await soup_or_cached(browser, base+book+book_id)
     if (a:=soup.find(class_="autor-name")) and (href:=a.get("href")):
             return strip_id_from_slug(href)
             
-async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
+async def scrape_book_editions(browser, book_id: str)-> tuple[list[dict], str]:
     ed_ids = set()
-    soup = await soup_or_cached(base+book+book_id)
+    soup = await soup_or_cached(browser, base+book+book_id)
     # with open(".mimo.html", "w") as f:
     #     f.write(soup.prettify())
     # return
@@ -83,7 +65,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         ed_ids = [book_id] # if the only edition is the one we are looking at
     series = None
     editions = []
-    coros = [soup_or_cached(base+book+e_id) for e_id in ed_ids]
+    coros = [soup_or_cached(browser, base+book+e_id) for e_id in ed_ids]
     soups = await asyncio.gather(*coros)
     for e_id, e_soup in zip(ed_ids, soups):
         ed_infos = {}
@@ -118,10 +100,10 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
                     
     return editions, series
 
-async def scrape_author_data(author_id: str, metadata_only: bool = False):
+async def scrape_author_data(browser, author_id: str, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
-    soup = await soup_or_cached(base+author+author_id)
+    soup = await soup_or_cached(browser, base+author+author_id)
     if (avatar:=soup.find(class_="autor-avatar")) and (img:=avatar.find("img")):
         author_data["bild"] = img.get("src")
     if (name:=soup.find(class_="autor-name")):
@@ -147,7 +129,7 @@ async def scrape_author_data(author_id: str, metadata_only: bool = False):
         "sort": "sfea"
     }
     while True:
-        books_soup = await soup_or_cached(base+author_books+author_id, params=params)
+        books_soup = await soup_or_cached(browser, base+author_books+author_id, params=params)
         if books_soup.find("suche-keine-treffer"): break
         for li in books_soup.find_all("li"):
             for a in li.find_all("a"):
@@ -155,11 +137,11 @@ async def scrape_author_data(author_id: str, metadata_only: bool = False):
         params["p"] += 1
     return author_data
 
-async def scrape_book_series(book_id: str):
+async def scrape_book_series(browser, book_id: str):
     books = {}
     params = {"seite": 1}
     while True:
-        soup = await soup_or_cached(base+series+book_id, params)
+        soup = await soup_or_cached(browser, base+series+book_id, params)
         if soup.text == "": break
         for li in soup.find_all("li"):
             if (a:=li.find("a", "tm-produkt-link")) and (book_li:=a.get("href")):
@@ -230,25 +212,21 @@ def fix_umlaut(text: str) -> str:
     text = re.sub(r"ß", "ss", text, flags=re.IGNORECASE)
     return text
 
-async def fetch_html(url: str, params: dict = {}) -> str:
-    browser = await init_browser()
-    ctx = await browser.new_context()
-    await _stealth.apply_stealth_async(ctx)
-    page = await ctx.new_page()
+async def fetch_html(browser, url: str, params: dict = {}) -> str:
+    page = await browser.new_page()
     target = f"{url}?{urlencode(params)}" if params else url
     await page.goto(target)
     html = await page.content()
     await page.close()
-    await ctx.close()
     return html
 
-async def soup_or_cached(url: str, params: dict = {}, skip_cache: bool = False):
+async def soup_or_cached(browser, url: str, params: dict = {}, skip_cache: bool = False):
     key = (url, tuple(sorted(params.items())))
     now = time()
     if not skip_cache and key in _cache and now - _cache[key]["time"] < 5*24*3600:
         html = _cache[key]["html"]
     else:
-        html = await fetch_html(url, params)
+        html = await fetch_html(browser, url, params)
         _cache[key] = {"time": now, "html": html}
         dump(_cache, open("cache", "wb"))
     return await asyncio.to_thread(BeautifulSoup, html, "html.parser")
