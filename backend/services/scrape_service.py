@@ -14,7 +14,7 @@ series="/api/serienslider/v2/"
 author="/autor/-"
 author_books="/include/suche/personenportrait/v1/backliste/"
 
-try: _cache = load(open("/config/cache","rb"))
+try: _cache = load(open("/config/cache.pkl","rb"))
 except FileNotFoundError: _cache = {}
 
 async def scrape_search(browser, q: str, page: int = 1):
