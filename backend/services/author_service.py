@@ -15,7 +15,7 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
         else: session.delete(author)
     author = Author(**author_data)
     reihen: dict[str, Reihe] = {}
-
+    sanity_dedub = set() # see A1040945738 for funky shit
     for eds, series_title in books_data:
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
         book = Book(autor_key=author.key)
@@ -33,7 +33,12 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
             if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
                 for idx, b in enumerate(bs):
                     b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
-        editions = [Edition(**i) for i in eds]
+        editions = []
+        for i in eds:
+            if i["key"] in sanity_dedub: #shouldnt ever happen but i came across it once so we gotta handle it -.-
+                continue
+            editions.append(Edition(**i))
+            sanity_dedub.add(i["key"])
         book.editions = editions
         author.books.append(book)
         author.reihen = list(reihen.values())
@@ -41,6 +46,7 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
     session.flush()
     for reihe in author.reihen: #really inefficient needs revisit #TODO
         for book, book2 in combinations(reihe.books, 2):
+            if not book.reihe_position or not book2.reihe_position: continue
             if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
                 for edition in book2.editions:
                     book.editions.append(edition)
