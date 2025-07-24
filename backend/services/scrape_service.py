@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-import cloudscraper
 import re
 from pickle import dump, load
 from time import time
@@ -15,7 +14,6 @@ series="/api/serienslider/v2/"
 author="/autor/-"
 author_books="/include/suche/personenportrait/v1/backliste/"
 
-scraper = cloudscraper.create_scraper()
 try: _cache = load(open("cache","rb"))
 except FileNotFoundError: _cache = {}
 
