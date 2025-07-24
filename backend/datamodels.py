@@ -21,7 +21,6 @@ class Edition(SQLModel, table=True):
     key: str = Field(primary_key=True)
     book_key: str = Field(foreign_key="book.key")
     titel: str
-    autor_key: str = Field(foreign_key="author.key")
     bild: str
     einband: Optional[str] = None
     altersempfehlung: Optional[str] = None
@@ -35,7 +34,6 @@ class Edition(SQLModel, table=True):
     ean: Optional[str] = None
     medium: Optional[str] = None
     
-    autor: "Author" = Relationship(back_populates="editions")
     book: "Book" = Relationship(back_populates="editions")
  
 class Book(SQLModel, table=True):
@@ -57,7 +55,6 @@ class Author(SQLModel, table=True):
     bild: Optional[str] = None
     bio: Optional[str] = None
     
-    editions: List["Edition"] = Relationship(back_populates="autor")
     books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     
