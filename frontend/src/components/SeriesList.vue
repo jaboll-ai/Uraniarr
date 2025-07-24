@@ -47,9 +47,9 @@ onMounted(async () => {
   try {
     const { data: seriesList } = await api.get<Series[]>(`/author/${route.params.key}/series`)
     const groups = await Promise.all(
-      seriesList.map(async (s) => {
+      seriesList.map(async (s: Series) => {
         const { data: books } = await api.get<Book[]>(`/series/${s.key}/books`)
-        books.sort((a, b) => (a.reihe_position ?? 0) - (b.reihe_position ?? 0))
+        books.sort((a: Book, b: Book) => (a.reihe_position ?? 0) - (b.reihe_position ?? 0))
         return { series: s, books }
       })
     )
