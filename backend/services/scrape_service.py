@@ -2,11 +2,9 @@ from bs4 import BeautifulSoup
 import re
 from pickle import dump, load
 from time import time
-from backend.exceptions import ScrapeError
 import asyncio
-from playwright.async_api import async_playwright
-from playwright_stealth import Stealth
 from urllib.parse import urlencode
+from pathlib import Path
 
 base="https://www.thalia.de"
 book="/shop/home/artikeldetails/"
@@ -14,6 +12,7 @@ series="/api/serienslider/v2/"
 author="/autor/-"
 author_books="/include/suche/personenportrait/v1/backliste/"
 
+Path('/config').mkdir(parents=True, exist_ok=True)
 try: _cache = load(open("/config/cache","rb"))
 except FileNotFoundError: _cache = {}
 
@@ -233,5 +232,5 @@ async def soup_or_cached(browser, url: str, params: dict = {}, skip_cache: bool 
     else:
         html = await fetch_html(browser, url, params)
         _cache[key] = {"time": now, "html": html}
-        dump(_cache, open("./config/cache", "wb"))
+        dump(_cache, open("/config/cache", "wb"))
     return await asyncio.to_thread(BeautifulSoup, html, "html.parser")
