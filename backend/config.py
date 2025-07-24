@@ -19,48 +19,51 @@ class ConfigManager:
         # Ensure directory exists
         self.config_dir.mkdir(parents=True, exist_ok=True)
         # Load or initialize data
-        if self.config_file.exists():
-            data = json.loads(self.config_file.read_text(encoding="utf-8"))
-        else:
-            data = {
-                "indexer_url": {
-                    "value": "",
-                    "input_type": "text",
-                },
-                "indexer_apikey": {
-                    "value": "",
-                    "input_type": "password",
-                },
-                "downloader_url": {
-                    "value": "",
-                    "input_type": "text",
-                },
-                "downloader_apikey": {
-                    "value": "",
-                    "input_type": "password",
-                },
-                "downloader_category": {
-                    "value": "",
-                    "input_type": "text",
-                },
-                "data_path": {
-                    "value": "",
-                    "input_type": "text",
-                },
-                "import_poll_interval": {
-                    "value": 60,
-                    "input_type": "number"
-                },
-                # "devTest": {
-                #     "value": "",
-                #     "input_type": "select",
-                #     "options": [
-                #         "Development",
-                #         "Staging",
-                #         "Production",
-                #     ],
-                # },
-            }
+        user_data = json.loads(self.config_file.read_text(encoding="utf-8")) if self.config_file.exists() else {}
+        default_data = {
+            "indexer_url": {
+                "value": "",
+                "input_type": "text",
+            },
+            "indexer_apikey": {
+                "value": "",
+                "input_type": "password",
+            },
+            "downloader_url": {
+                "value": "",
+                "input_type": "text",
+            },
+            "downloader_apikey": {
+                "value": "",
+                "input_type": "password",
+            },
+            "downloader_category": {
+                "value": "",
+                "input_type": "text",
+            },
+            "data_path": {
+                "value": "",
+                "input_type": "text",
+            },
+            "import_poll_interval": {
+                "value": 60,
+                "input_type": "number"
+            },
+            "unwanted_extensions": {
+                "value": "nfo,sample,url",
+                "input_type": "text"
+            },
+            # "devTest": {
+            #     "value": "",
+            #     "input_type": "select",
+            #     "options": [
+            #         "Development",
+            #         "Staging",
+            #         "Production",
+            #     ],
+            # },
+        }
+        data = {**default_data, **user_data}
         object.__setattr__(self, "_data", data)
 
     def _save(self) -> None:
