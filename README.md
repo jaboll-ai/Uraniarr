@@ -9,9 +9,12 @@
 > [!CAUTION]
 > This project is really experimental and might not work/break something on your system. There will be dragons!
 
+> [!NOTE]  
+> I know the CSS sucks. I know there is no download all button for an author yet. Shoot me a PR tho :)
+
 # Lesarr
 
-Lesarr is a FastAPI-based application for scraping book metadata from ***REMOVED***, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a clean architecture, separating routers, services, and models for maintainability and testability.
+Lesarr is a FastAPI-based application for scraping book metadata from ***REMOVED***, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
 
 ## Features
 
@@ -36,37 +39,30 @@ Lesarr is a FastAPI-based application for scraping book metadata from ***REMOVED
    ```bash
    docker build . -t lesarr
    ```
-3. **(Optional) Docker Compose**  
+3. **Docker Compose**  
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
    ```yaml
-   version: '3.8'
-   services:
-     lesarr:
-       image: lesarr
-       ports:
-         - "8000:8000"
-       # Configure mounts for persistent data:
-       # volumes:
-       #   - <on_host_config>:/config
-       #   - <on_host_data>:/data
+    version: '3.8'
+    services:
+    lesarr:
+        container_name: lesarr
+        build: https://github.com/jaboll-ai/Lesarr.git#main
+        image: lesarr
+        ports:
+        - "8000:8000"
+        # volumes:
+        # - <on-host-config>:/config
+        # - <on-host-data>:/data
    ```
-4. **Run the application**  
-   - With Docker:  
-     ```bash
-     docker run -p 8000:8000 \
-       -v <on_host_config>:/config \
-       -v <on_host_data>:/data \
-       lesarr
-     ```
-   - Or locally:  
-     ```bash
-     pip install -r requirements.txt
-     python entry.py
-     ```
+**ALTERNATIVE: Run the application locally (please don't)**  
+```bash
+    pip install -r requirements.txt
+    python entry.py
+```
 
 ## Contributing
 
-Contributions are welcome! Please open issues and submit pull requests.
+Again, contributions are welcome! Please open issues and submit pull requests.
 
 ## License
 
