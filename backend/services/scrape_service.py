@@ -231,7 +231,7 @@ def get_soup(url: str, params = {}):
     try:
         response = scraper.get(url, params=params)
     except Exception as e:
-        raise ScrapeError(detail = "at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
-    if response.status_code != 200: raise ScrapeError(detail="at "+ url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]) if params else url)
+        raise ScrapeError(detail = "Error at "+url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]))
+    if response.status_code != 200: raise ScrapeError(detail=f"{response.status_code} at "+ url+"?"+"&".join([f"{k}={v}" for k,v in params.items()]) if params else url)
     soup = BeautifulSoup(response.text, "html.parser")
     return soup
