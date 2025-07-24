@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from backend.db import engine
-from backend.routers import sabnzbdapi, tapi, mapi, api
+from backend.routers import sabnzbdapi, tapi, api
 from backend.exceptions import BaseError
 from backend.config import ConfigManager
 from backend.services.filehelper import poll_folder

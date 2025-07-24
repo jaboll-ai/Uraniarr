@@ -23,7 +23,6 @@ const router = createRouter({
 const BASE = import.meta.env.VITE_API_BASE || '';
 export const api    = axios.create({ baseURL: `${BASE}/api` });
 export const tapi   = axios.create({ baseURL: `${BASE}/tapi` });
-export const mapi   = axios.create({ baseURL: `${BASE}/mapi` });
 export const nzbapi = axios.create({ baseURL: `${BASE}/sabnzbdapi` });
 
 

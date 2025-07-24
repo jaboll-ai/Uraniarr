@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { tapi, mapi } from '@/main.ts'
+import { tapi, api } from '@/main.ts'
 import { getInitials } from '@/utils.ts'
 
 const route = useRoute()
@@ -48,7 +48,7 @@ let timer: number
 async function add(author: string){
   adding.value[author] = true
   try {
-    await mapi.post(`/author/${author}`)
+    await api.post(`/author/${author}`)
   } finally {
     adding.value[author] = false
   }
