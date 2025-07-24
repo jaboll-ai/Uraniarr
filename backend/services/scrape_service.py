@@ -187,7 +187,8 @@ def clean_series_title(title: str):
     ########################
     title = strip_non_word(title)
     title = re.sub(r"^Die", "", title, flags=re.UNICODE | re.M)
-    title = re.sub(r"-Reihe$", "", title, flags=re.UNICODE | re.M)
+    title = re.sub(r"-*Reihe$", "", title, flags=re.UNICODE | re.M)
+    title = re.sub(r"-*Serie$", "", title, flags=re.UNICODE | re.M)
     title = strip_non_word(title)
     title = reconstruct_parentheses(title)
     return title or bak.strip()
