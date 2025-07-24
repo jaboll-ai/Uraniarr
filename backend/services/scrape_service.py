@@ -14,7 +14,7 @@ series="/api/serienslider/v2/"
 author="/autor/-"
 author_books="/include/suche/personenportrait/v1/backliste/"
 
-try: _cache = load(open("cache","rb"))
+try: _cache = load(open("/config/cache","rb"))
 except FileNotFoundError: _cache = {}
 
 async def scrape_search(browser, q: str, page: int = 1):
@@ -119,7 +119,7 @@ async def scrape_author_data(browser, author_id: str, metadata_only: bool = Fals
     # erscheinung absteigend sfed
     # bester treffer sfmd
     # deutsch filterSPRACHE=3
-    author_data["_books"] = []
+    author_data["_books"] = set()
     params = {
         "p": 1,
         "pagesize": 48,
@@ -131,13 +131,13 @@ async def scrape_author_data(browser, author_id: str, metadata_only: bool = Fals
         if books_soup.find("suche-keine-treffer"): break
         for li in books_soup.find_all("li"):
             for a in li.find_all("a"):
-                author_data["_books"].append(strip_id(a["href"]))
+                author_data["_books"].add(strip_id(a["href"]))
         params["p"] += 1
     return author_data
 
 async def scrape_all_author_data(browser, author_id: str) -> dict:
     author_data = await scrape_author_data(browser, author_id)
-    coros = [scrape_book_editions(browser, book_edition_id) for book_edition_id in author_data.get("_books", [])]
+    coros = [scrape_book_editions(browser, book_edition_id) for book_edition_id in author_data.get("_books", set())]
     books = await asyncio.gather(*coros)
     return {"author_data": author_data, "books": books}
 
