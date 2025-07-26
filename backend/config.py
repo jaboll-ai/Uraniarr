@@ -50,7 +50,7 @@ class ConfigManager:
                 "input_type": "number"
             },
             "unwanted_extensions": {
-                "value": "nfo,sample,url",
+                "value": ".nfo,.sample,.url,.htm,.jpg,.png",
                 "input_type": "text"
             },
             # "devTest": {
