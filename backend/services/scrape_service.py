@@ -91,7 +91,9 @@ async def scrape_book_editions(browser, book_id: str)-> tuple[list[dict], str]:
                     break # we only want the first breadcrumb here
         for flag in e_soup.find_all(class_="flag"):
             if "Band" in (band:=flag.get_text(strip=True)):
-                ed_infos["_pos"] = band.replace("Band", "").strip()
+                pos = band.replace("Band", "").strip()
+                try: ed_infos["_pos"] = float(pos)
+                except ValueError: pass # TODO LOG
                 break   
         editions.append(ed_infos)
                     
