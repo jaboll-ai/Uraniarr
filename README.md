@@ -31,15 +31,7 @@ Lesarr is a FastAPI-based application for scraping book metadata from Thalia.de,
 
 ## Getting Started
 
-1. **Build the frontend assets**  
-   ```bash
-   cd frontend && npm install && npm run build && cd ..
-   ```
-2. **Build the Docker image**  
-   ```bash
-   docker build . -t lesarr
-   ```
-3. **Docker Compose**  
+**RECOMMENDED: Docker Compose**  
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
    ```yaml
     version: '3.8'
@@ -53,12 +45,21 @@ Lesarr is a FastAPI-based application for scraping book metadata from Thalia.de,
         # volumes:
         # - <on-host-config>:/config
         # - <on-host-data>:/data
+  ```
+**ALTERNATIVE: Run the application locally (please don't)** 
+1. **Build the frontend assets**  
+   ```bash
+   cd frontend && npm install && npm run build && cd ..
    ```
-**ALTERNATIVE: Run the application locally (please don't)**  
-```bash
+   **Optional: Build the Docker image**  
+   ```bash
+   docker build . -t lesarr
+   ```
+ 2. **Start**
+    ```bash
     pip install -r requirements.txt
     python entry.py
-```
+    ```
 
 ## Contributing
 
