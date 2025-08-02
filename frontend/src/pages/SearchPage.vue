@@ -98,7 +98,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 0 10px;
+  max-height: 140px;
 }
 .author-image {
   min-width: 100px;
@@ -126,7 +126,7 @@ div.author-image {
   width: min-content;
   padding: 8px 16px;
   border-radius: 8px;
-  margin: 0 10px;
+  margin: 0px 0px 0px 0px;
   border: none;
   background-color: #115300;
   color: #fff;
@@ -150,5 +150,18 @@ div.author-image {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+.author-bio {
+  border: 1px solid var(--borderColor);
+  background-color: var(--backgroundWhite);
+  border-radius: 8px;
+  overflow: auto;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  margin: 0;
+  max-height: 98px;
 }
 </style>

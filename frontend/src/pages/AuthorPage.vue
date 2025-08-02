@@ -77,7 +77,7 @@ async function downloadBook(key: string) {
 
 </script>
 
-<style>
+<style scoped>
 .tabs {
   display: flex;
   flex-direction: row;
