@@ -1,13 +1,13 @@
 services:
   lesarr:
     container_name: lesarr
-    build: https://github.com/jaboll-ai/Lesarr.git#main
+    build: .
     image: lesarr
     ports:
       - "8000:8000"
     environment:
       - CONFIG_DIR=/config
-    # volumes:
-      # - <on-host-config>:/config
-      # - <on-host-data>:/data
+    volumes:
+      - C:\Users\janni\Documents\private-git\Lesarr\config:/config
+      - C:\Users\janni\Downloads\sab:/data
     
