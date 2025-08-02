@@ -1,5 +1,8 @@
 import asyncio
 from contextlib import asynccontextmanager, suppress
+from playwright.async_api import async_playwright
+from playwright_stealth import Stealth
+from cloudscraper import create_scraper
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -11,17 +14,26 @@ from backend.routers import sabnzbdapi, tapi, api
 from backend.exceptions import BaseError
 from backend.config import ConfigManager
 from backend.services.filehelper import poll_folder
+from backend.services.request_service import set_scraper
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     cfg = ConfigManager()
     task = asyncio.create_task(poll_folder(cfg.import_poll_interval))
+    if cfg.playwright: 
+        playwright = await Stealth().use_async(async_playwright()).__aenter__()
+        browser = await playwright.chromium.launch(headless=True)
+    else:
+        browser = create_scraper()
+    set_scraper(browser)
     try:
         yield
     finally:
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        await browser.close()
+        await playwright.stop()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(

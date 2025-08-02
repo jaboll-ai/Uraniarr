@@ -7,7 +7,7 @@ from uuid import uuid4
 def id_generator():
     return uuid4().hex[:12].upper()
 
-medium_priority = {"3677": 0, "3714": 1, "4893": 2, "2": 3}
+medium_priority = {20: 0, 42: 1, 18: 2, 1: 3}
 
 class Reihe(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)
@@ -32,7 +32,7 @@ class Edition(SQLModel, table=True):
     sprache: Optional[str] = None
     isbn: Optional[str] = None
     ean: Optional[str] = None
-    medium: Optional[str] = None
+    medium: Optional[int] = None
     
     book: "Book" = Relationship(back_populates="editions")
  
