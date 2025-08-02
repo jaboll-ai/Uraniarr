@@ -44,6 +44,12 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
         author.reihen = list(reihen.values())
     session.add(author)
     session.flush()
+    for r1, r2 in combinations(author.reihen, 2):
+        if fuzz.token_set_ratio(r1.name, r2.name) > 80:
+            if not set(b.reihe_position for b in r1.books).intersection(set(b.reihe_position for b in r2.books)):
+                r1.books.extend(r2.books)
+                author.reihen.remove(r2)
+    session.flush()
     for reihe in author.reihen: #really inefficient needs revisit #TODO
         for book, book2 in combinations(reihe.books, 2):
             if not book.reihe_position or not book2.reihe_position: continue

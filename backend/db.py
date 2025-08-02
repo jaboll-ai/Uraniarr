@@ -1,6 +1,5 @@
 from sqlmodel import create_engine
-from pathlib import Path
+from backend.config import ConfigManager
 
-Path('/config').mkdir(parents=True, exist_ok=True)
-DATABASE_URL = "sqlite:////config/database.db"
+DATABASE_URL = f"sqlite:///{ConfigManager.config_dir.as_posix()}/database.db"
 engine = create_engine(DATABASE_URL)
