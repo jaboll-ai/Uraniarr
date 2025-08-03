@@ -3,11 +3,13 @@
     <div class="cell">
       <img class="book-icon" :src="book.bild" :alt="book.name" />
     </div>
-    <div class="cell book-title">{{ book.name }}</div>
+    <div class="cell book-title">
+      <span>{{ book.name }}</span>
+    </div>
     <div class="cell book-key">{{ book.key }}</div>
     <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
-    <div class="cell book-edit">
-      <button class="edit-btn" @click="$emit('downloadBook', props.book.key)">Download</button>
+    <div class="cell book-download">
+      <button class="download-btn material-icons" @click="$emit('downloadBook', props.book.key)">download</button>
     </div>
   </div>
 </template>
@@ -66,15 +68,20 @@ const props = defineProps<{ book: Book }>()
 .book-title,
 .book-key,
 .book-pos,
-.book-edit {
+.book-download {
   vertical-align: middle;
 }
 
-.book-edit {
+.book-download {
   text-align: right;
 }
-.edit-btn{
+.download-btn{
   color: var(--lightGray);
   background-color: transparent;
+}
+
+.book-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

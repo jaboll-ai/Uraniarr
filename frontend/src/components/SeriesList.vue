@@ -4,8 +4,13 @@
       v-for="group in seriesGroups"
       :key="group.series.key"
       class="series-group"
-    >
-      <h3 class="series-name">{{ group.series.name }}</h3>
+    > 
+      <div style="display: flex;">
+        <h3 class="series-name">{{ group.series.name }}</h3>
+        <div class="series-complete">
+          <button class="complete-btn" @click="$emit('completeSeries', group.series.key)">Complete</button>
+        </div>
+      </div>
       <div class="book-list">
         <BookItem
           v-for="book in group.books"
@@ -79,10 +84,23 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
+.series-complete {
+  vertical-align: middle;
+  text-align: right;
+}
+.complete-btn{
+  color: var(--lightGray);
+  background-color: #115300;
+  padding: 8px 16px;
+  color: #fff;
+  margin: 10px 0;
+}
+
 .series-name {
   font-size: 1.2rem;
   font-weight: 600;
   margin: 10px 0;
+  flex-grow: 1;
 }
 
 .book-list {
