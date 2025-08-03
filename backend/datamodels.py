@@ -13,7 +13,9 @@ class Reihe(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=id_generator)
     name: str
     autor_key: str = Field(foreign_key="author.key")
-    
+    a_dl_loc: Optional[str] = None
+    b_dl_loc: Optional[str] = None
+
     autor: "Author" = Relationship(back_populates="reihen")
     books: List["Book"] = Relationship(back_populates="reihe", sa_relationship_kwargs={"order_by": "Book.reihe_position"})
 
@@ -43,6 +45,8 @@ class Book(SQLModel, table=True):
     bild: Optional[str] = None
     reihe_key: Optional[str] = Field(default=None, foreign_key="reihe.key")
     reihe_position: Optional[float] = None
+    a_dl_loc: Optional[str] = None
+    b_dl_loc: Optional[str] = None
     
     autor: "Author" = Relationship(back_populates="books")
     reihe: Optional["Reihe"] = Relationship(back_populates="books")
@@ -54,6 +58,8 @@ class Author(SQLModel, table=True):
     name: str
     bild: Optional[str] = None
     bio: Optional[str] = None
+    a_dl_loc: Optional[str] = None
+    b_dl_loc: Optional[str] = None
     
     books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})

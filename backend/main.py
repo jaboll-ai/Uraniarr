@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 
 from backend.db import engine
-from backend.routers import sabnzbdapi, tapi, api
+from backend.routers import dapi, tapi, api
 from backend.exceptions import BaseError
 from backend.config import ConfigManager
 from backend.services.filehelper import poll_folder
@@ -52,5 +52,5 @@ async def handle_scrape_error(request: Request, exc: BaseError):
 
 
 app.include_router(tapi.router)
-app.include_router(sabnzbdapi.router)
+app.include_router(dapi.router)
 app.include_router(api.router)
