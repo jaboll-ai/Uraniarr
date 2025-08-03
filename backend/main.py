@@ -32,8 +32,9 @@ async def lifespan(app: FastAPI):
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
-        await browser.close()
-        await playwright.stop()
+        if cfg.playwright:    
+            await browser.close()
+            await playwright.stop()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(

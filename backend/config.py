@@ -58,6 +58,10 @@ class ConfigManager:
                 "value": False,
                 "input_type": "checkbox"
             },
+            "known_bundles": {
+                "value": "Krimi Box,Krimi-Box",
+                "input_type": "text"
+            }
             # "devTest": {
             #     "value": "",
             #     "input_type": "select",

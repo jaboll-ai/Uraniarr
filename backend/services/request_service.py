@@ -3,6 +3,7 @@ from time import time
 from urllib.parse import urlencode
 from backend.config import ConfigManager
 import asyncio
+from backend.exceptions import ScrapeError
 
 
 cache_dir = ConfigManager.config_dir / "cache"
@@ -20,13 +21,15 @@ async def fetch(url: str, params: dict = {}) -> dict:
     cfg = ConfigManager()
     target = f"{url}?{urlencode(params)}" if params else url
     if cfg.playwright:
-        page = await scraper.new_page()
-        await page.goto(target)
-        data = await page.body()
-        await page.close()
+        response = await scraper.new_page()
+        await response.goto(target)
+        data = await response.body()
+        await response.close()
     else:
         response = await asyncio.to_thread(scraper.get, target)
         data = response.content
+    if not data:
+        raise ScrapeError(status_code=response.status_code, detail=response.text)
     return data
 
 async def fetch_or_cached(url: str, params: dict = {}):
