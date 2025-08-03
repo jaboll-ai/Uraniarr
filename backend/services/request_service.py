@@ -17,14 +17,18 @@ def set_scraper(s):
     global scraper
     scraper = s
 
-async def fetch(url: str, params: dict = {}) -> dict:
+async def fetch(url: str, params: dict, xhr: bool) -> dict:
     cfg = ConfigManager()
     target = f"{url}?{urlencode(params)}" if params else url
     if cfg.playwright:
-        response = await scraper.new_page()
-        await response.goto(target)
-        data = await response.body()
-        await response.close()
+        page = await scraper.new_page()
+        if xhr: xhrPromise = page.wait_for_response(target)
+        await page.goto(target)
+        if xhr: 
+            data = await xhrPromise
+        else:
+            data = await page.content()
+        await page.close()
     else:
         response = await asyncio.to_thread(scraper.get, target)
         data = response.content
@@ -32,14 +36,14 @@ async def fetch(url: str, params: dict = {}) -> dict:
         raise ScrapeError(status_code=response.status_code, detail=response.text)
     return data
 
-async def fetch_or_cached(url: str, params: dict = {}):
+async def fetch_or_cached(url: str, params: dict = {}, xhr: bool = True):
     cfg = ConfigManager()
     key = (url, tuple(sorted(params.items())))
     now = time()
     if not cfg.skip_cache and key in _cache and now - _cache[key]["time"] < 5*24*3600:
         data = _cache[key]["data"]
     else:
-        data = await fetch(url, params)
+        data = await fetch(url, params, xhr)
         _cache[key] = {"time": now, "data": data}
         dump(_cache, cache_dir.open("wb"))
     return data
