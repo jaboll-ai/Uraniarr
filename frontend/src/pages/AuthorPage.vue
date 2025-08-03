@@ -4,7 +4,10 @@
       <div class="author-info">
         <h2 class="author-name">{{ author?.name }}</h2>
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
-      <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
+        <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
+        <div class="download-all">
+          <button class="downloadAll-btn" @click="downloadAll(author?.key)">Download All</button>
+        </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
     </div>
@@ -20,7 +23,7 @@
     </div>
     <div class="panel">
       <keep-alive>
-        <component :is="currentComponent"  @downloadBook="downloadBook"/>
+        <component :is="currentComponent"  @downloadBook="downloadBook" @completeSeries="completeSeries"/>
       </keep-alive>
     </div>
   </div>
@@ -29,7 +32,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { api, nzbapi as sabnzbdapi } from '@/main.ts'
+import { api, dapi as dapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
@@ -69,10 +72,24 @@ const currentComponent = computed(() => componentsMap[current.value])
 
 async function downloadBook(key: string) {
   try {
-    sabnzbdapi.post(`/book/${key}`)
+    dapi.post(`/book/${key}`)
   } catch (err) {
     console.error('Failed to send or grab nzb', err)
   }
+}
+
+
+async function completeSeries(key: string) {
+  try {
+    api.post(`/series/complete/${key}`)
+  } catch (err) {
+    console.error('Failed to complete series', err)
+  }
+}
+
+async function downloadAll(key:string | undefined) {
+  if (!key) return
+  console.log(key)
 }
 
 </script>
@@ -107,7 +124,6 @@ async function downloadBook(key: string) {
   justify-content: center;
 }
 .author-header {
-  max-height: 300px;
   display: flex;
   gap: 16px;
   padding: 10px 10px;
@@ -142,5 +158,16 @@ div.author-image {
   font-size: 24px;
   border-radius: 50%;
   margin-bottom: 16px;
+}
+
+.download-all {
+  vertical-align: middle;
+  text-align: center;
+}
+.downloadAll-btn{
+  background-color: #115300;
+  padding: 8px 16px;
+  color: #fff;
+  margin: 10px 0px;
 }
 </style>
