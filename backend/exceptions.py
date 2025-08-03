@@ -16,3 +16,6 @@ class NzbsError(BaseError):
 
 class FileError(BaseError):
     pass
+
+class IndexerError(BaseError):
+    pass
