@@ -6,6 +6,7 @@
         :key="book.key"
         :book="book"
         @downloadBook="$emit('downloadBook', $event)"
+        @deleteBook="$emit('deleteBook', $event)"
       />
     </div>
   </div>

@@ -6,7 +6,7 @@
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
-          <button class="downloadAll-btn" @click="downloadAll(author?.key)">Download All</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">download</button>
         </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
@@ -23,7 +23,8 @@
     </div>
     <div class="panel">
       <keep-alive>
-        <component :is="currentComponent"  @downloadBook="downloadBook" @completeSeries="completeSeries"/>
+        <component :is="currentComponent"  @downloadBook="downloadBook" @completeSeries="completeSeries"
+          @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook"/>
       </keep-alive>
     </div>
   </div>
@@ -74,10 +75,26 @@ async function downloadBook(key: string) {
   try {
     dapi.post(`/book/${key}`)
   } catch (err) {
-    console.error('Failed to send or grab nzb', err)
+    console.error('Failed to download Book', err)
   }
 }
 
+async function downloadSeries(key: string) {
+  try {
+    dapi.post(`/series/${key}`)
+  } catch (err) {
+    console.error('Failed to download Series', err)
+  }
+}
+
+async function downloadAuthor(key:string | undefined) {
+  if (!key) return
+  try {
+    dapi.post(`/author/${key}`)
+  } catch (err) {
+    console.error('Failed to download Author', err)
+  }
+}
 
 async function completeSeries(key: string) {
   try {
@@ -87,14 +104,28 @@ async function completeSeries(key: string) {
   }
 }
 
-async function downloadAll(key:string | undefined) {
-  if (!key) return
-  console.log(key)
+async function deleteBook(key: string) {
+  const confirmDelete = confirm('Are you sure you want to delete this book?')
+  if (!confirmDelete) return
+  try {
+    api.delete(`/book/${key}`)
+  } catch (err) {
+    console.error('Failed to delete book', err)
+  }
 }
 
+async function deleteSeries(key: string) {
+  const confirmDelete = confirm('Are you sure you want to delete this series?')
+  if (!confirmDelete) return
+  try {
+    api.delete(`/series/${key}`)
+  } catch (err) {
+    console.error('Failed to delete series', err)
+  }
+}
 </script>
 
-<style>
+<style scoped>
 .tabs {
   display: flex;
   flex-direction: row;
@@ -118,6 +149,7 @@ async function downloadAll(key:string | undefined) {
 .author-page {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 .author-name {
   display: flex;
@@ -147,6 +179,7 @@ async function downloadAll(key:string | undefined) {
   box-sizing: border-box;
   margin: 0;
   margin-top: 75px;
+  flex: 1;
 }
 div.author-image {
   display: flex;
@@ -164,10 +197,10 @@ div.author-image {
   vertical-align: middle;
   text-align: center;
 }
-.downloadAll-btn{
-  background-color: #115300;
-  padding: 8px 16px;
+.ctrl-btn{
+  color: var(--lightGray);
+  padding: 0px 8px;
   color: #fff;
-  margin: 10px 0px;
+  margin: 10px 2px;
 }
 </style>

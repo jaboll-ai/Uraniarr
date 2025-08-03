@@ -44,12 +44,6 @@ def get_books_of_series(series_id: str, session: Session = Depends(get_session))
         return reihe.books
     raise HTTPException(status_code=404, detail="Series not found") 
 
-@router.delete("/author/{author_id}")
-def delete_author(author_id: str, session: Session = Depends(get_session)):
-    session.delete(session.get(Author, author_id))
-    session.commit()
-    return {"deleted": author_id}
-
 @router.get("/settings")
 def get_settings(cfg: ConfigManager = Depends(get_cfg_manager)):
     """Retrieve all configuration settings."""
