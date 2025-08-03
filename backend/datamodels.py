@@ -17,7 +17,7 @@ class Reihe(SQLModel, table=True):
     b_dl_loc: Optional[str] = None
 
     autor: "Author" = Relationship(back_populates="reihen")
-    books: List["Book"] = Relationship(back_populates="reihe", sa_relationship_kwargs={"order_by": "Book.reihe_position"})
+    books: List["Book"] = Relationship(back_populates="reihe", sa_relationship_kwargs={"order_by": "Book.reihe_position", "cascade": "all, delete-orphan"})
 
 class Edition(SQLModel, table=True):
     key: str = Field(primary_key=True)

@@ -104,13 +104,10 @@ async def scrape_book_series(book_id: str):
     _data = await fetch_or_cached(base+series+book_id, params)
     data = json.load(BytesIO(_data))
     coros = []
-    if not data.get("totalPages"): 
-        print(data)
     for i in range(2, data["totalPages"]+1):
         coros.append(fetch_or_cached(base+series+book_id, {**params, "page": i}))
     datas = [_data] + await asyncio.gather(*coros)
     for d in datas:
-        print(d, "\n"+"-"*50)
         d = json.load(BytesIO(d))
         for werk in d["sliderArtikelList"]:
             book_info = {}

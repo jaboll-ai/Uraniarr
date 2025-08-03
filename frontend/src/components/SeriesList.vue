@@ -7,9 +7,9 @@
     > 
       <div style="display: flex;">
         <h3 class="series-name">{{ group.series.name }}</h3>
-        <div class="series-complete">
-          <button class="complete-btn" @click="$emit('completeSeries', group.series.key)">Complete</button>
-        </div>
+        <button title="Include other-author books of this series" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
+        <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
+        <button title="Delete entire Series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
       <div class="book-list">
         <BookItem
@@ -17,6 +17,7 @@
           :key="book.key"
           :book="book"
           @downloadBook="$emit('downloadBook', $event)"
+          @deleteBook="$emit('deleteBook', $event)"
         />
       </div>
     </div>
@@ -84,16 +85,11 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
-.series-complete {
-  vertical-align: middle;
-  text-align: right;
-}
-.complete-btn{
+.ctrl-btn{
   color: var(--lightGray);
-  background-color: #115300;
-  padding: 8px 16px;
+  padding: 0px 8px;
   color: #fff;
-  margin: 10px 0;
+  margin: 10px 2px;
 }
 
 .series-name {

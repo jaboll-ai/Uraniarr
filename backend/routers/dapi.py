@@ -34,7 +34,7 @@ def download_author(author_id: str, session: Session = Depends(get_session), cfg
         download(nzb, nzbname=book.key, cfg=cfg)
     return author_id
 
-@router.post("/author/{reihe_id}")
+@router.post("/reihe/{reihe_id}")
 def download_reihe(reihe_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     reihe = session.get(Reihe, reihe_id)
     if not reihe:
