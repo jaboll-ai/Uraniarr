@@ -32,7 +32,7 @@ async def scrape_search(q: str, page: int = 1):
 
 
 async def scrape_author_id_from_book(book_id: str):
-    soup = await fetch_or_cached(base+book+book_id)
+    soup = await fetch_or_cached(base+book+book_id, xhr=False)
     if (a:=soup.find(class_="autor-name")) and (href:=a.get("href")):
             return strip_id_from_slug(href)
             
@@ -62,7 +62,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
 async def scrape_author_data(author_id: str, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
-    data = await fetch_or_cached(base+author+author_id)
+    data = await fetch_or_cached(base+author+author_id, xhr=False)
     soup = await asyncio.to_thread(BeautifulSoup, data, "html.parser")
     if (avatar:=soup.find(class_="autor-avatar")) and (img:=avatar.find("img")):
         author_data["bild"] = img.get("src")
