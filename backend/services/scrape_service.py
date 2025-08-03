@@ -4,31 +4,31 @@ from backend.services.request_service import fetch_or_cached
 from bs4 import BeautifulSoup
 from io import BytesIO
 import json
+from backend.config import ConfigManager
 
 base="https://www.thalia.de"
 book="/api/2003/artikel/v4/"
 series="/api/2003/serienartikel/v4/"
 author="/autor/-"
-author_books="/include/suche/personenportrait/v1/backliste/"
-
+suche = "/api/rest/suche/v5"
 
 async def scrape_search(q: str, page: int = 1):
-    url = "/api/rest/suche/v5"
     params = {
         "suchbegriff": q,
         "artikelProSeite": "5",
         "seite": page,
         "filterSPRACHE": "3"
     }
-    data = await fetch_or_cached(base+url, params=params)
-    print(data)
+    data = await fetch_or_cached(base+suche, params=params)
     data = json.load(BytesIO(data))
     author_datas = set()
     for artikel in data["artikelliste"]:
         for personen in artikel["personen"]:
             if personen["typ"] == "Autor":
                 author_datas.add(str(personen["identNr"]))
-    return [await scrape_author_data(identNr, metadata_only=True) for identNr in author_datas]
+    coros = [scrape_author_data(identNr, metadata_only=True) for identNr in author_datas] # TODO LOGGGG
+    ids = await asyncio.gather(*coros)
+    return ids
 
 
 async def scrape_author_id_from_book(book_id: str):
@@ -40,19 +40,24 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
     data = await fetch_or_cached(base+book+book_id)
     data = json.load(BytesIO(data))[0]
     editions = []
-    series = None
-    for werk in data["werkArtikel"]:
+    series_name = None
+    for werk in data.get("werkArtikel", [data]):
         ed_info = {}
         ed_info["key"] = werk["ID"]["matnr"]
         ed_info["titel"] = werk["titel"]
         ed_info["bild"] = werk["media"]["bilder"][0]["migrationUrlTemplateFixedScaling"].format(resolutionKey="00")
         ed_info["medium"] = werk["shop"]["identNr"]
         if data["serie"]["hatSerienslider"]:
-            ed_info["_pos"] = data["serie"]["nummer"]
-            if not series:
-                series = clean_series_title(data["serie"]["name"])
+            cfg = ConfigManager()
+            is_bndl = False
+            for bndl in cfg.known_bundles.split(","):
+                is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
+            if not is_bndl:
+                ed_info["_pos"] = data["serie"].get("nummer") # we only assign pos if not a bundle #TODO?
+            if not series_name:
+                series_name = clean_series_title(data["serie"]["name"])
         editions.append(ed_info)
-    return editions, series
+    return editions, series_name
 
 async def scrape_author_data(author_id: str, metadata_only: bool = False):
     author_data={}
@@ -67,30 +72,24 @@ async def scrape_author_data(author_id: str, metadata_only: bool = False):
         if (bio_div := bio_container.find("div", class_="toggle-text-content")):
             author_data["bio"] = bio_div.get_text().strip()
     if metadata_only: return author_data
-    #pagesize max 48
-    #page: p
-    # sort top beweretung : sfsd
-    # presi aufsteigend sfpa
-    # preis absteigend sfpd
-    # erscheinung aufsteigend sfea
-    # erscheinung absteigend sfed
-    # bester treffer sfmd
-    # deutsch filterSPRACHE=3
     author_data["_books"] = set()
     params = {
-        "p": 1,
-        "pagesize": 48,
-        "filterSPRACHE": 3,
-        "sort": "sfea"
+        "suchbegriff": author_data["name"],
+        "artikelProSeite": "30",
+        "seite": 1,
+        "filterSPRACHE": "3",
+        "sortierung": "Erscheinungsdatum_asc"
     }
-    while True:
-        data = await fetch_or_cached(base+author_books+author_id, params=params)
-        books_soup = await asyncio.to_thread(BeautifulSoup, data, "html.parser")
-        if books_soup.find("suche-keine-treffer"): break
-        for li in books_soup.find_all("li"):
-            for a in li.find_all("a"):
-                author_data["_books"].add(strip_id(a["href"]))
-        params["p"] += 1
+    _data = await fetch_or_cached(base+suche+"/mehr-von-autor", params)
+    data = json.load(BytesIO(_data))
+    coros = []
+    for i in range(2, data["paginierung"]["anzahlSeiten"]+1):
+        coros.append(fetch_or_cached(base+suche+"/mehr-von-autor", {**params, "seite": i}))
+    datas = [_data] + await asyncio.gather(*coros)
+    for data in datas:
+        data = json.load(BytesIO(data))
+        for artikel in data["artikelliste"]:
+            author_data["_books"].add(artikel["identifier"]["matnr"])
     return author_data
 
 async def scrape_all_author_data(author_id: str) -> dict:
@@ -100,15 +99,33 @@ async def scrape_all_author_data(author_id: str) -> dict:
     return {"author_data": author_data, "books": books}
 
 async def scrape_book_series(book_id: str):
-    books = {}
+    books = []
     params = {"max": 50, "page": 1}
-    data = await fetch_or_cached(base+series+book_id, params)
-    data = json.load(BytesIO(data))
-    for i in range(data["totalPages"]):
-        for book in data["sliderArtikelList"]:
-            pass
-        params["page"] = i+1
-    params["page"] += 1
+    _data = await fetch_or_cached(base+series+book_id, params)
+    data = json.load(BytesIO(_data))
+    coros = []
+    if not data.get("totalPages"): 
+        print(data)
+    for i in range(2, data["totalPages"]+1):
+        coros.append(fetch_or_cached(base+series+book_id, {**params, "page": i}))
+    datas = [_data] + await asyncio.gather(*coros)
+    for d in datas:
+        print(d, "\n"+"-"*50)
+        d = json.load(BytesIO(d))
+        for werk in d["sliderArtikelList"]:
+            book_info = {}
+            book_info["key"] = werk["ID"]["matnr"]
+            book_info["titel"] = clean_title(werk["titel"], werk["serie"].get("name"), werk["serie"].get("nummer"))
+            book_info["bild"] = werk["media"]["bilder"][0]["migrationUrlTemplateFixedScaling"].format(resolutionKey="00")
+            book_info["medium"] = werk["shop"]["identNr"]
+            cfg = ConfigManager()
+            is_bndl = False
+            for bndl in cfg.known_bundles.split(","):
+                is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
+            if not is_bndl:
+                book_info["_pos"] = werk["serie"].get("nummer") # we only assign pos if not a bundle #TODO?
+            books.append(book_info)
+    print()
     return books
 
 def strip_id(url: str):
@@ -123,10 +140,11 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None):
     if series_title and title == bak:
         title = title.replace(series_title.replace("-", " "), "")
     
-    series_pos = series_pos or ""
+    series_pos = round(float(series_pos or 0)) or "" # TODO
+    title = re.sub(r"\(.*kürz.*\)", "", title, re.I) # remove (gekürzte Lesung) and alike
     title = strip_non_word(title)
     title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*0*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
-    title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|)\W*0*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
+    title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*0*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
     #### Known patterns ####
     title = title.replace(" - , Teil", "")
     ########################

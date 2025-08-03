@@ -3,8 +3,8 @@ from backend.dependencies import get_session, get_cfg_manager
 from sqlmodel import Session, select
 from backend.datamodels import *
 from backend.config import ConfigManager
-from backend.services.scrape_service import scrape_all_author_data
-from backend.services.author_service import save_author_to_db
+from backend.services.scrape_service import scrape_all_author_data, scrape_book_series
+from backend.services.author_service import save_author_to_db, complete_series_in_db
 import asyncio
 
 router = APIRouter(prefix="/api", tags=["database"])
@@ -65,4 +65,12 @@ def update_settings(settings: dict, cfg: ConfigManager = Depends(get_cfg_manager
 async def add_author(author_id: str, session: Session = Depends(get_session), override: bool = False):
     data = await scrape_all_author_data(author_id)
     resp = await asyncio.to_thread(save_author_to_db, author_id, session, data, override)
+    return resp
+
+@router.post("/series/complete/{series_id}")
+async def complete_series_of_author(series_id: str, session: Session = Depends(get_session)):
+    reihe = session.get(Reihe, series_id)
+    ed_id = min(reihe.books, key=lambda b: (b.reihe_position or 999)).editions[0].key
+    data = await scrape_book_series(ed_id)
+    resp = await asyncio.to_thread(complete_series_in_db, series_id, session, data)
     return resp
