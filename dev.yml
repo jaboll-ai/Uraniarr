@@ -8,6 +8,6 @@ services:
     environment:
       - CONFIG_DIR=/config
     volumes:
-      - C:\Users\janni\Documents\private-git\Lesarr\config:/config
-      - C:\Users\janni\Downloads\sab:/data
+      - <dev>:/config
+      - <dev>:/data
     
