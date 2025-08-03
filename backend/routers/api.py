@@ -5,6 +5,7 @@ from backend.datamodels import *
 from backend.config import ConfigManager
 from backend.services.scrape_service import scrape_all_author_data, scrape_book_series
 from backend.services.author_service import save_author_to_db, complete_series_in_db
+from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author
 import asyncio
 
 router = APIRouter(prefix="/api", tags=["database"])
@@ -74,3 +75,42 @@ async def complete_series_of_author(series_id: str, session: Session = Depends(g
     data = await scrape_book_series(ed_id)
     resp = await asyncio.to_thread(complete_series_in_db, series_id, session, data)
     return resp
+
+@router.delete("/series/{series_id}")
+def delete_series(series_id: str, session: Session = Depends(get_session), files: bool = False):
+    if files:
+        delete_audio_reihe(series_id, session)
+    session.delete(session.get(Reihe, series_id))
+    session.commit()
+    return {"deleted": series_id}
+
+@router.delete("/series/{series_id}/files")
+def delete_series_files(series_id: str, session: Session = Depends(get_session)):
+    delete_audio_reihe(series_id, session)
+    return {"deleted files": series_id}
+
+@router.delete("/book/{book_id}")
+def delete_book(book_id: str, session: Session = Depends(get_session), files: bool = False):
+    if files:
+        delete_audio_book(book_id, session)
+    session.delete(session.get(Book, book_id))
+    session.commit()
+    return {"deleted": book_id}
+
+@router.delete("/book/{book_id}/files")
+def delete_book_files(book_id: str, session: Session = Depends(get_session)):
+    delete_audio_book(book_id, session)
+    return {"deleted files": book_id}
+
+@router.delete("/author/{author_id}")
+def delete_author(author_id: str, session: Session = Depends(get_session), files: bool = False):
+    if files:
+        delete_audio_author(author_id, session)
+    session.delete(session.get(Author, author_id))
+    session.commit()
+    return {"deleted": author_id}
+
+@router.delete("/author/{author_id}/files")
+def delete_author_files(author_id: str, session: Session = Depends(get_session)):
+    delete_audio_author(author_id, session)
+    return {"deleted files": author_id}
