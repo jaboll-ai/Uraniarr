@@ -22,11 +22,13 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
     target = f"{url}?{urlencode(params)}" if params else url
     if cfg.playwright:
         page = await scraper.new_page()
-        if xhr: xhrPromise = page.wait_for_response(target)
-        await page.goto(target)
-        if xhr: 
-            data = await xhrPromise
+        if xhr:
+            async with page.expect_response(target) as response_info:
+                await page.goto(target)
+            response = await response_info.value
+            data = await response.body()
         else:
+            await page.goto(target)
             data = await page.content()
         await page.close()
     else:
