@@ -25,10 +25,10 @@ async def scrape_search(q: str, page: int = 1):
     for artikel in data["artikelliste"]:
         for personen in artikel["personen"]:
             if personen["typ"] == "Autor":
-                author_datas.add(str(personen["identNr"]))
-    coros = [scrape_author_data(identNr, metadata_only=True) for identNr in author_datas] # TODO LOGGGG
+                author_datas.add((str(personen["identNr"]), personen.get("name")))
+    coros = [scrape_author_data(identNr, name, metadata_only=True) for identNr, name in author_datas] # TODO LOGGGG
     ids = await asyncio.gather(*coros)
-    return ids
+    return [id_ for id_ in ids if id_ is not None]
 
 
 async def scrape_author_id_from_book(book_id: str):
@@ -59,19 +59,24 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         editions.append(ed_info)
     return editions, series_name
 
-async def scrape_author_data(author_id: str, metadata_only: bool = False):
+async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
     data = await fetch_or_cached(base+author+author_id, xhr=False)
     soup = await asyncio.to_thread(BeautifulSoup, data, "html.parser")
     if (avatar:=soup.find(class_="autor-avatar")) and (img:=avatar.find("img")):
         author_data["bild"] = img.get("src")
-    if (name:=soup.find(class_="autor-name")):
+    if name:
+        author_data["name"] = name
+    elif (name:=soup.find(class_="autor-name")):
         author_data["name"] = name.get_text(strip=True)
     if (bio_container := soup.find(class_="autor-portrait")):
         if (bio_div := bio_container.find("div", class_="toggle-text-content")):
             author_data["bio"] = bio_div.get_text().strip()
-    if metadata_only: return author_data
+    if metadata_only: 
+        if author_data.get("name") is None:
+            return
+        return author_data
     author_data["_books"] = set()
     params = {
         "suchbegriff": author_data["name"],
