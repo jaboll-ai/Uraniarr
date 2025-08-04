@@ -10,15 +10,15 @@
     <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
     <div class="cell book-download">
       <button class="download-btn material-symbols-outlined" @click="showEditor = true">edit</button>
-      <button class="download-btn material-symbols-outlined" @click="$emit('downloadBook', props.book.key)">download</button>
-      <button class="download-btn material-symbols-outlined" @click="$emit('deleteBook', props.book.key)">delete</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', props.book.key)">download</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', props.book.key)">delete</button>
     </div>
   </div>
   <EditModal
       :visible="showEditor"
       :book="book"
       @close="showEditor = false"
-      @editBook="(book: any) => $emit('editBook', book)"
+      @editBook="(book: any) => emit('editBook', book)"
     />
 </template>
 
