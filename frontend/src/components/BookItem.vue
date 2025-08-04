@@ -3,27 +3,46 @@
     <div class="cell">
       <img class="book-icon" :src="book.bild" :alt="book.name" />
     </div>
-    <div class="cell book-title">{{ book.name }}</div>
+    <div class="cell book-title">
+      <span>{{ book.name }}</span>
+    </div>
     <div class="cell book-key">{{ book.key }}</div>
     <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
-    <div class="cell book-edit">
-      <button class="edit-btn" @click="$emit('downloadBook', props.book.key)">Download</button>
+    <div class="cell book-download">
+      <button class="download-btn material-symbols-outlined" @click="showEditor = true">edit</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', props.book.key)">download</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', props.book.key)">delete</button>
     </div>
   </div>
+  <EditModal
+      :visible="showEditor"
+      :book="book"
+      @close="showEditor = false"
+      @editBook="(book: any) => emit('editBook', book)"
+    />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import EditModal from '@/components/EditModal.vue'
 interface Book {
-  name: string
   key: string
+  name: string
   autor_key: string
-  reihe_key: string | null
-  bild: string
-  reihe_position: number | null
+  bild?: string
+  reihe_key?: string
+  reihe_position?: number
+  a_dl_loc?: string
+  b_dl_loc?: string
 }
 
 const props = defineProps<{ book: Book }>()
-
+const emit = defineEmits<{
+  (e: 'downloadBook', key: string): void
+  (e: 'deleteBook', key: string): void
+  (e: 'editBook', book: Book): void
+}>()
+const showEditor = ref(false)
 </script>
 
 <style scoped>
@@ -66,15 +85,20 @@ const props = defineProps<{ book: Book }>()
 .book-title,
 .book-key,
 .book-pos,
-.book-edit {
+.book-download {
   vertical-align: middle;
 }
 
-.book-edit {
+.book-download {
   text-align: right;
 }
-.edit-btn{
+.download-btn{
   color: var(--lightGray);
   background-color: transparent;
+}
+
+.book-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

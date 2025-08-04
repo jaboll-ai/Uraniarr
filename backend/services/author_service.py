@@ -1,7 +1,7 @@
 import asyncio
 from itertools import combinations
 from rapidfuzz import fuzz
-from sqlmodel import Session
+from sqlmodel import Session, select
 from backend.datamodels import *
 from backend.exceptions import AuthorError
 from backend.services.scrape_service import clean_title
@@ -34,8 +34,9 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
                 for idx, b in enumerate(bs):
                     b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
         editions = []
+        in_db = set(session.exec(select(Edition.key)).all())
         for i in eds:
-            if i["key"] in sanity_dedub: #shouldnt ever happen but i came across it once so we gotta handle it -.-
+            if i["key"] in sanity_dedub or i["key"] in in_db:
                 continue
             editions.append(Edition(**i))
             sanity_dedub.add(i["key"])
@@ -43,6 +44,17 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
         author.books.append(book)
         author.reihen = list(reihen.values())
     session.add(author)
+    # session.flush()
+    # for r1, r2 in combinations(author.reihen, 2):
+    #     if fuzz.token_set_ratio(r1.name, r2.name) > 80:
+    #         if len(r1.name) > len(r2.name): r1, r2 = r2, r1
+    #         if not set(b.reihe_position for b in r1.books).intersection(set(b.reihe_position for b in r2.books)):
+    #             r1.books.extend(r2.books)
+    #             author.reihen.remove(r2)
+    #             # session.flush()
+    #             for book in r1.books:
+    #                 print(book.name, r1.name, book.reihe_position)
+    #                 book.name = clean_title(book.name, r1.name, book.reihe_position)
     session.flush()
     for reihe in author.reihen: #really inefficient needs revisit #TODO
         for book, book2 in combinations(reihe.books, 2):
@@ -53,3 +65,17 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
                 author.books.remove(book2)
     session.commit()
     return author.key
+
+def complete_series_in_db(series_id: str, session: Session, scraped: dict):
+    reihe = session.get(Reihe, series_id)
+    positions = set(b.reihe_position for b in reihe.books)
+    if not reihe:
+        raise AuthorError(status_code=404, detail="Series not found")
+    for book_data in scraped:
+        if session.get(Edition, book_data.get("key")): continue
+        book = Book(autor_key=reihe.autor_key, name=book_data.get("titel"), bild=book_data.get("bild"), reihe_position=book_data.get("_pos"))
+        book.editions.append(Edition(**book_data))
+        reihe.books.append(book)
+    session.commit()
+    resp = [b["key"] for b in scraped]
+    return resp

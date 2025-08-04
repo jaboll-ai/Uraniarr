@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   lesarr:
     container_name: lesarr
@@ -6,6 +5,9 @@ services:
     image: lesarr
     ports:
       - "8000:8000"
+    environment:
+      - CONFIG_DIR=/config
     # volumes:
       # - <on-host-config>:/config
       # - <on-host-data>:/data
+    
