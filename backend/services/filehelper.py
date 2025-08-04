@@ -26,6 +26,8 @@ def move_file(src: Path):
                 if not book.reihe.a_dl_loc: book.reihe.a_dl_loc = str(dst_dir) # TODO revisit for book
                 if book.reihe_position:
                     dst_dir = dst_dir / f"{book.reihe_position} - {book.name}" 
+                else:
+                    dst_dir = dst_dir / book.name
             else:
                 dst_dir = dst_dir / book.name / book.name
 
