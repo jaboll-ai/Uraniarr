@@ -42,7 +42,9 @@ def query_book(book: Book, cfg: ConfigManager):
         base_queries.extend([(fix_umlaut(book.autor.name), f"{book.reihe.name} {book.reihe_position}"),
             (book.autor.name, f"{book.reihe.name} {book.reihe_position}"),
             (fix_umlaut(book.autor.name), f"{book.reihe.name} {round(book.reihe_position or 0)}"),
-            (book.autor.name, f"{book.reihe.name} {round(book.reihe_position or 0)}")])
+            (book.autor.name, f"{book.reihe.name} {round(book.reihe_position or 0)}"),
+            (book.reihe.name, book.name),
+            (fix_umlaut(book.reihe.name), fix_umlaut(book.name))])
     for autor, name in base_queries:
         data = indexer_search(f"{autor} {name}", cfg=cfg)
         query = data["channel"]
