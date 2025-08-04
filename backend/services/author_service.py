@@ -1,7 +1,7 @@
 import asyncio
 from itertools import combinations
 from rapidfuzz import fuzz
-from sqlmodel import Session
+from sqlmodel import Session, select
 from backend.datamodels import *
 from backend.exceptions import AuthorError
 from backend.services.scrape_service import clean_title
@@ -34,8 +34,9 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
                 for idx, b in enumerate(bs):
                     b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
         editions = []
+        in_db = set(session.exec(select(Edition.key)).all())
         for i in eds:
-            if i["key"] in sanity_dedub: #shouldnt ever happen but i came across it once so we gotta handle it -.-
+            if i["key"] in sanity_dedub or i["key"] in in_db:
                 continue
             editions.append(Edition(**i))
             sanity_dedub.add(i["key"])

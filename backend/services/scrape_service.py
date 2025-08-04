@@ -45,7 +45,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         ed_info = {}
         ed_info["key"] = werk["ID"]["matnr"]
         ed_info["titel"] = werk["titel"]
-        ed_info["bild"] = werk["media"]["bilder"][0]["migrationUrlTemplateFixedScaling"].format(resolutionKey="00")
+        ed_info["bild"] = werk["media"]["bilder"][0]["urlTemplateFixedScaling"].format(resolutionKey="00")
         ed_info["medium"] = werk["shop"]["identNr"]
         if data["serie"]["hatSerienslider"]:
             cfg = ConfigManager()
@@ -118,7 +118,7 @@ async def scrape_book_series(book_id: str):
             book_info = {}
             book_info["key"] = werk["ID"]["matnr"]
             book_info["titel"] = clean_title(werk["titel"], werk["serie"].get("name"), werk["serie"].get("nummer"))
-            book_info["bild"] = werk["media"]["bilder"][0]["migrationUrlTemplateFixedScaling"].format(resolutionKey="00")
+            book_info["bild"] = werk["media"]["bilder"][0]["urlTemplateFixedScaling"].format(resolutionKey="00")
             book_info["medium"] = werk["shop"]["identNr"]
             cfg = ConfigManager()
             is_bndl = False
