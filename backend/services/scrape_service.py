@@ -53,7 +53,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
             for bndl in cfg.known_bundles.split(","):
                 is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
             if not is_bndl:
-                ed_info["_pos"] = data["serie"].get("nummer") # we only assign pos if not a bundle #TODO?
+                ed_info["_pos"] = data["serie"].get("nummer") or None # we only assign pos if not a bundle #TODO?
             if not series_name:
                 series_name = clean_series_title(data["serie"]["name"])
         editions.append(ed_info)
@@ -125,7 +125,7 @@ async def scrape_book_series(book_id: str):
             for bndl in cfg.known_bundles.split(","):
                 is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
             if not is_bndl:
-                book_info["_pos"] = werk["serie"].get("nummer") # we only assign pos if not a bundle #TODO?
+                book_info["_pos"] = werk["serie"].get("nummer") or None # we only assign pos if not a bundle #TODO?
             books.append(book_info)
     print()
     return books
