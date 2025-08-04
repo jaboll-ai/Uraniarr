@@ -23,8 +23,10 @@
     </div>
     <div class="panel">
       <keep-alive>
-        <component :is="currentComponent"  @downloadBook="downloadBook" @completeSeries="completeSeries"
-          @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook"/>
+        <component :is="currentComponent"
+          @downloadBook="downloadBook" @completeSeries="completeSeries"
+          @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook" @editBook="editBook"
+          @cleanupSeries="cleanupSeries"/>
       </keep-alive>
     </div>
   </div>
@@ -39,6 +41,17 @@ import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
 
 const route = useRoute()
+
+interface Book {
+  key: string
+  name: string
+  autor_key: string
+  bild?: string
+  reihe_key?: string
+  reihe_position?: number
+  a_dl_loc?: string
+  b_dl_loc?: string
+}
 
 interface Author {
   name: string
@@ -57,10 +70,11 @@ onMounted(async () => {
   }
 })
 
+
 const tabs = [
   { name: 'BookList',     label: 'Books'    },
   { name: 'SeriesList',  label: 'Series'  },
-  { name: 'SettingsPage', label: 'Settings' },
+  // { name: 'SettingsPage', label: 'Settings' },
 ]
 
 const current = ref<string>('BookList')
@@ -70,6 +84,7 @@ const componentsMap: Record<string, any> = {
   // ProfilePage,
 }
 const currentComponent = computed(() => componentsMap[current.value])
+
 
 async function downloadBook(key: string) {
   try {
@@ -104,6 +119,15 @@ async function completeSeries(key: string) {
   }
 }
 
+async function cleanupSeries(key: string, name: string) {
+  console.log(key, name)
+  try {
+    api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
+  } catch (err) {
+    console.error('Failed to cleanup series', err)
+  }
+}
+
 async function deleteBook(key: string) {
   const confirmDelete = confirm('Are you sure you want to delete this book?')
   if (!confirmDelete) return
@@ -121,6 +145,14 @@ async function deleteSeries(key: string) {
     api.delete(`/series/${key}`)
   } catch (err) {
     console.error('Failed to delete series', err)
+  }
+}
+
+async function editBook(book: Book) {
+  try {
+    await api.patch(`/book/${book.key}`, book)
+  } catch (err) {
+    console.error('Failed to edit book', err)
   }
 }
 </script>

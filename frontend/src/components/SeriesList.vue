@@ -4,9 +4,16 @@
       v-for="group in seriesGroups"
       :key="group.series.key"
       class="series-group"
+      :style = "{ maxHeight: collapseMap[group.series.key] ? '40px' : '100%' }"
     > 
       <div style="display: flex;">
+        <button title="Collapse series" class="collapse-btn material-symbols-outlined" @click="collapseMap[group.series.key] = !collapseMap[group.series.key]">{{ collapseMap[group.series.key] ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}</button>
         <h3 class="series-name">{{ group.series.name }}</h3>
+        <button v-if="!showCleanup" title="Attempt to clean Book titles of remnants from series" class="ctrl-btn material-symbols-outlined" @click="showCleanup = true">cleaning_services</button>
+        <div v-else style="display: flex;">
+          <input  class="series-clean" v-model="cleanStr" @keyup.enter="$emit('cleanupSeries', group.series.key, cleanStr)" type="text" placeholder="alternative Series title" />
+          <button class="ctrl-btn material-symbols-outlined" @click="showCleanup = false">arrow_right</button>
+        </div>
         <button title="Include other-author books of this series" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
         <button title="Delete entire Series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
@@ -18,6 +25,7 @@
           :book="book"
           @downloadBook="$emit('downloadBook', $event)"
           @deleteBook="$emit('deleteBook', $event)"
+          @editBook="$emit('editBook', $event)"
         />
       </div>
     </div>
@@ -37,17 +45,22 @@ interface Series {
 }
 
 interface Book {
-  name: string
   key: string
+  name: string
   autor_key: string
-  reihe_key: string | null
-  bild: string
-  reihe_position: number | null
+  bild?: string
+  reihe_key?: string
+  reihe_position?: number
+  a_dl_loc?: string
+  b_dl_loc?: string
 }
 
 const route = useRoute()
 
+const collapseMap = ref<Record<string, boolean>>({})
 const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
+const showCleanup = ref(false)
+const cleanStr = ref<string>('')
 
 onMounted(async () => {
   try {
@@ -83,12 +96,17 @@ onMounted(async () => {
   border: 1px solid var(--borderColor);
   background-color: var(--offWhite);
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .ctrl-btn{
   color: var(--lightGray);
   padding: 0px 8px;
   color: #fff;
+  margin: 10px 2px;
+}
+
+.series-clean{
   margin: 10px 2px;
 }
 
@@ -103,5 +121,12 @@ onMounted(async () => {
   display: table;
   border-collapse: separate;   /* allow border-spacing */
   border-spacing: 0 8px;       /* vertical gutter between rows */
+}
+
+.collapse-btn{
+  color: var(--lightGray);
+  background-color: transparent;
+  margin-right: 10px;
+  margin-bottom: 5px;
 }
 </style>

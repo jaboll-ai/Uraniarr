@@ -7,6 +7,7 @@
         :book="book"
         @downloadBook="$emit('downloadBook', $event)"
         @deleteBook="$emit('deleteBook', $event)"
+        @editBook="$emit('editBook', $event)"
       />
     </div>
   </div>
@@ -22,12 +23,14 @@ import BookItem from '@/components/BookItem.vue'
 const route = useRoute()
 
 interface Book {
-  name: string
   key: string
+  name: string
   autor_key: string
-  reihe_key: string | null
-  bild: string
-  reihe_position: number | null
+  bild?: string
+  reihe_key?: string
+  reihe_position?: number
+  a_dl_loc?: string
+  b_dl_loc?: string
 }
 
 const books = ref<Book[]>([])

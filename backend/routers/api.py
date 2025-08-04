@@ -3,7 +3,7 @@ from backend.dependencies import get_session, get_cfg_manager
 from sqlmodel import Session, select
 from backend.datamodels import *
 from backend.config import ConfigManager
-from backend.services.scrape_service import scrape_all_author_data, scrape_book_series
+from backend.services.scrape_service import scrape_all_author_data, scrape_book_series, clean_title
 from backend.services.author_service import save_author_to_db, complete_series_in_db
 from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author
 import asyncio
@@ -108,3 +108,25 @@ def delete_author(author_id: str, session: Session = Depends(get_session), files
 def delete_author_files(author_id: str, session: Session = Depends(get_session)):
     delete_audio_author(author_id, session)
     return {"deleted files": author_id}
+
+@router.patch("/book/{book_id}")
+async def update_book(book_id: str, data: dict, session: Session = Depends(get_session)):
+    book = session.get(Book, book_id)
+    for field, value in data.items():
+        if hasattr(book, field):
+            setattr(book, field, value)
+    session.commit()
+    return book
+
+@router.post("/series/cleanup/{series_id}")
+async def cleanup_series(series_id: str, name: str, session: Session = Depends(get_session)):
+    reihe = session.get(Reihe, series_id)
+    if not reihe: raise HTTPException(status_code=404, detail="Series not found")
+    updates = 0
+    for book in reihe.books:
+        ctitle = clean_title(book.name, name, book.reihe_position)
+        if ctitle != book.name:
+            book.name = ctitle
+            updates += 1
+    session.commit()
+    return {"updated": updates}

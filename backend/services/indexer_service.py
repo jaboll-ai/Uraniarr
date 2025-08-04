@@ -48,7 +48,7 @@ def query_book(book: Book, cfg: ConfigManager):
         query = data["channel"]
         if (total:=query["response"]["@attributes"]["total"]) != "0":
             break
-    else: raise IndexerError(status_code=404, detail="No books for query found")
+    else: return None
     item = query["item"] if total == "1" else query["item"][0] 
     guid=item["attr"][2]["@attributes"]["value"]
     return guid
