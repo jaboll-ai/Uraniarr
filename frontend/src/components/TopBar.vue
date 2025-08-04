@@ -4,10 +4,10 @@
           <img class="logo-image" src="/assets/lesarr.svg" alt="Logo" />
         </div>
         <div class="menu">
-          <button class="material-icons topbutton"  @click="toggleSidebar()">menu</button>
+          <button class="material-symbols-outlined topbutton"  @click="toggleSidebar()">menu</button>
         </div>
         <div class="search">
-          <div class="search-icon material-icons">search</div>
+          <div class="search-icon material-symbols-outlined">search</div>
           <input
               v-model="search"
               @input="handleInput"

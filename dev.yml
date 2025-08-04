@@ -1,0 +1,13 @@
+services:
+  lesarr:
+    container_name: lesarr
+    build: .
+    image: lesarr
+    ports:
+      - "8000:8000"
+    environment:
+      - CONFIG_DIR=/config
+    volumes:
+      - <dev>:/config
+      - <dev>:/data
+    

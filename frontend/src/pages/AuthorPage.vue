@@ -4,7 +4,10 @@
       <div class="author-info">
         <h2 class="author-name">{{ author?.name }}</h2>
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
-      <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
+        <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
+        <div class="download-all">
+          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">download</button>
+        </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
     </div>
@@ -20,7 +23,10 @@
     </div>
     <div class="panel">
       <keep-alive>
-        <component :is="currentComponent"  @downloadBook="downloadBook"/>
+        <component :is="currentComponent"
+          @downloadBook="downloadBook" @completeSeries="completeSeries"
+          @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook" @editBook="editBook"
+          @cleanupSeries="cleanupSeries"/>
       </keep-alive>
     </div>
   </div>
@@ -29,12 +35,23 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { api, nzbapi as sabnzbdapi } from '@/main.ts'
+import { api, dapi as dapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
 
 const route = useRoute()
+
+interface Book {
+  key: string
+  name: string
+  autor_key: string
+  bild?: string
+  reihe_key?: string
+  reihe_position?: number
+  a_dl_loc?: string
+  b_dl_loc?: string
+}
 
 interface Author {
   name: string
@@ -53,10 +70,11 @@ onMounted(async () => {
   }
 })
 
+
 const tabs = [
   { name: 'BookList',     label: 'Books'    },
   { name: 'SeriesList',  label: 'Series'  },
-  { name: 'SettingsPage', label: 'Settings' },
+  // { name: 'SettingsPage', label: 'Settings' },
 ]
 
 const current = ref<string>('BookList')
@@ -67,14 +85,76 @@ const componentsMap: Record<string, any> = {
 }
 const currentComponent = computed(() => componentsMap[current.value])
 
+
 async function downloadBook(key: string) {
   try {
-    sabnzbdapi.post(`/book/${key}`)
+    dapi.post(`/book/${key}`)
   } catch (err) {
-    console.error('Failed to send or grab nzb', err)
+    console.error('Failed to download Book', err)
   }
 }
 
+async function downloadSeries(key: string) {
+  try {
+    dapi.post(`/series/${key}`)
+  } catch (err) {
+    console.error('Failed to download Series', err)
+  }
+}
+
+async function downloadAuthor(key:string | undefined) {
+  if (!key) return
+  try {
+    dapi.post(`/author/${key}`)
+  } catch (err) {
+    console.error('Failed to download Author', err)
+  }
+}
+
+async function completeSeries(key: string) {
+  try {
+    api.post(`/series/complete/${key}`)
+  } catch (err) {
+    console.error('Failed to complete series', err)
+  }
+}
+
+async function cleanupSeries(key: string, name: string) {
+  console.log(key, name)
+  try {
+    api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
+  } catch (err) {
+    console.error('Failed to cleanup series', err)
+  }
+}
+
+async function deleteBook(key: string) {
+  const confirmDelete = confirm('Are you sure you want to delete this book?')
+  if (!confirmDelete) return
+  try {
+    api.delete(`/book/${key}`)
+  } catch (err) {
+    console.error('Failed to delete book', err)
+  }
+}
+
+async function deleteSeries(key: string) {
+  const confirmDelete = confirm('Are you sure you want to delete this series?')
+  if (!confirmDelete) return
+  try {
+    api.delete(`/series/${key}`)
+  } catch (err) {
+    console.error('Failed to delete series', err)
+  }
+}
+
+async function editBook(book: Book) {
+  try {
+    await api.patch(`/book/${book.key}`, book)
+  } catch (err) {
+    console.error('Failed to edit book', err)
+  }
+}
 </script>
 
 <style scoped>
@@ -101,13 +181,13 @@ async function downloadBook(key: string) {
 .author-page {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 .author-name {
   display: flex;
   justify-content: center;
 }
 .author-header {
-  max-height: 300px;
   display: flex;
   gap: 16px;
   padding: 10px 10px;
@@ -131,6 +211,7 @@ async function downloadBook(key: string) {
   box-sizing: border-box;
   margin: 0;
   margin-top: 75px;
+  flex: 1;
 }
 div.author-image {
   display: flex;
@@ -142,5 +223,16 @@ div.author-image {
   font-size: 24px;
   border-radius: 50%;
   margin-bottom: 16px;
+}
+
+.download-all {
+  vertical-align: middle;
+  text-align: center;
+}
+.ctrl-btn{
+  color: var(--lightGray);
+  padding: 0px 8px;
+  color: #fff;
+  margin: 10px 2px;
 }
 </style>

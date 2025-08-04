@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-
+import os
 
 class ConfigManager:
     """
@@ -9,15 +9,12 @@ class ConfigManager:
     """
 
     _SPECIAL_ATTRS = {"config_dir", "config_file", "_data", "_save"}
+    config_dir = Path(os.getenv("CONFIG_DIR", "./config"))
+    config_dir.mkdir(parents=True, exist_ok=True)
 
-    def __init__(
-        self, config_folder: Path = Path("/config"), filename: str = "config.json"
-    ):
+    def __init__(self):
         # Set up paths without triggering __setattr__ for config data
-        object.__setattr__(self, "config_dir", config_folder)
-        object.__setattr__(self, "config_file", config_folder / filename)
-        # Ensure directory exists
-        self.config_dir.mkdir(parents=True, exist_ok=True)
+        object.__setattr__(self, "config_file", self.config_dir / "config.json")
         # Load or initialize data
         user_data = json.loads(self.config_file.read_text(encoding="utf-8")) if self.config_file.exists() else {}
         default_data = {
@@ -53,6 +50,18 @@ class ConfigManager:
                 "value": ".nfo,.sample,.url,.htm,.jpg,.png",
                 "input_type": "text"
             },
+            "playwright": {
+                "value": True,
+                "input_type": "checkbox"
+            },
+            "skip_cache": {
+                "value": False,
+                "input_type": "checkbox"
+            },
+            "known_bundles": {
+                "value": "Krimi Box,Krimi-Box,3er-Box",
+                "input_type": "text"
+            }
             # "devTest": {
             #     "value": "",
             #     "input_type": "select",

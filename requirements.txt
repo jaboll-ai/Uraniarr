@@ -5,3 +5,4 @@ bs4==0.0.2
 playwright-stealth==2.0.0
 uvicorn==0.34.0
 requests==2.32.4
+cloudscraper==1.2.71
