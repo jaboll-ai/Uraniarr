@@ -2,9 +2,10 @@ from fastapi import HTTPException, Depends, APIRouter
 from backend.dependencies import get_session, get_cfg_manager
 from sqlmodel import Session, select
 from backend.datamodels import *
+from backend.payloads import *
 from backend.config import ConfigManager
 from backend.services.scrape_service import scrape_all_author_data, scrape_book_series, clean_title
-from backend.services.author_service import save_author_to_db, complete_series_in_db
+from backend.services.author_service import save_author_to_db, complete_series_in_db, make_author_from_series, union_series
 from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author
 import asyncio
 
@@ -130,3 +131,14 @@ async def cleanup_series(series_id: str, name: str, session: Session = Depends(g
             updates += 1
     session.commit()
     return {"updated": updates}
+
+@router.post("/fakeauthor")
+async def fake_author(seriesAuthor: SeriesAuthor, session: Session = Depends(get_session)):
+    data = await scrape_book_series(seriesAuthor.entry_id)
+    resp = await asyncio.to_thread(make_author_from_series, seriesAuthor.name, session, data)
+    return resp
+
+@router.post("/misc/union/")
+async def unite_series(data: UnionSeries, session: Session = Depends(get_session)):
+    resp = union_series(data.series_id, data.series_ids, session)
+    return resp

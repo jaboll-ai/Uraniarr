@@ -79,3 +79,31 @@ def complete_series_in_db(series_id: str, session: Session, scraped: dict):
     session.commit()
     resp = [b["key"] for b in scraped]
     return resp
+
+def make_author_from_series(name:str, session: Session, scraped: dict):
+    author = Author(key=id_generator(), name=name, is_series=True)
+    reihe = Reihe(name=name)
+    in_db = set(session.exec(select(Edition.key)).all())
+    for book_data in scraped:
+        if book_data.get("key") in in_db: 
+            raise AuthorError(status_code=409, detail="Book already exists for diffrent author")
+        book = Book(autor_key=author.key, name=book_data.get("titel"), bild=book_data.get("bild"), reihe_position=book_data.get("_pos"))
+        book.editions.append(Edition(**book_data))
+        reihe.books.append(book)
+    author.reihen = [reihe]
+    session.add(author)
+    session.commit()
+    return author.key
+
+def union_series(series_id: str, series_ids: list[str], session: Session):
+    reihe = session.get(Reihe, series_id)
+    if not reihe:
+        raise AuthorError(status_code=404, detail="Series not found")
+    for id in series_ids:
+        reihe2 = session.get(Reihe, id)
+        if not reihe2:
+            raise AuthorError(status_code=404, detail="Series not found")
+        reihe.books.extend(reihe2.books)
+        session.delete(reihe2)
+    session.commit()
+    return id
