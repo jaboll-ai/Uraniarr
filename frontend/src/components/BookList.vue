@@ -1,12 +1,16 @@
 <template>
+  <!-- <button title="Select" class="ctrl-btn material-symbols-outlined" @click="showBox = !showBox">check_box</button> -->
   <div class="group">
     <div class="book-list">
       <BookItem
-        v-for="book in books"
+        v-for="(book, index) in books"
         :key="book.key"
         :book="book"
+        :showBox="showBox"
+        :checked="selected.includes(book.key)"
+        @checkboxClick="onCheckboxClick($event, index)"
         @downloadBook="$emit('downloadBook', $event)"
-        @deleteBook="$emit('deleteBook', $event)"
+        @deleteBook="deleteBook"
         @editBook="$emit('editBook', $event)"
       />
     </div>
@@ -15,12 +19,19 @@
 
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import { ref, onMounted } from 'vue'
-import { api } from '@/main.ts'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import BookItem from '@/components/BookItem.vue'
 
-const route = useRoute()
+const props = defineProps<{
+  books: Book[]
+  showBox: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'downloadBook', key: string): void
+  (e: 'deleteBook', keys: string[]): void
+  (e: 'editBook', book: Book): void
+}>()
 
 interface Book {
   key: string
@@ -32,16 +43,52 @@ interface Book {
   a_dl_loc?: string
   b_dl_loc?: string
 }
+const selected = ref<string[]>([])
+const lastIndex = ref<number | null>(null)
 
-const books = ref<Book[]>([])
-
-onMounted(async () => {
-  try {
-    const responseB = await api.get<Book[]>(`/author/${route.params.key}/books`)
-    books.value = responseB.data
-  } catch (error) {
-    console.error('Failed to fetch books:', error)
+function deleteBook(keys: string[]) {
+  if (selected.value.length > 0) {
+    emit('deleteBook', selected.value)
+  } else {
+    emit('deleteBook', keys)
   }
+}
+
+function onCheckboxClick(payload: { event: MouseEvent; key: string }, index: number) {
+  const { event, key } = payload
+  const checked = (event.target as HTMLInputElement).checked
+
+  if (event.shiftKey && lastIndex.value !== null) {
+    const start = Math.min(lastIndex.value, index)
+    const end = Math.max(lastIndex.value, index)
+    const range = props.books.slice(start, end + 1).map(b => b.key)
+
+    if (checked) {
+      selected.value = Array.from(new Set([...selected.value, ...range]))
+    } else {
+      selected.value = selected.value.filter(k => !range.includes(k))
+    }
+  } else {
+    if (checked) {
+      selected.value.push(key)
+    } else {
+      selected.value = selected.value.filter(k => k !== key)
+    }
+  }
+
+  lastIndex.value = index
+}
+
+function onGlobalDblClick() {
+  selected.value = []
+}
+
+onMounted(() => {
+  window.addEventListener('dblclick', onGlobalDblClick)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('dblclick', onGlobalDblClick)
 })
 </script>
 

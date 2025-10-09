@@ -47,7 +47,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         ed_info["titel"] = werk["titel"]
         ed_info["bild"] = werk["media"]["bilder"][0]["urlTemplateFixedScaling"].format(resolutionKey="00")
         ed_info["medium"] = werk["shop"]["identNr"]
-        if data["serie"]["hatSerienslider"]:
+        if data["serie"]["hatSerienslider"] or data["serie"].get("nummer") or data["serie"].get("name"):
             cfg = ConfigManager()
             is_bndl = False
             for bndl in cfg.known_bundles.split(","):
@@ -55,7 +55,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
             if not is_bndl:
                 ed_info["_pos"] = data["serie"].get("nummer") or None # we only assign pos if not a bundle #TODO?
             if not series_name:
-                series_name = clean_series_title(data["serie"]["name"])
+                series_name = clean_series_title(data["serie"].get("name"))
         editions.append(ed_info)
     return editions, series_name
 

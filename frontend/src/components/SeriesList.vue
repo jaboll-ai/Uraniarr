@@ -4,39 +4,55 @@
       v-for="group in seriesGroups"
       :key="group.series.key"
       class="series-group"
-      :style = "{ maxHeight: collapseMap[group.series.key] ? '40px' : '100%' }"
+      :style="{ maxHeight: collapseMap[group.series.key] ? '100%' : '40px' }"
     > 
       <div style="display: flex;">
-        <button title="Collapse series" class="collapse-btn material-symbols-outlined" @click="collapseMap[group.series.key] = !collapseMap[group.series.key]">{{ collapseMap[group.series.key] ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}</button>
+        <button title="Collapse series" class="collapse-btn material-symbols-outlined" @click="collapseMap[group.series.key] = !collapseMap[group.series.key]">
+          {{ collapseMap[group.series.key] ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
+        </button>
         <h3 class="series-name">{{ group.series.name }}</h3>
         <button v-if="!showCleanup" title="Attempt to clean Book titles of remnants from series" class="ctrl-btn material-symbols-outlined" @click="showCleanup = true">cleaning_services</button>
         <div v-else style="display: flex;">
-          <input  class="series-clean" v-model="cleanStr" @keyup.enter="$emit('cleanupSeries', group.series.key, cleanStr)" type="text" placeholder="alternative Series title" />
+          <input class="series-clean" v-model="cleanStr" @keyup.enter="$emit('cleanupSeries', group.series.key, cleanStr)" type="text" placeholder="alternative Series title" />
           <button class="ctrl-btn material-symbols-outlined" @click="showCleanup = false">arrow_right</button>
         </div>
+        <button title="Join Series" class="ctrl-btn material-symbols-outlined" @click="openSelector(group.series.key)">join</button>
         <button title="Include other-author books of this series" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
         <button title="Delete entire Series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
-      <div class="book-list">
-        <BookItem
-          v-for="book in group.books"
-          :key="book.key"
-          :book="book"
-          @downloadBook="$emit('downloadBook', $event)"
-          @deleteBook="$emit('deleteBook', $event)"
-          @editBook="$emit('editBook', $event)"
-        />
-      </div>
+      <BookList @downloadBook="$emit('downloadBook', $event)" @deleteBook="$emit('deleteBook', $event)" @editBook="$emit('editBook', $event)" :showBox="showBox" :books="group.books"/>
     </div>
   </div>
+
+  <SeriesUnionSelector
+    v-if="showSelector"
+    :items="items"
+    :seriesID="seriesID"
+    @close="closeSelector"
+    @unite="uniteSeries"
+  />
 </template>
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { api } from '@/main.ts'
-import BookItem from '@/components/BookItem.vue'
+import SeriesUnionSelector from '@/components/SeriesUnionModal.vue'
+import BookList from './BookList.vue'
+defineProps<{
+  books: Book[] //throw away
+  showBox: boolean
+}>()
+defineEmits<{
+  (e: 'downloadBook', key: string): void
+  (e: 'completeSeries', key: string): void
+  (e: 'downloadSeries', key: string): void
+  (e: 'deleteSeries', key: string): void
+  (e: 'deleteBook', keys: string[]): void
+  (e: 'editBook', book: Book): void
+  (e: 'cleanupSeries', key: string, name: string): void
+}>()
 
 interface Series {
   autor_key: string
@@ -61,6 +77,34 @@ const collapseMap = ref<Record<string, boolean>>({})
 const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
 const showCleanup = ref(false)
 const cleanStr = ref<string>('')
+const showBox = ref(false)
+
+const seriesID = ref()
+const showSelector = ref(false)
+const items = ref<Series[]>([])
+
+function uniteSeries(selected: string[]) {
+  api.post("/misc/union/", { series_id: seriesID.value, series_ids: selected })
+  closeSelector()
+}
+
+function closeSelector() {
+  seriesID.value = null
+  showSelector.value = false
+}
+
+function openSelector(id: string) {
+  seriesID.value = id
+  showSelector.value = true
+
+  const filteredItems = seriesGroups.value.reduce((acc, curr) => {
+    if (curr.series.key !== id) {
+      acc.push(curr.series)
+    }
+    return acc
+  }, [] as Series[])
+  items.value = filteredItems
+}
 
 onMounted(async () => {
   try {
@@ -117,10 +161,11 @@ onMounted(async () => {
   flex-grow: 1;
 }
 
-.book-list {
-  display: table;
-  border-collapse: separate;   /* allow border-spacing */
-  border-spacing: 0 8px;       /* vertical gutter between rows */
+.group{
+  border:none;
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
 }
 
 .collapse-btn{

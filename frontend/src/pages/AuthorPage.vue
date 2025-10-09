@@ -26,7 +26,7 @@
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
           @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook" @editBook="editBook"
-          @cleanupSeries="cleanupSeries"/>
+          @cleanupSeries="cleanupSeries" :showBox="showBox" :books="books"/>
       </keep-alive>
     </div>
   </div>
@@ -60,17 +60,19 @@ interface Author {
   bio: string
 }
 const author = ref<Author | null>(null)
+const books = ref<Book[]>([])
+const showBox = ref(false)
 
 onMounted(async () => {
   try {
     const responseA = await api.get<Author>(`/author/${route.params.key}`)
     author.value = responseA.data
+    const responseB = await api.get<Book[]>(`/author/${route.params.key}/books`)
+    books.value = responseB.data
   } catch (error) {
     console.error('Failed to fetch books:', error)
   }
 })
-
-
 const tabs = [
   { name: 'BookList',     label: 'Books'    },
   { name: 'SeriesList',  label: 'Series'  },
@@ -128,11 +130,13 @@ async function cleanupSeries(key: string, name: string) {
   }
 }
 
-async function deleteBook(key: string) {
-  const confirmDelete = confirm('Are you sure you want to delete this book?')
+async function deleteBook(keys: string) {
+  const confirmDelete = confirm(`Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`)
   if (!confirmDelete) return
   try {
-    api.delete(`/book/${key}`)
+    for (const key of keys) {
+      api.delete(`/book/${key}`)
+    }
   } catch (err) {
     console.error('Failed to delete book', err)
   }
