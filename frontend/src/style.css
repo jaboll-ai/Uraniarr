@@ -2,6 +2,7 @@
   --lightGray: #353535;
   --darkGray: #252525;
   --offWhite: #f3f0e7;
+  --offWhiteFix: #f3f0e7;
   --borderColor: #dad6cd;
   --backgroundWhite: #fafaf5;
 
@@ -9,6 +10,7 @@
   line-height: 1.5;
   font-weight: 400;
 
+  color: var(--darkGray);
   color-scheme: light dark;
   background-color: var(--backgroundWhite);
 
@@ -43,7 +45,7 @@ h1 {
 }
 
 button {
-  color: var(--offWhite);
+  color: var(--offWhiteFix);
   padding: 0;
   border: none;
   font-size: 1em;
@@ -74,6 +76,13 @@ button:focus-visible {
   flex-grow: 1;
 }
 
-@media (prefers-color-scheme: light) {
-  
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* --lightGray: #f3f0e7; */
+    --darkGray: #dad6cd;
+    --backgroundWhite: #252525;
+    --borderColor: #252525;
+    --offWhite: #454545;
+
+  } 
 }

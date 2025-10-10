@@ -55,7 +55,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
             if not is_bndl: # we only assign pos if not a bundle #TODO
                 try:
                     ed_info["_pos"] = float(data["serie"].get("nummer"))
-                except ValueError:
+                except Exception:
                     ed_info["_pos"] = None
             if not series_name:
                 series_name = clean_series_title(data["serie"].get("name"))

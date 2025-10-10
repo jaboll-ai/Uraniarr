@@ -25,6 +25,7 @@ import BookItem from '@/components/BookItem.vue'
 const props = defineProps<{
   books: Book[]
   showBox: boolean
+  seriesGroups: any
 }>()
 
 const emit = defineEmits<{

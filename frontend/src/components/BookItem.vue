@@ -108,7 +108,6 @@ const showEditor = ref(false)
   text-align: right;
 }
 .download-btn{
-  color: var(--lightGray);
   background-color: transparent;
 }
 

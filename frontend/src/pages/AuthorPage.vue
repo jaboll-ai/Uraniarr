@@ -26,7 +26,8 @@
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
           @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook" @editBook="editBook"
-          @cleanupSeries="cleanupSeries" :showBox="showBox" :books="books"/>
+          @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries"
+          :showBox="showBox" :books="books" :seriesGroups="seriesGroups"/>
       </keep-alive>
     </div>
   </div>
@@ -59,19 +60,26 @@ interface Author {
   bild: string
   bio: string
 }
+
+interface Series {
+  autor_key: string
+  key: string
+  name: string
+}
+
 const author = ref<Author | null>(null)
 const books = ref<Book[]>([])
 const showBox = ref(false)
+const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
 
 onMounted(async () => {
   try {
-    const responseA = await api.get<Author>(`/author/${route.params.key}`)
-    author.value = responseA.data
-    const responseB = await api.get<Book[]>(`/author/${route.params.key}/books`)
-    books.value = responseB.data
+    const response = await api.get<Author>(`/author/${route.params.key}`)
+    author.value = response.data
   } catch (error) {
     console.error('Failed to fetch books:', error)
   }
+  fetchBooks()
 })
 const tabs = [
   { name: 'BookList',     label: 'Books'    },
@@ -87,10 +95,32 @@ const componentsMap: Record<string, any> = {
 }
 const currentComponent = computed(() => componentsMap[current.value])
 
+async function fetchBooks() {
+  try {
+    var b: Book[] = []
+    const { data: seriesList } = await api.get<Series[]>(`/author/${route.params.key}/series`)
+    const groups = await Promise.all(
+      seriesList.map(async (s: Series) => {
+        const { data: books } = await api.get<Book[]>(`/series/${s.key}/books`)
+        books.sort((a: Book, b: Book) => (a.reihe_position ?? 0) - (b.reihe_position ?? 0))
+        b = b.concat(books)
+        return { series: s, books }
+      })
+    )
+    books.value = b
+    seriesGroups.value = groups
+  } catch (err) {
+    console.error('Failed to load series or books', err)
+  }
+}
+
+function uniteSeries(data: { series_id: string; series_ids: string[] }) {
+  api.post("/misc/union/", data)
+}
 
 async function downloadBook(key: string) {
   try {
-    dapi.post(`/book/${key}`)
+    await dapi.post(`/book/${key}`)
   } catch (err) {
     console.error('Failed to download Book', err)
   }
@@ -98,7 +128,7 @@ async function downloadBook(key: string) {
 
 async function downloadSeries(key: string) {
   try {
-    dapi.post(`/series/${key}`)
+    await dapi.post(`/series/${key}`)
   } catch (err) {
     console.error('Failed to download Series', err)
   }
@@ -107,7 +137,7 @@ async function downloadSeries(key: string) {
 async function downloadAuthor(key:string | undefined) {
   if (!key) return
   try {
-    dapi.post(`/author/${key}`)
+    await dapi.post(`/author/${key}`)
   } catch (err) {
     console.error('Failed to download Author', err)
   }
@@ -115,19 +145,21 @@ async function downloadAuthor(key:string | undefined) {
 
 async function completeSeries(key: string) {
   try {
-    api.post(`/series/complete/${key}`)
+    await api.post(`/series/complete/${key}`)
   } catch (err) {
     console.error('Failed to complete series', err)
   }
+  fetchBooks()
 }
 
 async function cleanupSeries(key: string, name: string) {
   console.log(key, name)
   try {
-    api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
+    await api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
   } catch (err) {
     console.error('Failed to cleanup series', err)
   }
+  fetchBooks()
 }
 
 async function deleteBook(keys: string) {
@@ -135,21 +167,23 @@ async function deleteBook(keys: string) {
   if (!confirmDelete) return
   try {
     for (const key of keys) {
-      api.delete(`/book/${key}`)
+      await api.delete(`/book/${key}`)
     }
   } catch (err) {
     console.error('Failed to delete book', err)
   }
+  fetchBooks()
 }
 
 async function deleteSeries(key: string) {
   const confirmDelete = confirm('Are you sure you want to delete this series?')
   if (!confirmDelete) return
   try {
-    api.delete(`/series/${key}`)
+    await api.delete(`/series/${key}`)
   } catch (err) {
     console.error('Failed to delete series', err)
   }
+  fetchBooks()
 }
 
 async function editBook(book: Book) {
@@ -158,6 +192,7 @@ async function editBook(book: Book) {
   } catch (err) {
     console.error('Failed to edit book', err)
   }
+  fetchBooks()
 }
 </script>
 

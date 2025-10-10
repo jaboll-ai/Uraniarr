@@ -75,9 +75,11 @@ async def complete_series_of_author(series_id: str, session: Session = Depends(g
 def delete_series(series_id: str, session: Session = Depends(get_session), files: bool = False):
     if files:
         delete_audio_reihe(series_id, session)
-    session.delete(session.get(Reihe, series_id))
-    session.commit()
-    return {"deleted": series_id}
+    if series := session.get(Reihe, series_id):
+        session.delete(series)
+        session.commit()
+        return {"deleted": series_id}
+    raise HTTPException(status_code=404, detail="Series not found")
 
 @router.delete("/series/{series_id}/files")
 def delete_series_files(series_id: str, session: Session = Depends(get_session)):
@@ -88,9 +90,11 @@ def delete_series_files(series_id: str, session: Session = Depends(get_session))
 def delete_book(book_id: str, session: Session = Depends(get_session), files: bool = False):
     if files:
         delete_audio_book(book_id, session)
-    session.delete(session.get(Book, book_id))
-    session.commit()
-    return {"deleted": book_id}
+    if book := session.get(Book, book_id):
+        session.delete(book)
+        session.commit()
+        return {"deleted": book_id}
+    raise HTTPException(status_code=404, detail="Book not found")
 
 @router.delete("/book/{book_id}/files")
 def delete_book_files(book_id: str, session: Session = Depends(get_session)):
@@ -101,9 +105,11 @@ def delete_book_files(book_id: str, session: Session = Depends(get_session)):
 def delete_author(author_id: str, session: Session = Depends(get_session), files: bool = False):
     if files:
         delete_audio_author(author_id, session)
-    session.delete(session.get(Author, author_id))
-    session.commit()
-    return {"deleted": author_id}
+    if author := session.get(Author, author_id):
+        session.delete(author)
+        session.commit()
+        return {"deleted": author_id}
+    raise HTTPException(status_code=404, detail="Author not found")
 
 @router.delete("/author/{author_id}/files")
 def delete_author_files(author_id: str, session: Session = Depends(get_session)):
