@@ -50,6 +50,7 @@ async function add(author: string){
   console.log("added pressed")
   try {
     await api.post(`/author/${author}`)
+    authorStatus[author].added = true
   } finally {
     authorStatus[author].adding = false
   }

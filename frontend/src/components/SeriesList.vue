@@ -126,9 +126,7 @@ function openSelector(id: string) {
 }
 
 .ctrl-btn{
-  color: var(--lightGray);
   padding: 0px 8px;
-  color: #fff;
   margin: 10px 2px;
 }
 

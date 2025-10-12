@@ -112,9 +112,12 @@ function editBook(book: Book) {
   text-align: right;
 }
 .download-btn{
-  background-color: transparent;
+  background: none;
+  color: var(--lightGray);
 }
-
+.download-btn:hover{
+  color: var(--mainColor);
+}
 .book-title {
   overflow: hidden;
   text-overflow: ellipsis;

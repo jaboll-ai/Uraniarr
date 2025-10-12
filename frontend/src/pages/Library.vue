@@ -30,12 +30,13 @@ onMounted(async () => {
   getAuthors()
 })
 
+
 async function getAuthors(){
   const response = await api.get<Author[]>('/authors')
   authors.value = response.data
 }
 
-async function addSeriesAuthor(data: {name: string, book: string}){
+async function addSeriesAuthor(data: {name: string, entry_id: string}){
   adding.value = true
   await api.post("fakeauthor", data)
   adding.value = false

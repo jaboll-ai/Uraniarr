@@ -43,7 +43,7 @@ h1 {
 }
 
 button {
-  color: var(--fontColor);
+  color: var(--offWhite);
   padding: 0;
   border: none;
   font-size: 1em;

@@ -30,7 +30,7 @@ defineProps<{
   adding: boolean
 }>()
 const emit = defineEmits<{ 
-  (e: 'submit', data: {name: string, book: string}): void; 
+  (e: 'submit', data: {name: string, entry_id: string}): void; 
   (e: 'cancel'): void 
 }>()
 
@@ -38,7 +38,7 @@ const book = ref('')
 const name = ref('')
 
 function submit() {
-  emit('submit', {name: name.value, book: book.value})
+  emit('submit', {name: name.value, entry_id: book.value})
   book.value = ''
 }
 </script>
@@ -53,7 +53,7 @@ function submit() {
   justify-content: center;
 }
 .modal {
-  background: var(--lightGray);
+  background: var(--offWhite);
   padding: 1rem;
   border-radius: 8px;
   display: flex;

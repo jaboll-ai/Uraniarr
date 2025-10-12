@@ -42,6 +42,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
     editions = []
     series_name = None
     for werk in data.get("werkArtikel", [data]):
+        if werk["shop"]["identNr"] == 54: continue
         ed_info = {}
         ed_info["key"] = werk["ID"]["matnr"]
         ed_info["titel"] = werk["titel"]
@@ -128,7 +129,10 @@ async def scrape_book_series(book_id: str):
             for bndl in cfg.known_bundles.split(","):
                 is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
             if not is_bndl:
-                book_info["_pos"] = werk["serie"].get("nummer") or None # we only assign pos if not a bundle #TODO?
+                try:
+                    book_info["_pos"] = float(werk["serie"].get("nummer"))
+                except Exception:
+                    book_info["_pos"] = None
             books.append(book_info)
     print()
     return books
@@ -141,11 +145,14 @@ def strip_id_from_slug(url: str):
 def clean_title(title: str, series_title: str = None, series_pos: int = None):
     bak = title
     if series_title:
-        title = title.replace(series_title, "")
+        title = re.sub(fr"\b{re.escape(series_title)}\W", "", title)
     if series_title and title == bak:
-        title = title.replace(series_title.replace("-", " "), "")
-    
-    series_pos = round(float(series_pos or 0)) or "" # TODO
+        title = re.sub(fr"\b{re.escape(series_title.replace('-', ' '))}\W", "", title)
+
+    try:
+        series_pos = round(float(series_pos))
+    except Exception:
+        series_pos = None
     title = re.sub(r"\(.*kürz.*\)", "", title, re.I) # remove (gekürzte Lesung) and alike
     title = strip_non_word(title)
     title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*0*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position

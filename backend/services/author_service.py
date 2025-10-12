@@ -56,13 +56,13 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
     #                 print(book.name, r1.name, book.reihe_position)
     #                 book.name = clean_title(book.name, r1.name, book.reihe_position)
     session.flush()
-    for reihe in author.reihen: #really inefficient needs revisit #TODO
-        for book, book2 in combinations(reihe.books, 2):
-            if not book.reihe_position or not book2.reihe_position: continue
-            if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
-                for edition in book2.editions:
-                    book.editions.append(edition)
-                author.books.remove(book2)
+    # for reihe in author.reihen: #really inefficient needs revisit #TODO
+    #     for book, book2 in combinations(reihe.books, 2):
+    #         if not book.reihe_position or not book2.reihe_position: continue
+    #         if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
+    #             for edition in book2.editions:
+    #                 book.editions.append(edition)
+    #             author.books.remove(book2)
     session.commit()
     return author.key
 
