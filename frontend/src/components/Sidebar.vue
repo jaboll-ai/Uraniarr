@@ -60,9 +60,6 @@ const sidebarStyle = computed(() => ({
   display:flex;
   flex-direction: column;
 }
-.sidebar-button{
-  color: #CCC;
-}
 .active{
   background-color: var(--darkGray);
   color: var(--mainColor)

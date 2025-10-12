@@ -120,6 +120,6 @@ input {
 }
 
 .btns{
-    padding: 8px;
+  padding: 8px;
 }
 </style>

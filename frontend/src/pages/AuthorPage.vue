@@ -7,6 +7,7 @@
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
           <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">download</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="showConfirmAuthor = true">delete</button>
         </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
@@ -25,23 +26,43 @@
       <keep-alive>
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
-          @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook" @editBook="editBook"
+          @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="editBook"
           @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries"
           :showBox="showBox" :books="books" :seriesGroups="seriesGroups"/>
       </keep-alive>
     </div>
+    <ConfirmModal
+      :visible="showConfirmAuthor"
+      message="Are you sure yopu want to delete this author?"
+      @confirm="deleteAuthor(author?.key)"
+      @cancel="showConfirmAuthor = false"
+    />
+    <ConfirmModal
+      :visible="showConfirmBook"
+      :message="messageConfirmBook"
+      @confirm="deleteBook"
+      @cancel="showConfirmBook = false"
+    />
+    <ConfirmModal
+      :visible="showConfirmSeries"
+      :message="messageConfirmSeries"
+      @confirm="deleteSeries"
+      @cancel="showConfirmSeries = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { api, dapi as dapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 interface Book {
   key: string
@@ -70,6 +91,13 @@ interface Series {
 const author = ref<Author | null>(null)
 const books = ref<Book[]>([])
 const showBox = ref(false)
+const showConfirmAuthor = ref(false)
+const showConfirmBook = ref(false)
+const messageConfirmBook = ref("")
+const shouldDeleteBooks = ref<string[]>([])
+const showConfirmSeries = ref(false)
+const messageConfirmSeries = ref("")
+const shouldDeleteSeries = ref("")
 const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
 
 onMounted(async () => {
@@ -114,8 +142,9 @@ async function fetchBooks() {
   }
 }
 
-function uniteSeries(data: { series_id: string; series_ids: string[] }) {
-  api.post("/misc/union/", data)
+async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
+  await api.post("/misc/union/", data)
+  fetchBooks()
 }
 
 async function downloadBook(keys: string[]) {
@@ -164,11 +193,22 @@ async function cleanupSeries(key: string, name: string) {
   fetchBooks()
 }
 
-async function deleteBook(keys: string[]) {
-  const confirmDelete = confirm(`Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`)
-  if (!confirmDelete) return
+async function confirmDeleteBook(keys: string[]) {
+  showConfirmBook.value = true
+  messageConfirmBook.value = `Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`
+  shouldDeleteBooks.value = keys
+}
+
+async function confirmDeleteSeries(key: string) {
+  showConfirmSeries.value = true
+  messageConfirmSeries.value = `Are you sure you want to delete this Series?`
+  shouldDeleteSeries.value = key
+}
+
+async function deleteBook() {
+  showConfirmBook.value = false
   try {
-    for (const key of keys) {
+    for (const key of shouldDeleteBooks.value) {
       await api.delete(`/book/${key}`)
     }
   } catch (err) {
@@ -177,15 +217,25 @@ async function deleteBook(keys: string[]) {
   fetchBooks()
 }
 
-async function deleteSeries(key: string) {
-  const confirmDelete = confirm('Are you sure you want to delete this series?')
-  if (!confirmDelete) return
+async function deleteSeries() {
+  showConfirmSeries.value = false
   try {
-    await api.delete(`/series/${key}`)
+    await api.delete(`/series/${shouldDeleteSeries.value}`)
   } catch (err) {
     console.error('Failed to delete series', err)
   }
   fetchBooks()
+}
+
+async function deleteAuthor(key: string | undefined) {
+  showConfirmAuthor.value = false
+  if (!key) return
+  try {
+    await api.delete(`/author/${key}`)
+  } catch (err) {
+    console.error('Failed to delete Author', err)
+  }
+  router.push({ name: 'Library' })
 }
 
 async function editBook(book: Book) {
@@ -271,9 +321,7 @@ div.author-image {
   text-align: center;
 }
 .ctrl-btn{
-  color: var(--lightGray);
   padding: 0px 8px;
-  color: #fff;
   margin: 10px 2px;
 }
 </style>

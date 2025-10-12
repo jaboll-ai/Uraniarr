@@ -75,9 +75,7 @@ const loading = ref(false)
 }
 
 .ctrl-btn {
-  color: var(--darkGray);
   padding: 0px 8px;
-  color: #fff;
   margin: 10px 2px;
 }
 </style>

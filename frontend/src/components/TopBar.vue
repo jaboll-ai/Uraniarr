@@ -31,7 +31,7 @@ const search = ref<string>('')
 const router = useRouter()
 
 function handleInput(): void {
-  console.log(search.value)
+  // console.log(search.value)
 }
 
 function handleSubmit(): void {

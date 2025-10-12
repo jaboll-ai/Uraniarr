@@ -91,6 +91,8 @@ def delete_book(book_id: str, session: Session = Depends(get_session), files: bo
     if files:
         delete_audio_book(book_id, session)
     if book := session.get(Book, book_id):
+        if len(book.reihe.books) == 1:
+            session.delete(book.reihe)
         session.delete(book)
         session.commit()
         return {"deleted": book_id}
