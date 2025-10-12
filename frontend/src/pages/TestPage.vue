@@ -1,6 +1,6 @@
 
 <template>
-    <span>ayoooooo</span>
+    <span>Soon(TM)</span>
 </template>
 
 

@@ -2,9 +2,10 @@ from fastapi import HTTPException, Depends, APIRouter
 from backend.dependencies import get_session, get_cfg_manager
 from sqlmodel import Session, select
 from backend.datamodels import *
+from backend.payloads import *
 from backend.config import ConfigManager
 from backend.services.scrape_service import scrape_all_author_data, scrape_book_series, clean_title
-from backend.services.author_service import save_author_to_db, complete_series_in_db
+from backend.services.author_service import save_author_to_db, complete_series_in_db, make_author_from_series, union_series
 from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author
 import asyncio
 
@@ -74,9 +75,11 @@ async def complete_series_of_author(series_id: str, session: Session = Depends(g
 def delete_series(series_id: str, session: Session = Depends(get_session), files: bool = False):
     if files:
         delete_audio_reihe(series_id, session)
-    session.delete(session.get(Reihe, series_id))
-    session.commit()
-    return {"deleted": series_id}
+    if series := session.get(Reihe, series_id):
+        session.delete(series)
+        session.commit()
+        return {"deleted": series_id}
+    raise HTTPException(status_code=404, detail="Series not found")
 
 @router.delete("/series/{series_id}/files")
 def delete_series_files(series_id: str, session: Session = Depends(get_session)):
@@ -87,9 +90,13 @@ def delete_series_files(series_id: str, session: Session = Depends(get_session))
 def delete_book(book_id: str, session: Session = Depends(get_session), files: bool = False):
     if files:
         delete_audio_book(book_id, session)
-    session.delete(session.get(Book, book_id))
-    session.commit()
-    return {"deleted": book_id}
+    if book := session.get(Book, book_id):
+        if len(book.reihe.books) == 1:
+            session.delete(book.reihe)
+        session.delete(book)
+        session.commit()
+        return {"deleted": book_id}
+    raise HTTPException(status_code=404, detail="Book not found")
 
 @router.delete("/book/{book_id}/files")
 def delete_book_files(book_id: str, session: Session = Depends(get_session)):
@@ -100,9 +107,11 @@ def delete_book_files(book_id: str, session: Session = Depends(get_session)):
 def delete_author(author_id: str, session: Session = Depends(get_session), files: bool = False):
     if files:
         delete_audio_author(author_id, session)
-    session.delete(session.get(Author, author_id))
-    session.commit()
-    return {"deleted": author_id}
+    if author := session.get(Author, author_id):
+        session.delete(author)
+        session.commit()
+        return {"deleted": author_id}
+    raise HTTPException(status_code=404, detail="Author not found")
 
 @router.delete("/author/{author_id}/files")
 def delete_author_files(author_id: str, session: Session = Depends(get_session)):
@@ -130,3 +139,14 @@ async def cleanup_series(series_id: str, name: str, session: Session = Depends(g
             updates += 1
     session.commit()
     return {"updated": updates}
+
+@router.post("/fakeauthor")
+async def fake_author(seriesAuthor: SeriesAuthor, session: Session = Depends(get_session)):
+    data = await scrape_book_series(seriesAuthor.entry_id)
+    resp = await asyncio.to_thread(make_author_from_series, seriesAuthor.name, session, data)
+    return resp
+
+@router.post("/misc/union/")
+async def unite_series(data: UnionSeries, session: Session = Depends(get_session)):
+    resp = union_series(data.series_id, data.series_ids, session)
+    return resp

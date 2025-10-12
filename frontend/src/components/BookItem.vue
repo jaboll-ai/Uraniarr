@@ -1,24 +1,27 @@
 <template>
   <div class="book-item">
     <div class="cell">
+      <input type="checkbox" class="selector" :checked="checked" @click="emit('checkboxClick', { event: $event as MouseEvent, key: book.key })"/>
+    </div>
+    <div class="cell">
       <img class="book-icon" :src="book.bild" :alt="book.name" />
     </div>
     <div class="cell book-title">
       <span>{{ book.name }}</span>
     </div>
     <div class="cell book-key">{{ book.key }}</div>
-    <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
+    <div class="cell book-pos">{{ book.reihe_position?? "" }}</div>
     <div class="cell book-download">
       <button class="download-btn material-symbols-outlined" @click="showEditor = true">edit</button>
-      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', props.book.key)">download</button>
-      <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', props.book.key)">delete</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
   </div>
   <EditModal
       :visible="showEditor"
       :book="book"
       @close="showEditor = false"
-      @editBook="(book: any) => emit('editBook', book)"
+      @editBook="editBook"
     />
 </template>
 
@@ -36,13 +39,22 @@ interface Book {
   b_dl_loc?: string
 }
 
-const props = defineProps<{ book: Book }>()
+const props = defineProps<{
+  book: Book
+  showBox: boolean
+  checked?: boolean
+}>()
 const emit = defineEmits<{
-  (e: 'downloadBook', key: string): void
-  (e: 'deleteBook', key: string): void
+  (e: 'checkboxClick', payload: { event: MouseEvent; key: string }): void
+  (e: 'downloadBook', key: string[]): void
+  (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()
 const showEditor = ref(false)
+function editBook(book: Book) {
+  showEditor.value = false
+  emit('editBook', book)
+}
 </script>
 
 <style scoped>
@@ -60,10 +72,17 @@ const showEditor = ref(false)
 }
 
 .book-item .cell:first-child {
+  width: 20px;
+  background: none;
+  border: none;
+}
+
+.book-item .cell:nth-child(2) {
   border-left: 1px solid var(--borderColor);
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
   padding-left: 0;
+  width: 40px;
 }
 
 .book-item .cell:last-child {
@@ -93,12 +112,19 @@ const showEditor = ref(false)
   text-align: right;
 }
 .download-btn{
+  background: none;
   color: var(--lightGray);
-  background-color: transparent;
 }
-
+.download-btn:hover{
+  color: var(--mainColor);
+}
 .book-title {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.selector {
+  transform: scale(1.2) translateY(-15px);
+  margin: 0 5px
 }
 </style>
