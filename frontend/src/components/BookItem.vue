@@ -10,10 +10,10 @@
       <span>{{ book.name }}</span>
     </div>
     <div class="cell book-key">{{ book.key }}</div>
-    <div class="cell book-pos">{{ book.reihe_position || "" }}</div>
+    <div class="cell book-pos">{{ book.reihe_position?? "" }}</div>
     <div class="cell book-download">
       <button class="download-btn material-symbols-outlined" @click="showEditor = true">edit</button>
-      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', props.book.key)">download</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
       <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
   </div>
@@ -21,7 +21,7 @@
       :visible="showEditor"
       :book="book"
       @close="showEditor = false"
-      @editBook="(book: any) => emit('editBook', book)"
+      @editBook="editBook"
     />
 </template>
 
@@ -46,11 +46,15 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   (e: 'checkboxClick', payload: { event: MouseEvent; key: string }): void
-  (e: 'downloadBook', key: string): void
+  (e: 'downloadBook', key: string[]): void
   (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()
 const showEditor = ref(false)
+function editBook(book: Book) {
+  showEditor.value = false
+  emit('editBook', book)
+}
 </script>
 
 <style scoped>

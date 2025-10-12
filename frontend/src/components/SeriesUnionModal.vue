@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay">
+  <div v-if="visible" class="modal-overlay">
     <div class="modal">
       <h3>Select Items</h3>
 
@@ -38,6 +38,7 @@ interface Series {
 defineProps<{
   items: Series[]
   seriesID: string
+  visible: boolean
 }>()
 
 defineEmits<{
@@ -74,7 +75,7 @@ const loading = ref(false)
 }
 
 .ctrl-btn {
-  color: var(--lightGray);
+  color: var(--darkGray);
   padding: 0px 8px;
   color: #fff;
   margin: 10px 2px;

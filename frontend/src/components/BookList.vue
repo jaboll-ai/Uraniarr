@@ -29,7 +29,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'downloadBook', key: string): void
+  (e: 'downloadBook', key: string[]): void
   (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()

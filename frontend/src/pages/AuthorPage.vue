@@ -118,11 +118,13 @@ function uniteSeries(data: { series_id: string; series_ids: string[] }) {
   api.post("/misc/union/", data)
 }
 
-async function downloadBook(key: string) {
+async function downloadBook(keys: string[]) {
   try {
-    await dapi.post(`/book/${key}`)
+    for (const key of keys) {
+      await api.delete(`/book/${key}`)
+    }
   } catch (err) {
-    console.error('Failed to download Book', err)
+    console.error('Failed to download book', err)
   }
 }
 
@@ -162,7 +164,7 @@ async function cleanupSeries(key: string, name: string) {
   fetchBooks()
 }
 
-async function deleteBook(keys: string) {
+async function deleteBook(keys: string[]) {
   const confirmDelete = confirm(`Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`)
   if (!confirmDelete) return
   try {

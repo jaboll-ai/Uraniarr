@@ -11,10 +11,10 @@
           {{ collapseMap[group.series.key] ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
         </button>
         <h3 class="series-name">{{ group.series.name }}</h3>
-        <button v-if="!showCleanup" title="Attempt to clean Book titles of remnants from series" class="ctrl-btn material-symbols-outlined" @click="showCleanup = true">cleaning_services</button>
+        <button v-if="!showCleanup[group.series.key]" title="Attempt to clean Book titles of remnants from series" class="ctrl-btn material-symbols-outlined" @click="showCleanup[group.series.key] = true">cleaning_services</button>
         <div v-else style="display: flex;">
           <input class="series-clean" @keyup.enter="$emit('cleanupSeries', group.series.key, ($event.target as HTMLInputElement).value)" type="text" placeholder="alternative Series title" :key="group.series.key"/>
-          <button class="ctrl-btn material-symbols-outlined" @click="showCleanup = false">arrow_right</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="showCleanup[group.series.key] = false">arrow_right</button>
         </div>
         <button title="Join Series" class="ctrl-btn material-symbols-outlined" @click="openSelector(group.series.key)">join</button>
         <button title="Include other-author books of this series" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
@@ -26,9 +26,9 @@
   </div>
 
   <SeriesUnionSelector
-    v-if="showSelector"
     :items="items"
     :seriesID="seriesID"
+    :visible="showSelector"
     @close="closeSelector"
     @unite="emitUniteSeries"
   />
@@ -44,7 +44,7 @@ const props = defineProps<{
   seriesGroups: Array<{ series: Series; books: Book[] }>
 }>()
 const emit = defineEmits<{
-  (e: 'downloadBook', key: string): void
+  (e: 'downloadBook', key: string[]): void
   (e: 'completeSeries', key: string): void
   (e: 'downloadSeries', key: string): void
   (e: 'deleteSeries', key: string): void
@@ -72,7 +72,7 @@ interface Book {
 }
 
 const collapseMap = ref<Record<string, boolean>>({})
-const showCleanup = ref(false)
+const showCleanup = ref<Record<string, boolean | undefined>>({})
 const showBox = ref(false)
 
 const seriesID = ref()
