@@ -1,8 +1,8 @@
 services:
-  lesarr:
-    container_name: lesarr
+  uraniarr:
+    container_name: uraniarr
     build: .
-    image: lesarr
+    image: uraniarr
     ports:
       - "8000:8000"
     environment:

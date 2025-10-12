@@ -1,1 +1,1 @@
-cd frontend && npm run build && cd .. && docker build . -t lesarr
+cd frontend && npm run build && cd .. && docker build . -t uraniarr
