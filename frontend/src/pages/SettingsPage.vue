@@ -36,7 +36,6 @@ onMounted(async () => {
 
 async function saveSettings() {
   try {
-    // send the full list back — your server can diff or overwrite
     await api.patch('/settings', Object.fromEntries(
       Object.entries(settings.value).map(([key, cfg]) => [key, cfg.value])
     ) )

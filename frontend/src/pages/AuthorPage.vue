@@ -7,6 +7,7 @@
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
           <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">download</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="showConfirmAuthor = true">delete</button>
         </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
@@ -25,22 +26,43 @@
       <keep-alive>
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
-          @downloadSeries="downloadSeries" @deleteSeries="deleteSeries" @deleteBook="deleteBook" @editBook="editBook"
-          @cleanupSeries="cleanupSeries"/>
+          @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="editBook"
+          @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries"
+          :showBox="showBox" :books="books" :seriesGroups="seriesGroups"/>
       </keep-alive>
     </div>
+    <ConfirmModal
+      :visible="showConfirmAuthor"
+      message="Are you sure yopu want to delete this author?"
+      @confirm="deleteAuthor(author?.key)"
+      @cancel="showConfirmAuthor = false"
+    />
+    <ConfirmModal
+      :visible="showConfirmBook"
+      :message="messageConfirmBook"
+      @confirm="deleteBook"
+      @cancel="showConfirmBook = false"
+    />
+    <ConfirmModal
+      :visible="showConfirmSeries"
+      :message="messageConfirmSeries"
+      @confirm="deleteSeries"
+      @cancel="showConfirmSeries = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { api, dapi as dapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 interface Book {
   key: string
@@ -59,18 +81,34 @@ interface Author {
   bild: string
   bio: string
 }
+
+interface Series {
+  autor_key: string
+  key: string
+  name: string
+}
+
 const author = ref<Author | null>(null)
+const books = ref<Book[]>([])
+const showBox = ref(false)
+const showConfirmAuthor = ref(false)
+const showConfirmBook = ref(false)
+const messageConfirmBook = ref("")
+const shouldDeleteBooks = ref<string[]>([])
+const showConfirmSeries = ref(false)
+const messageConfirmSeries = ref("")
+const shouldDeleteSeries = ref("")
+const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
 
 onMounted(async () => {
   try {
-    const responseA = await api.get<Author>(`/author/${route.params.key}`)
-    author.value = responseA.data
+    const response = await api.get<Author>(`/author/${route.params.key}`)
+    author.value = response.data
   } catch (error) {
     console.error('Failed to fetch books:', error)
   }
+  fetchBooks()
 })
-
-
 const tabs = [
   { name: 'BookList',     label: 'Books'    },
   { name: 'SeriesList',  label: 'Series'  },
@@ -85,18 +123,43 @@ const componentsMap: Record<string, any> = {
 }
 const currentComponent = computed(() => componentsMap[current.value])
 
-
-async function downloadBook(key: string) {
+async function fetchBooks() {
   try {
-    dapi.post(`/book/${key}`)
+    var b: Book[] = []
+    const { data: seriesList } = await api.get<Series[]>(`/author/${route.params.key}/series`)
+    const groups = await Promise.all(
+      seriesList.map(async (s: Series) => {
+        const { data: books } = await api.get<Book[]>(`/series/${s.key}/books`)
+        books.sort((a: Book, b: Book) => (a.reihe_position ?? 0) - (b.reihe_position ?? 0))
+        b = b.concat(books)
+        return { series: s, books }
+      })
+    )
+    books.value = b
+    seriesGroups.value = groups
   } catch (err) {
-    console.error('Failed to download Book', err)
+    console.error('Failed to load series or books', err)
+  }
+}
+
+async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
+  await api.post("/misc/union/", data)
+  fetchBooks()
+}
+
+async function downloadBook(keys: string[]) {
+  try {
+    for (const key of keys) {
+      await api.delete(`/book/${key}`)
+    }
+  } catch (err) {
+    console.error('Failed to download book', err)
   }
 }
 
 async function downloadSeries(key: string) {
   try {
-    dapi.post(`/series/${key}`)
+    await dapi.post(`/series/${key}`)
   } catch (err) {
     console.error('Failed to download Series', err)
   }
@@ -105,7 +168,7 @@ async function downloadSeries(key: string) {
 async function downloadAuthor(key:string | undefined) {
   if (!key) return
   try {
-    dapi.post(`/author/${key}`)
+    await dapi.post(`/author/${key}`)
   } catch (err) {
     console.error('Failed to download Author', err)
   }
@@ -113,39 +176,66 @@ async function downloadAuthor(key:string | undefined) {
 
 async function completeSeries(key: string) {
   try {
-    api.post(`/series/complete/${key}`)
+    await api.post(`/series/complete/${key}`)
   } catch (err) {
     console.error('Failed to complete series', err)
   }
+  fetchBooks()
 }
 
 async function cleanupSeries(key: string, name: string) {
   console.log(key, name)
   try {
-    api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
+    await api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
   } catch (err) {
     console.error('Failed to cleanup series', err)
   }
+  fetchBooks()
 }
 
-async function deleteBook(key: string) {
-  const confirmDelete = confirm('Are you sure you want to delete this book?')
-  if (!confirmDelete) return
+async function confirmDeleteBook(keys: string[]) {
+  showConfirmBook.value = true
+  messageConfirmBook.value = `Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`
+  shouldDeleteBooks.value = keys
+}
+
+async function confirmDeleteSeries(key: string) {
+  showConfirmSeries.value = true
+  messageConfirmSeries.value = `Are you sure you want to delete this Series?`
+  shouldDeleteSeries.value = key
+}
+
+async function deleteBook() {
+  showConfirmBook.value = false
   try {
-    api.delete(`/book/${key}`)
+    for (const key of shouldDeleteBooks.value) {
+      await api.delete(`/book/${key}`)
+    }
   } catch (err) {
     console.error('Failed to delete book', err)
   }
+  fetchBooks()
 }
 
-async function deleteSeries(key: string) {
-  const confirmDelete = confirm('Are you sure you want to delete this series?')
-  if (!confirmDelete) return
+async function deleteSeries() {
+  showConfirmSeries.value = false
   try {
-    api.delete(`/series/${key}`)
+    await api.delete(`/series/${shouldDeleteSeries.value}`)
   } catch (err) {
     console.error('Failed to delete series', err)
   }
+  fetchBooks()
+}
+
+async function deleteAuthor(key: string | undefined) {
+  showConfirmAuthor.value = false
+  if (!key) return
+  try {
+    await api.delete(`/author/${key}`)
+  } catch (err) {
+    console.error('Failed to delete Author', err)
+  }
+  router.push({ name: 'Library' })
 }
 
 async function editBook(book: Book) {
@@ -154,6 +244,7 @@ async function editBook(book: Book) {
   } catch (err) {
     console.error('Failed to edit book', err)
   }
+  fetchBooks()
 }
 </script>
 
@@ -230,9 +321,7 @@ div.author-image {
   text-align: center;
 }
 .ctrl-btn{
-  color: var(--lightGray);
   padding: 0px 8px;
-  color: #fff;
   margin: 10px 2px;
 }
 </style>

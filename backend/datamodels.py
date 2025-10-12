@@ -60,6 +60,7 @@ class Author(SQLModel, table=True):
     bio: Optional[str] = None
     a_dl_loc: Optional[str] = None
     b_dl_loc: Optional[str] = None
+    is_series: bool = False
     
     books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})

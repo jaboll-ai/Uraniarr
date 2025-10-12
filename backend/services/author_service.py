@@ -30,9 +30,9 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
             book.name = ctitle
             reihe = reihen.setdefault(series_title, Reihe(name=series_title, autor_key=author.key))
             reihe.books.append(book)
-            if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
-                for idx, b in enumerate(bs):
-                    b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
+            # if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
+            #     for idx, b in enumerate(bs):
+            #         b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
         editions = []
         in_db = set(session.exec(select(Edition.key)).all())
         for i in eds:
@@ -56,13 +56,13 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
     #                 print(book.name, r1.name, book.reihe_position)
     #                 book.name = clean_title(book.name, r1.name, book.reihe_position)
     session.flush()
-    for reihe in author.reihen: #really inefficient needs revisit #TODO
-        for book, book2 in combinations(reihe.books, 2):
-            if not book.reihe_position or not book2.reihe_position: continue
-            if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
-                for edition in book2.editions:
-                    book.editions.append(edition)
-                author.books.remove(book2)
+    # for reihe in author.reihen: #really inefficient needs revisit #TODO
+    #     for book, book2 in combinations(reihe.books, 2):
+    #         if not book.reihe_position or not book2.reihe_position: continue
+    #         if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
+    #             for edition in book2.editions:
+    #                 book.editions.append(edition)
+    #             author.books.remove(book2)
     session.commit()
     return author.key
 
@@ -79,3 +79,31 @@ def complete_series_in_db(series_id: str, session: Session, scraped: dict):
     session.commit()
     resp = [b["key"] for b in scraped]
     return resp
+
+def make_author_from_series(name:str, session: Session, scraped: dict):
+    author = Author(key=id_generator(), name=name, is_series=True)
+    reihe = Reihe(name=name)
+    in_db = set(session.exec(select(Edition.key)).all())
+    for book_data in scraped:
+        if book_data.get("key") in in_db: 
+            raise AuthorError(status_code=409, detail="Book already exists for diffrent author")
+        book = Book(autor_key=author.key, name=book_data.get("titel"), bild=book_data.get("bild"), reihe_position=book_data.get("_pos"))
+        book.editions.append(Edition(**book_data))
+        reihe.books.append(book)
+    author.reihen = [reihe]
+    session.add(author)
+    session.commit()
+    return author.key
+
+def union_series(series_id: str, series_ids: list[str], session: Session):
+    reihe = session.get(Reihe, series_id)
+    if not reihe:
+        raise AuthorError(status_code=404, detail="Series not found")
+    for id in series_ids:
+        reihe2 = session.get(Reihe, id)
+        if not reihe2:
+            raise AuthorError(status_code=404, detail="Series not found")
+        reihe.books.extend(reihe2.books)
+        session.delete(reihe2)
+    session.commit()
+    return id
