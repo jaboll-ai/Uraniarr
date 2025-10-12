@@ -86,7 +86,7 @@ watch(() => props.book, (newBook) => {
 }
 
 .modal {
-  background: white;
+  background-color: var(--backgroundWhite);
   padding: 20px;
   width: 500px;
   border-radius: 8px;

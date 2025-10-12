@@ -12,11 +12,7 @@
       </div>
       <div style="display: flex;">
         <div style="flex-grow: 1;"></div>
-        <button class="add-button" @click="add(author.key)">Add</button>
-      </div>
-      <div v-if="adding[author.key]" class="adding-loading">
-        <span>Adding</span>
-        <span>.{{ dots }}</span>
+        <button :disabled="isDisabled(author.key)" class="add-button" @click="add(author.key)">{{ authorStatus[author.key]?.adding ? dots : authorStatus[author.key]?.added ? 'Added' : 'Add' }}</button>
       </div>
     </div>
   </div>
@@ -25,7 +21,7 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, reactive, computed } from 'vue'
 import { tapi, api } from '@/main.ts'
 import { getInitials } from '@/utils.ts'
 
@@ -40,29 +36,45 @@ interface Author {
 
 const authors = ref<Author[]>([])
 const loading = ref(false)
-interface BoolMap { [key: string]: boolean }
-const adding = ref<BoolMap>({})
+const authorStatus = reactive<Record<string, { adding: boolean; added: boolean }>>({})
 const dots = ref('')
 let timer: number
 
+const isDisabled = computed(() => (author: string) => {
+  const status = authorStatus[author]
+  return status ? status.adding || status.added : false
+})
+
 async function add(author: string){
-  adding.value[author] = true
+  authorStatus[author].adding = true
+  console.log("added pressed")
   try {
     await api.post(`/author/${author}`)
   } finally {
-    adding.value[author] = false
+    authorStatus[author].adding = false
   }
 }
 
 async function search() {
-    try {
+  try {
     loading.value = true
     const response = await tapi.get<Author[]>("/search", { params: { q: route.query.q } })
     loading.value = false
     authors.value = response.data
+    for (const author of authors.value) {
+      try {
+        await api.get(`/author/${author.key}`)
+        console.log("found em")
+        authorStatus[author.key] = { adding: false, added: true }
+      } catch(err) {
+        console.log("not found")
+        authorStatus[author.key] = { adding: false, added: false }
+      }
+    }
   } catch (error) {
     console.error('Failed to fetch books:', error)
   }
+  console.log(authorStatus)
 }
 
 onMounted(async () => {
@@ -123,8 +135,8 @@ div.author-image {
   margin: 0;
 }
 .add-button {
-  width: min-content;
-  padding: 8px 16px;
+  width: 70px;
+  padding: 8px 0px;
   border-radius: 8px;
   margin: 0 10px;
   border: none;
@@ -133,6 +145,12 @@ div.author-image {
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s ease
+}
+.add-button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 .adding-loading {
   position: absolute;

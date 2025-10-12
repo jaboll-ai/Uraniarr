@@ -2,7 +2,7 @@
   --lightGray: #353535;
   --darkGray: #252525;
   --offWhite: #f3f0e7;
-  --offWhiteFix: #f3f0e7;
+  --fontColor: #252525;
   --borderColor: #dad6cd;
   --backgroundWhite: #fafaf5;
 
@@ -10,7 +10,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color: var(--darkGray);
+  color: var(--fontColor);
   color-scheme: light dark;
   background-color: var(--backgroundWhite);
 
@@ -25,12 +25,10 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
   text-decoration: inherit;
+  color: var(--fontColor)
 }
-a:hover {
-  color: #535bf2;
-}
+
 
 body {
   margin: 0;
@@ -45,7 +43,7 @@ h1 {
 }
 
 button {
-  color: var(--offWhiteFix);
+  color: var(--fontColor);
   padding: 0;
   border: none;
   font-size: 1em;
@@ -79,7 +77,8 @@ button:focus-visible {
 @media (prefers-color-scheme: dark) {
   :root {
     /* --lightGray: #f3f0e7; */
-    --darkGray: #dad6cd;
+    /* --darkGray: #dad6cd; */
+    --fontColor:#f3f0e7;
     --backgroundWhite: #252525;
     --borderColor: #252525;
     --offWhite: #454545;
