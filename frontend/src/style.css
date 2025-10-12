@@ -20,7 +20,7 @@
   -moz-osx-font-smoothing: grayscale;
 
 
-  --mainColor: #52578f;
+  --mainColor: #9d8ebe;
 }
 
 a {
@@ -43,7 +43,7 @@ h1 {
 }
 
 button {
-  color: var(--offWhite);
+  color: #f1f1f1;
   padding: 0;
   border: none;
   font-size: 1em;
