@@ -30,9 +30,9 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
             book.name = ctitle
             reihe = reihen.setdefault(series_title, Reihe(name=series_title, autor_key=author.key))
             reihe.books.append(book)
-            if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
-                for idx, b in enumerate(bs):
-                    b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
+            # if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
+            #     for idx, b in enumerate(bs):
+            #         b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
         editions = []
         in_db = set(session.exec(select(Edition.key)).all())
         for i in eds:
