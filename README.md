@@ -14,7 +14,7 @@
 
 # Uraniarr
 
-Uraniarr is a FastAPI-based application for scraping book metadata from Thalia.de, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
+[Uraniarr](https://de.wikipedia.org/wiki/Urania) is a FastAPI-based application for scraping book metadata from Thalia.de, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
 
 ## Features
 
