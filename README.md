@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="frontend/public/assets/lesarr.svg" alt="Lesarr Logo" width="200"/>
+  <img src="frontend/public/assets/uraniarr.svg" alt="Uraniarr Logo" width="200"/>
 </p>
 
 > [!WARNING]
@@ -12,9 +12,9 @@
 > [!NOTE]  
 > I know the CSS sucks. I know there is no download all button for an author yet. Shoot me a PR tho :)
 
-# Lesarr
+# Uraniarr
 
-Lesarr is a FastAPI-based application for scraping book metadata from Thalia.de, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
+Uraniarr is a FastAPI-based application for scraping book metadata from Thalia.de, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
 
 ## Features
 
@@ -31,15 +31,23 @@ Lesarr is a FastAPI-based application for scraping book metadata from Thalia.de,
 
 ## Getting Started
 
-**RECOMMENDED: Docker Compose**  
+1. **Build the frontend assets**  
+   ```bash
+   cd frontend && npm install && npm run build && cd ..
+   ```
+2. **Build the Docker image**  
+   ```bash
+   docker build . -t uraniarr
+   ```
+3. **Docker Compose**  
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
    ```yaml
     version: '3.8'
     services:
-    lesarr:
-        container_name: lesarr
-        build: https://github.com/jaboll-ai/Lesarr.git#main
-        image: lesarr
+    uraniarr:
+        container_name: uraniarr
+        build: https://github.com/jaboll-ai/Uraniarr.git#main
+        image: uraniarr
         ports:
         - "8000:8000"
         # volumes:

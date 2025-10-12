@@ -1,8 +1,8 @@
 services:
-  lesarr:
-    container_name: lesarr
-    build: https://github.com/jaboll-ai/Lesarr.git#main
-    image: lesarr
+  uraniarr:
+    container_name: uraniarr
+    build: https://github.com/jaboll-ai/Uraniarr.git#main
+    image: uraniarr
     ports:
       - "8000:8000"
     environment:
