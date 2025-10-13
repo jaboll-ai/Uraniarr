@@ -10,6 +10,7 @@
         :checked="selected.includes(book.key)"
         @checkboxClick="onCheckboxClick($event, index)"
         @downloadBook="$emit('downloadBook', $event)"
+        @searchBook="$emit('searchBook', $event)"
         @deleteBook="deleteBook"
         @editBook="$emit('editBook', $event)"
       />
@@ -31,6 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'downloadBook', key: string[]): void
   (e: 'deleteBook', keys: string[]): void
+  (e: 'searchBook', keys: string): void
   (e: 'editBook', book: Book): void
 }>()
 

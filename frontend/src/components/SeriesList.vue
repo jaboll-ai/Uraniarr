@@ -21,7 +21,12 @@
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
         <button title="Delete entire Series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
-      <BookList @downloadBook="$emit('downloadBook', $event)" @deleteBook="$emit('deleteBook', $event)" @editBook="$emit('editBook', $event)" :showBox="showBox" :books="group.books" :seriesGroups="[]"/>
+      <BookList 
+      @downloadBook="$emit('downloadBook', $event)" 
+      @deleteBook="$emit('deleteBook', $event)" 
+      @editBook="$emit('editBook', $event)" 
+      @searchBook="$emit('searchBook', $event)"
+      :showBox="showBox" :books="group.books" :seriesGroups="[]"/>
     </div>
   </div>
 
@@ -45,6 +50,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   (e: 'downloadBook', key: string[]): void
+  (e: 'searchBook', key: string): void
   (e: 'completeSeries', key: string): void
   (e: 'downloadSeries', key: string): void
   (e: 'deleteSeries', key: string): void

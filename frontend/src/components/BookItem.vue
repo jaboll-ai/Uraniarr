@@ -14,6 +14,7 @@
     <div class="cell book-download">
       <button class="download-btn material-symbols-outlined" @click="showEditor = true">edit</button>
       <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
+      <button class="download-btn material-symbols-outlined" @click="emit('searchBook', props.book.key)">quick_reference_all</button>
       <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
   </div>
@@ -47,6 +48,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'checkboxClick', payload: { event: MouseEvent; key: string }): void
   (e: 'downloadBook', key: string[]): void
+  (e: 'searchBook', key: string): void
   (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()
