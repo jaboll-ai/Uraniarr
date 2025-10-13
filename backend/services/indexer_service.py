@@ -31,7 +31,35 @@ def grab_nzb(guid: str, cfg: ConfigManager):
     if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
     return response.content
 
+def query_manual(book: Book, cfg: ConfigManager):
+    used_term=""
+    base_queries = build_queries(book)
+    for autor, name in base_queries:
+        used_term = f"{autor} {name}"
+        data = indexer_search(used_term, cfg=cfg)
+        query = data["channel"]
+        if (total:=query["response"]["@attributes"]["total"]) != "0":
+            break
+    else: return { "query": used_term, "nzbs": [] }
+    items = [query["item"]] if total == "1" else query["item"]
+    reponse = [{"name": item["title"],
+                "guid": item["attr"][2]["@attributes"]["value"],
+                "size": item["attr"][1]["@attributes"]["value"] } for item in items ]
+    return { "query": used_term, "nzbs": reponse }
+
 def query_book(book: Book, cfg: ConfigManager):
+    base_queries = build_queries(book)
+    for autor, name in base_queries: #TODO
+        data = indexer_search(f"{autor} {name}", cfg=cfg)
+        query = data["channel"]
+        if (total:=query["response"]["@attributes"]["total"]) != "0":
+            break
+    else: return None
+    item = query["item"] if total == "1" else query["item"][0] 
+    guid=item["attr"][2]["@attributes"]["value"]
+    return guid
+
+def build_queries(book: Book):
     base_queries = [
         (book.autor.name, book.name),
         (fix_umlaut(book.autor.name), fix_umlaut(book.name)),
@@ -45,12 +73,4 @@ def query_book(book: Book, cfg: ConfigManager):
             (book.autor.name, f"{book.reihe.name} {round(book.reihe_position or 0)}"),
             (book.reihe.name, book.name),
             (fix_umlaut(book.reihe.name), fix_umlaut(book.name))])
-    for autor, name in base_queries:
-        data = indexer_search(f"{autor} {name}", cfg=cfg)
-        query = data["channel"]
-        if (total:=query["response"]["@attributes"]["total"]) != "0":
-            break
-    else: return None
-    item = query["item"] if total == "1" else query["item"][0] 
-    guid=item["attr"][2]["@attributes"]["value"]
-    return guid
+    return base_queries

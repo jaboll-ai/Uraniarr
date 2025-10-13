@@ -27,7 +27,7 @@
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
           @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="editBook"
-          @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries"
+          @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries" @searchBook="searchBook"
           :showBox="showBox" :books="books" :seriesGroups="seriesGroups"/>
       </keep-alive>
     </div>
@@ -49,6 +49,7 @@
       @confirm="deleteSeries"
       @cancel="showConfirmSeries = false"
     />
+    <ManualSearch :query="query" :visible="interactiveSearch" :versions="versions" @close="interactiveSearch = false; versions = []" @select="downloadBookManual" />
   </div>
 </template>
 
@@ -60,6 +61,7 @@ import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import ManualSearch from '@/components/ManualSearch.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -88,9 +90,21 @@ interface Series {
   name: string
 }
 
+interface BookNzb {
+  name: string
+  guid: string
+  size: string | number
+}
+
+interface InteractiveSearch{
+  query: string
+  nzbs: BookNzb[]
+}
+
 const author = ref<Author | null>(null)
 const books = ref<Book[]>([])
 const showBox = ref(false)
+const interactiveSearch = ref(false)
 const showConfirmAuthor = ref(false)
 const showConfirmBook = ref(false)
 const messageConfirmBook = ref("")
@@ -99,6 +113,8 @@ const showConfirmSeries = ref(false)
 const messageConfirmSeries = ref("")
 const shouldDeleteSeries = ref("")
 const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
+const versions = ref<BookNzb[]>([])
+const query = ref("")
 
 onMounted(async () => {
   try {
@@ -142,6 +158,18 @@ async function fetchBooks() {
   }
 }
 
+async function searchBook(key: string) {
+  try {
+    interactiveSearch.value = true
+    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`)
+    versions.value = response.data.nzbs
+    query.value = response.data.query
+  } catch(err){
+    console.log(err)
+    interactiveSearch.value = true
+  }
+}
+
 async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
   await api.post("/misc/union/", data)
   fetchBooks()
@@ -152,6 +180,14 @@ async function downloadBook(keys: string[]) {
     for (const key of keys) {
       await api.delete(`/book/${key}`)
     }
+  } catch (err) {
+    console.error('Failed to download book', err)
+  }
+}
+
+async function downloadBookManual(nzbs: BookNzb) {
+  try {
+    await api.delete('/guid/')
   } catch (err) {
     console.error('Failed to download book', err)
   }
