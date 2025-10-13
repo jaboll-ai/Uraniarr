@@ -201,3 +201,7 @@ def fix_umlaut(text: str) -> str:
     text = re.sub(r"ß", "ss", text, flags=re.IGNORECASE)
     return text
 
+def has_umlaut(text: str) -> bool:
+    regex = r"[äöüß]"
+    return bool(re.search(regex, text, flags=re.IGNORECASE))
+

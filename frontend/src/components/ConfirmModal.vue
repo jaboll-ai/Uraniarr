@@ -25,7 +25,7 @@ const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
   justify-content: center;
 }
 .modal {
-  background: white;
+  background: var(--backgroundWhite);
   padding: 1rem 1.5rem;
   border-radius: 8px;
   display: flex;

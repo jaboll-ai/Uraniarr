@@ -49,7 +49,9 @@
       @confirm="deleteSeries"
       @cancel="showConfirmSeries = false"
     />
-    <ManualSearch :query="query" :visible="interactiveSearch" :versions="versions" @close="interactiveSearch = false; versions = []" @select="downloadBookManual" />
+    <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey" 
+    :pages="manualSearchPages" :versions="manualSearchVersions"
+     @close="closeManualSearch" @select="downloadBookManual" @paginate="searchBookPaginate"/>
   </div>
 </template>
 
@@ -99,6 +101,7 @@ interface BookNzb {
 interface InteractiveSearch{
   query: string
   nzbs: BookNzb[]
+  pages: number
 }
 
 const author = ref<Author | null>(null)
@@ -113,8 +116,10 @@ const showConfirmSeries = ref(false)
 const messageConfirmSeries = ref("")
 const shouldDeleteSeries = ref("")
 const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
-const versions = ref<BookNzb[]>([])
+const manualSearchVersions = ref<BookNzb[]>([])
 const query = ref("")
+const manualSearchKey = ref("")
+const manualSearchPages = ref(0)
 
 onMounted(async () => {
   try {
@@ -159,15 +164,27 @@ async function fetchBooks() {
 }
 
 async function searchBook(key: string) {
+  await searchBookPaginate(key, 0)
+}
+async function searchBookPaginate(key: string, page: number) {
   try {
     interactiveSearch.value = true
-    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`)
-    versions.value = response.data.nzbs
+    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`, { params: { page: page } })
+    manualSearchVersions.value = response.data.nzbs
     query.value = response.data.query
+    manualSearchPages.value = response.data.pages
+    manualSearchKey.value = key
   } catch(err){
     console.log(err)
     interactiveSearch.value = true
   }
+}
+
+async function closeManualSearch() {
+  interactiveSearch.value = false
+    manualSearchVersions.value = []
+    query.value = ""
+    manualSearchKey.value = ""
 }
 
 async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
@@ -185,9 +202,9 @@ async function downloadBook(keys: string[]) {
   }
 }
 
-async function downloadBookManual(nzbs: BookNzb) {
+async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await api.delete('/guid/')
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid})
   } catch (err) {
     console.error('Failed to download book', err)
   }

@@ -9,9 +9,6 @@
 > [!CAUTION]
 > This project is really experimental and might not work/break something on your system. There will be dragons!
 
-> [!NOTE]  
-> I know the CSS sucks. I know there is no download all button for an author yet. Shoot me a PR tho :)
-
 # Uraniarr
 
 [Uraniarr](https://de.wikipedia.org/wiki/Urania) is a FastAPI-based application for scraping book metadata from ***REMOVED***, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
@@ -42,17 +39,18 @@
 3. **Docker Compose**  
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
    ```yaml
-    version: '3.8'
     services:
-    uraniarr:
+      uraniarr:
         container_name: uraniarr
         build: https://github.com/jaboll-ai/Uraniarr.git#main
         image: uraniarr
         ports:
-        - "8000:8000"
-        # volumes:
-        # - <on-host-config>:/config
-        # - <on-host-data>:/data
+          - "11562:8000"
+        environment:
+          - CONFIG_DIR=/config
+        # volumes: #make sure the folder exists on host
+        #   - <on-host-config>:/config #e.g. /etc/uraniarr
+        #   - <on-host-data>:/data #internal must match data_path in your config
   ```
 **ALTERNATIVE: Run the application locally (please don't)** 
 1. **Build the frontend assets**  
@@ -70,9 +68,10 @@
     ```
 
 ## Contributing
-
-Again, contributions are welcome! Please open issues and submit pull requests.
+1. Create your `venv` and install the `requirements.txt`
+2. Run `uvicorn backend.main:app --reload`
+3. Make a file `frontend/.env.devolopment` with `VITE_API_BASE=http://localhost:<uvicorn-port>`
+4. Run Vue with `cd fronted && npm run dev --host`
 
 ## License
-
 This project is licensed under the MIT License.

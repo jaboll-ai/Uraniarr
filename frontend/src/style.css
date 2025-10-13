@@ -21,6 +21,7 @@
 
 
   --mainColor: #9d8ebe;
+  --btnColor: #7155ad;
 }
 
 a {
@@ -43,24 +44,23 @@ h1 {
 }
 
 button {
-  color: #f1f1f1;
+  color: var(--fontColor);
   padding: 0;
   border: none;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--lightGray);
+  background: none;
   cursor: pointer;
   min-height: 40px;
   border-radius: 8px;
   flex-grow: 0 1;
 }
 button:hover {
-  color: var(--mainColor);
+  color: var(--btnColor);
 }
-button:focus,
-button:focus-visible {
-  background-color: var(--darkGray);
+button:disabled{
+  cursor: not-allowed;
 }
 
 #app {

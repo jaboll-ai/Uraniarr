@@ -150,7 +150,6 @@ div.author-image {
 .add-button:disabled {
   background-color: #ccc;
   color: #666;
-  cursor: not-allowed;
   opacity: 0.7;
 }
 .adding-loading {
