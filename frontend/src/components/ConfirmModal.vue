@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 defineProps<{ visible: boolean; message?: string }>()
-const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
+defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
 </script>
 
 <style scoped>
