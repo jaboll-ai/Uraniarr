@@ -61,7 +61,7 @@ const loading = ref(false)
 }
 
 .modal {
-  background: white;
+  background: var(--backgroundWhite);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);

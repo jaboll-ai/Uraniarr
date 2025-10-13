@@ -32,11 +32,11 @@ def download_guid(data: ManualGUIDDownload, cfg: ConfigManager = Depends(get_cfg
     return data.guid
 
 @router.get("/manual/{book_id}")
-def search_manual(book_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+def search_manual(book_id: str, page:int = 0, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     book = session.get(Book, book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    data = query_manual(book, cfg=cfg)
+    data = query_manual(book, page, cfg=cfg)
     if not data:
         raise HTTPException(status_code=404, detail=f"Book {book.name} not found")
     return data
