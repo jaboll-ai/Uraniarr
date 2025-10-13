@@ -28,7 +28,7 @@ def download_book(book_id: str, session: Session = Depends(get_session), cfg: Co
 @router.post("/guid")
 def download_guid(data: ManualGUIDDownload, cfg: ConfigManager = Depends(get_cfg_manager)):
     nzb = grab_nzb(data.guid, cfg=cfg)
-    download(nzb, nzbname=data.guid, cfg=cfg)
+    download(nzb, nzbname=data.book_key, cfg=cfg)
     return data.guid
 
 @router.get("/manual/{book_id}")
