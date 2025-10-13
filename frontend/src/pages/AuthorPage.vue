@@ -195,7 +195,7 @@ async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
 async function downloadBook(keys: string[]) {
   try {
     for (const key of keys) {
-      await api.delete(`/book/${key}`)
+      await dapi.post(`/book/${key}`)
     }
   } catch (err) {
     console.error('Failed to download book', err)
