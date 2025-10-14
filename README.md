@@ -71,7 +71,7 @@
 
 ## Contributing
 1. Create your `venv` and install the `requirements.txt`
-2. Run `uvicorn backend.main:app --reload`
+2. Run `VENDOR=https://www.t****.de uvicorn backend.main:app --reload`
 3. Make a file `frontend/.env.devolopment` with `VITE_API_BASE=http://localhost:<uvicorn-port>`
 4. Run Vue with `cd fronted && npm run dev --host`
 
