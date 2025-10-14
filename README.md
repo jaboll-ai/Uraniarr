@@ -11,7 +11,7 @@
 
 # Uraniarr
 
-[Uraniarr](https://de.wikipedia.org/wiki/Urania) is a FastAPI-based application for scraping book metadata from Thalia.de, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
+[Uraniarr](https://de.wikipedia.org/wiki/Urania) is a FastAPI-based application for scraping book metadata from a german vendor, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
 
 ## Features
 
@@ -48,6 +48,8 @@
           - "11562:8000"
         environment:
           - CONFIG_DIR=/config
+          # Necessary! change to the book vendor named after the greek muse
+          - VENDOR=https://www.t****.de 
         # volumes: #make sure the folder exists on host
         #   - <on-host-config>:/config #e.g. /etc/uraniarr
         #   - <on-host-data>:/data #internal must match data_path in your config
