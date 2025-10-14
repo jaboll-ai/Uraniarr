@@ -27,16 +27,7 @@
   Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. Currently no custimization options
 
 ## Getting Started
-
-1. **Build the frontend assets**  
-   ```bash
-   cd frontend && npm install && npm run build && cd ..
-   ```
-2. **Build the Docker image**  
-   ```bash
-   docker build . -t uraniarr
-   ```
-3. **Docker Compose**  
+1. **Docker Compose**  
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
    ```yaml
     services:
@@ -53,15 +44,13 @@
         # volumes: #make sure the folder exists on host
         #   - <on-host-config>:/config #e.g. /etc/uraniarr
         #   - <on-host-data>:/data #internal must match data_path in your config
-  ```
-**ALTERNATIVE: Run the application locally (please don't)** 
-1. **Build the frontend assets**  
+
+**ALTERNATIVE: Run the application locally (please don't)**
+
+1. **Build the frontend assets**
+
    ```bash
-   cd frontend && npm install && npm run build && cd ..
-   ```
-   **Optional: Build the Docker image**  
-   ```bash
-   docker build . -t lesarr
+     cd frontend && npm install && npm run build && cd ..
    ```
  2. **Start**
     ```bash
