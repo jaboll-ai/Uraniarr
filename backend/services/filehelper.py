@@ -7,6 +7,7 @@ from backend.config import ConfigManager
 from backend.services.downloader_service import get_config, remove_from_history
 from backend.datamodels import Book, Reihe, Author
 from backend.exceptions import FileError
+import os
 
 def move_file(src: Path):
     cfg = ConfigManager()
@@ -16,7 +17,8 @@ def move_file(src: Path):
         with Session(engine) as session:
             book = session.get(Book, book_id)
             if not book:
-                raise FileError(status_code=404, detail=f"Book '{book_id}' not found")
+                print(f"Book '{book_id}' not found. Cannot import.")
+                return #TODO better logging
 
             dst_base = Path(cfg.data_path)
             dst_dir = dst_base / book.autor.name
@@ -64,12 +66,14 @@ def scan_and_move_all_files():
     if not entry:
         return  # unknown category TODO LOGGG
     subdir = entry.get("dir", "")
-    category_dir = complete_base / subdir
-
+    category_dir: Path = complete_base / subdir
+    if os.getenv("DEV", "0") == "1":
+        category_dir = Path(".local") / str(category_dir)[1:] # DEV
     if not category_dir.is_dir():
         return  # TODO LOGGG
     for book_entry in category_dir.iterdir():
         if not book_entry.is_dir():
+            print(f"Skipping {book_entry}. Not a file.")
             continue  # TODO LOGGG
         move_file(book_entry)
 

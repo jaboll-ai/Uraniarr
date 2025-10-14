@@ -7,7 +7,7 @@
       <img class="book-icon" :src="book.bild" :alt="book.name" />
     </div>
     <div class="cell book-title">
-      <span>{{ book.name }}</span>
+      <p>{{ book.name }}</p>
     </div>
     <div class="cell book-key">{{ book.key }}</div>
     <div class="cell book-pos">{{ book.reihe_position?? "" }}</div>
@@ -70,7 +70,6 @@ function editBook(book: Book) {
   border-bottom: 1px solid var(--borderColor);
   background: var(--backgroundWhite);
   padding: 0 10px;
-  line-height: 0;
 }
 
 .book-item .cell:first-child {
@@ -112,10 +111,6 @@ function editBook(book: Book) {
 
 .book-download {
   text-align: right;
-}
-.book-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .selector {

@@ -372,9 +372,19 @@ div.author-image {
 .download-all {
   vertical-align: middle;
   text-align: center;
+  width: 190px;
 }
 .ctrl-btn{
   padding: 0px 8px;
   margin: 10px 2px;
+}
+
+@media (max-width: 600px) {
+  .author-header {
+    flex-direction: column;
+  }
+  .author-bio{
+    margin: 0;
+  }
 }
 </style>

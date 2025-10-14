@@ -58,8 +58,8 @@ def update_settings(settings: dict, cfg: ConfigManager = Depends(get_cfg_manager
     return cfg.get()
 
 @router.post("/author/{author_id}")
-async def add_author(author_id: str, session: Session = Depends(get_session), override: bool = False):
-    data = await scrape_all_author_data(author_id)
+async def add_author(author_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager), override: bool = False):
+    data = await scrape_all_author_data(author_id, cfg)
     resp = await asyncio.to_thread(save_author_to_db, author_id, session, data, override)
     return resp
 

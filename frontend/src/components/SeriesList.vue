@@ -17,9 +17,9 @@
           <button class="ctrl-btn material-symbols-outlined" @click="showCleanup[group.series.key] = false">arrow_right</button>
         </div>
         <button title="Join Series" class="ctrl-btn material-symbols-outlined" @click="openSelector(group.series.key)">join</button>
-        <button title="Include other-author books of this series" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
+        <button title="Complete series (use if missing)" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
-        <button title="Delete entire Series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
+        <button title="Delete entire series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
       <BookList 
       @downloadBook="$emit('downloadBook', $event)" 

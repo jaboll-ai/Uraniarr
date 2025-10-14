@@ -62,7 +62,8 @@ const sidebarStyle = computed(() => ({
 }
 
 .sidebar-button{
-  color: #BBB
+  color: #BBB;
+  border-radius: 0px;
 }
 .sidebar-button:hover{
   color: var(--mainColor);

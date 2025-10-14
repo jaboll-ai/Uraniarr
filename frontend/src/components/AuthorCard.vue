@@ -1,9 +1,9 @@
 <template>
   <router-link :to="{ name: 'Author', params: { key: author.key} }" class="author-card-link">
     <div class="author-card">
+      <h2 class="author-name">{{ author.name }}</h2>
       <img v-if="author.bild" :src="author.bild" :alt="author.name" class="author-image" />
       <div v-else class="author-image">{{ getInitials(author.name) }}</div>
-      <h2 class="author-name">{{ author.name }}</h2>
     </div> 
   </router-link>
 </template>
