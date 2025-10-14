@@ -60,6 +60,13 @@ const sidebarStyle = computed(() => ({
   display:flex;
   flex-direction: column;
 }
+
+.sidebar-button{
+  color: #BBB
+}
+.sidebar-button:hover{
+  color: var(--mainColor);
+}
 .active{
   background-color: var(--darkGray);
   color: var(--mainColor)
@@ -67,5 +74,4 @@ const sidebarStyle = computed(() => ({
 .active:hover{
   color: color-mix(in srgb, var(--mainColor) 60%, white 40%);;
 }
-
 </style>

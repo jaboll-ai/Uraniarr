@@ -5,14 +5,15 @@ from bs4 import BeautifulSoup
 from io import BytesIO
 import json
 from backend.config import ConfigManager
+import os
 
-base="***REMOVED***"
+base = os.getenv("VENDOR")
 book="/api/2003/artikel/v4/"
 series="/api/2003/serienartikel/v4/"
 author="/autor/-"
 suche = "/api/rest/suche/v5"
 
-async def scrape_search(q: str, page: int = 1):
+async def scrape_search(q: str, cfg: ConfigManager, page: int = 1):
     params = {
         "suchbegriff": q,
         "artikelProSeite": "5",
@@ -30,13 +31,7 @@ async def scrape_search(q: str, page: int = 1):
     ids = await asyncio.gather(*coros)
     return [id_ for id_ in ids if id_ is not None]
 
-
-async def scrape_author_id_from_book(book_id: str):
-    soup = await fetch_or_cached(base+book+book_id, xhr=False)
-    if (a:=soup.find(class_="autor-name")) and (href:=a.get("href")):
-            return strip_id_from_slug(href)
-            
-async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
+async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
     data = await fetch_or_cached(base+book+book_id)
     data = json.load(BytesIO(data))[0]
     editions = []
@@ -49,7 +44,6 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         ed_info["bild"] = werk["media"]["bilder"][0]["urlTemplateFixedScaling"].format(resolutionKey="00")
         ed_info["medium"] = werk["shop"]["identNr"]
         if data["serie"]["hatSerienslider"] or data["serie"].get("nummer") or data["serie"].get("name"):
-            cfg = ConfigManager()
             is_bndl = False
             for bndl in cfg.known_bundles.split(","):
                 is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
@@ -63,7 +57,7 @@ async def scrape_book_editions(book_id: str)-> tuple[list[dict], str]:
         editions.append(ed_info)
     return editions, series_name
 
-async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool = False):
+async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
     data = await fetch_or_cached(base+author+author_id, xhr=False)
@@ -107,7 +101,7 @@ async def scrape_all_author_data(author_id: str) -> dict:
     books = await asyncio.gather(*coros)
     return {"author_data": author_data, "books": books}
 
-async def scrape_book_series(book_id: str):
+async def scrape_book_series(book_id: str, cfg: ConfigManager):
     books = []
     params = {"max": 50, "page": 1}
     _data = await fetch_or_cached(base+series+book_id, params)
@@ -124,7 +118,6 @@ async def scrape_book_series(book_id: str):
             book_info["titel"] = clean_title(werk["titel"], werk["serie"].get("name"), werk["serie"].get("nummer"))
             book_info["bild"] = werk["media"]["bilder"][0]["urlTemplateFixedScaling"].format(resolutionKey="00")
             book_info["medium"] = werk["shop"]["identNr"]
-            cfg = ConfigManager()
             is_bndl = False
             for bndl in cfg.known_bundles.split(","):
                 is_bndl = is_bndl or re.search(bndl, werk["titel"]) is not None
@@ -200,4 +193,8 @@ def fix_umlaut(text: str) -> str:
     text = re.sub(r"ü", "ue", text, flags=re.IGNORECASE)
     text = re.sub(r"ß", "ss", text, flags=re.IGNORECASE)
     return text
+
+def has_umlaut(text: str) -> bool:
+    regex = r"[äöüß]"
+    return bool(re.search(regex, text, flags=re.IGNORECASE))
 

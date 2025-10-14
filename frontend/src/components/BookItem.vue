@@ -12,9 +12,10 @@
     <div class="cell book-key">{{ book.key }}</div>
     <div class="cell book-pos">{{ book.reihe_position?? "" }}</div>
     <div class="cell book-download">
-      <button class="download-btn material-symbols-outlined" @click="showEditor = true">edit</button>
-      <button class="download-btn material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
-      <button class="download-btn material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
+      <button class="material-symbols-outlined" @click="showEditor = true">edit</button>
+      <button class="material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
+      <button class="material-symbols-outlined" @click="emit('searchBook', props.book.key)">quick_reference_all</button>
+      <button class="material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
   </div>
   <EditModal
@@ -47,6 +48,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'checkboxClick', payload: { event: MouseEvent; key: string }): void
   (e: 'downloadBook', key: string[]): void
+  (e: 'searchBook', key: string): void
   (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()
@@ -110,13 +112,6 @@ function editBook(book: Book) {
 
 .book-download {
   text-align: right;
-}
-.download-btn{
-  background: none;
-  color: var(--lightGray);
-}
-.download-btn:hover{
-  color: var(--mainColor);
 }
 .book-title {
   overflow: hidden;

@@ -1,7 +1,7 @@
 <template>
     <div class="top-bar">
-        <div class="logo">
-          <img class="logo-image" src="/assets/uraniarr.svg" alt="Logo" />
+        <div class="logo" @click="router.push({name: 'Library'})">
+          <img class="logo-image" src="/assets/uraniarr.svg" alt="Logo"/>
         </div>
         <div class="menu">
           <button class="material-symbols-outlined topbutton"  @click="toggleSidebar()">menu</button>
@@ -65,6 +65,7 @@ function handleSubmit(): void {
   flex: 0 0 200px;
   padding-left: 20px;
   box-sizing: border-box;
+  cursor: pointer;
 }
 
 .logo-image{

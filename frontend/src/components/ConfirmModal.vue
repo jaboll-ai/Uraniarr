@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 defineProps<{ visible: boolean; message?: string }>()
-const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
+defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
 </script>
 
 <style scoped>
@@ -25,7 +25,7 @@ const emit = defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
   justify-content: center;
 }
 .modal {
-  background: white;
+  background: var(--backgroundWhite);
   padding: 1rem 1.5rem;
   border-radius: 8px;
   display: flex;

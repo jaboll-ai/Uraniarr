@@ -64,10 +64,10 @@ async def add_author(author_id: str, session: Session = Depends(get_session), ov
     return resp
 
 @router.post("/series/complete/{series_id}")
-async def complete_series_of_author(series_id: str, session: Session = Depends(get_session)):
+async def complete_series_of_author(series_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     reihe = session.get(Reihe, series_id)
     ed_id = min(reihe.books, key=lambda b: (b.reihe_position or 999)).editions[0].key
-    data = await scrape_book_series(ed_id)
+    data = await scrape_book_series(ed_id, cfg)
     resp = await asyncio.to_thread(complete_series_in_db, series_id, session, data)
     return resp
 

@@ -4,10 +4,11 @@ services:
     build: https://github.com/jaboll-ai/Uraniarr.git#main
     image: uraniarr
     ports:
-      - "8000:8000"
+      - "11562:8000"
     environment:
       - CONFIG_DIR=/config
-    # volumes:
-      # - <on-host-config>:/config
-      # - <on-host-data>:/data
-    
+      # Necessary! change to the book vendor named after the greek muse
+      - VENDOR=https://www.t****.de 
+    # volumes: #make sure the folder exists on host
+    #   - <on-host-config>:/config #e.g. /etc/uraniarr
+    #   - <on-host-data>:/data #internal must match data_path in your config
