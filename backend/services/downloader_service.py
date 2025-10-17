@@ -1,11 +1,11 @@
 from backend.exceptions import NzbsError
 import requests
-from uuid import uuid4
 from backend.config import ConfigManager
 
-def download(nzb : bytes, cfg: ConfigManager, nzbname: str = str(uuid4())):
+def download(nzb : bytes, cfg: ConfigManager, nzbname: str):
     resp=requests.post(cfg.downloader_url, params={"apikey": cfg.downloader_apikey}, data={"mode": "addfile", "nzbname": nzbname, "cat": cfg.downloader_category or ""}, files={"nzbfile": nzb})
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
+    return resp.json()
 
 def get_config(cfg: ConfigManager, section: str, keyword: str = None) -> dict:
     resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"get_config","section":section,"output":"json"})

@@ -150,3 +150,10 @@ async def fake_author(seriesAuthor: SeriesAuthor, session: Session = Depends(get
 async def unite_series(data: UnionSeries, session: Session = Depends(get_session)):
     resp = union_series(data.series_id, data.series_ids, session)
     return resp
+
+@router.get("/book/titles/{book_id}")
+async def get_alternative_titles(book_id: str, session: Session = Depends(get_session)):
+    book = session.get(Book, book_id)
+    if not book: raise HTTPException(status_code=404, detail="Book not found")
+    return [clean_title(ed.titel, book.reihe.name, book.reihe_position) for ed in book.editions]
+    

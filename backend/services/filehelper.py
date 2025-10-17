@@ -26,14 +26,16 @@ def move_file(src: Path):
             if book.reihe_key: #TODO custom patterns
                 dst_dir = dst_dir / book.reihe.name
                 if not book.reihe.a_dl_loc: book.reihe.a_dl_loc = str(dst_dir) # TODO revisit for book
-                if book.reihe_position:
+                if book.reihe_position is not None:
                     dst_dir = dst_dir / f"{book.reihe_position} - {book.name}" 
                 else:
                     dst_dir = dst_dir / book.name
             else:
                 dst_dir = dst_dir / book.name / book.name
-
-            dst_dir.mkdir(parents=True, exist_ok=True)
+            if dst_dir.exists():
+                print(f"Directory {dst_dir} already exists. Will replace.")
+                shutil.rmtree(dst_dir)
+            dst_dir.mkdir(parents=True)
             counts = {}
             for file in Path(src).iterdir():
                 if file.is_file():
@@ -54,6 +56,10 @@ def move_file(src: Path):
             shutil.rmtree(src)
             remove_from_history(cfg, book_id)
             book.a_dl_loc = str(dst_dir) #TODO revisit for Books
+            # session.delete(book.acti)
+            # delete activities that actually reflect the downloaded file (changes to nzbname needed)
+            # BEWARE we have a list of activites
+            session.commit()
     except Exception as e:
         print(e) #TODO LOGGGG and FIX
 

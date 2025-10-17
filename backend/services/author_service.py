@@ -21,13 +21,8 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
         book = Book(autor_key=author.key)
         book.name, book.bild, book.reihe_position = eds[0].get("titel"), eds[0].get("bild"), eds[0].get("_pos")
         if series_title:
-            ctitle = clean_title(book.name, series_title, book.reihe_position)
-            if book.name == ctitle:
-                for ed in eds:
-                    ctitle = clean_title(ed.get("titel"), series_title, ed.get("_pos")) # if fallback was used e.g. Title of Edition was only Series Name + Series Pos we check if there is a better title
-                    if book.name != ctitle:
-                        break
-            book.name = ctitle
+            ctitles = [clean_title(ed.get("titel"), series_title, ed.get("_pos")) for ed in eds]
+            book.name = sorted(ctitles, key=lambda x: len(x))[0]
             reihe = reihen.setdefault(series_title, Reihe(name=series_title, autor_key=author.key))
             reihe.books.append(book)
             # if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
@@ -56,13 +51,13 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
     #                 print(book.name, r1.name, book.reihe_position)
     #                 book.name = clean_title(book.name, r1.name, book.reihe_position)
     session.flush()
-    # for reihe in author.reihen: #really inefficient needs revisit #TODO
-    #     for book, book2 in combinations(reihe.books, 2):
-    #         if not book.reihe_position or not book2.reihe_position: continue
-    #         if fuzz.ratio(book.name, book2.name) > 90 and round(float(book.reihe_position)) == round(float(book2.reihe_position)): # we basically have the same book twice
-    #             for edition in book2.editions:
-    #                 book.editions.append(edition)
-    #             author.books.remove(book2)
+    for reihe in author.reihen: #really inefficient needs revisit #TODO
+        for book, book2 in combinations(reihe.books, 2):
+            if not book.reihe_position or not book2.reihe_position: continue
+            if fuzz.ratio(book.name, book2.name) > 80 and float(book.reihe_position) == float(book2.reihe_position): # we basically have the same book twice
+                for edition in book2.editions:
+                    book.editions.append(edition)
+                author.books.remove(book2)
     session.commit()
     return author.key
 
@@ -103,6 +98,8 @@ def union_series(series_id: str, series_ids: list[str], session: Session):
         reihe2 = session.get(Reihe, id)
         if not reihe2:
             raise AuthorError(status_code=404, detail="Series not found")
+        for book in reihe2.books:
+            book.name = clean_title(book.name, reihe.name, book.reihe_position)
         reihe.books.extend(reihe2.books)
         session.delete(reihe2)
     session.commit()

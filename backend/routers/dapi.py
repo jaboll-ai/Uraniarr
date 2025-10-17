@@ -1,15 +1,15 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
+from uuid import uuid4
 from backend.config import ConfigManager
 
 from backend.dependencies import get_session, get_cfg_manager
 from backend.services.downloader_service import download, get_config, remove_from_history
 from backend.services.indexer_service import grab_nzb, query_book, query_manual
 
-from backend.datamodels import Book, Author, Reihe
+from backend.datamodels import Book, Author, Reihe, Activity
 from backend.payloads import ManualGUIDDownload
-
 router = APIRouter(prefix="/dapi", tags=["NZB"])
 
 
@@ -18,17 +18,18 @@ def download_book(book_id: str, session: Session = Depends(get_session), cfg: Co
     book = session.get(Book, book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    guid = query_book(book, cfg=cfg)
+    name, guid = query_book(book, cfg=cfg)
     if not guid:
         raise HTTPException(status_code=404, detail=f"Book {book.name} not found")
     nzb = grab_nzb(guid, cfg=cfg)
-    download(nzb, nzbname=book.key, cfg=cfg)
+    schedule_download(nzb, book=book, cfg=cfg, session=session)
     return book_id
 
 @router.post("/guid")
-def download_guid(data: ManualGUIDDownload, cfg: ConfigManager = Depends(get_cfg_manager)):
+def download_guid(data: ManualGUIDDownload, cfg: ConfigManager = Depends(get_cfg_manager), session: Session = Depends(get_session)):
+    book=session.get(Book, data.book_key)
     nzb = grab_nzb(data.guid, cfg=cfg)
-    download(nzb, nzbname=data.book_key, cfg=cfg)
+    schedule_download(nzb, book=book, cfg=cfg, session=session)
     return data.guid
 
 @router.get("/manual/{book_id}")
@@ -49,12 +50,12 @@ def download_author(author_id: str, session: Session = Depends(get_session), cfg
     not_found = []
     for book in author.books:
         if book.a_dl_loc: continue #TODO revisit for Books
-        guid = query_book(book, cfg=cfg)
+        name, guid = query_book(book, cfg=cfg)
         if not guid:
             not_found.append(book.key)
             continue
         nzb = grab_nzb(guid, cfg=cfg)
-        download(nzb, nzbname=book.key, cfg=cfg)
+        schedule_download(nzb, book=book, cfg=cfg, session=session)
     if not_found:
         return {"partial_success": author_id, "not_found": not_found}
     return {"success": author_id}
@@ -67,12 +68,12 @@ def download_reihe(reihe_id: str, session: Session = Depends(get_session), cfg: 
     not_found = []
     for book in reihe.books:
         if book.a_dl_loc: continue #TODO revisit for Books
-        guid = query_book(book, cfg=cfg)
+        name, guid = query_book(book, cfg=cfg)
         if not guid:
             not_found.append(book.key)
             continue
         nzb = grab_nzb(guid, cfg=cfg)
-        download(nzb, nzbname=book.key, cfg=cfg)
+        schedule_download(nzb, book=book, cfg=cfg, session=session)
     if not_found:
         return {"partial_success": reihe_id, "not_found": not_found}
     return reihe_id
@@ -85,3 +86,14 @@ def get_sab_config(section: str, keyword: str = None, cfg = Depends(get_cfg_mana
 def delete_book_from_history(book_id: str, cfg: ConfigManager = Depends(get_cfg_manager)):
     return remove_from_history(cfg, book_id)
 
+@router.get("/activities")
+def get_activities(session: Session = Depends(get_session)):
+    pass
+
+def schedule_download(release_title: str, nzb : bytes, cfg: ConfigManager, session: Session, book: Book):
+    data = download(nzb, nzbname=book.key, cfg=cfg)
+    if not data: 
+        raise HTTPException(status_code=500, detail="Download failed")
+    activity = Activity(nzo_id=data["nzo_ids"][0], book=book, release_title=release_title)
+    session.add(activity)
+    session.commit()
