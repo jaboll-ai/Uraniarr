@@ -5,7 +5,12 @@
       <form @submit.prevent="$emit('editBook', form)">
         <label>
           Name:
-          <input v-model="form.name" required />
+          <div>
+            <input list="titles" v-model="form.name" required />
+            <datalist id="titles">
+              <option v-for="a in titles" :key="a" :value="a" />
+            </datalist>
+          </div>
         </label>
 
         <label>
@@ -48,7 +53,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch, onMounted } from 'vue'
+import { api } from '@/main';
 
 const props = defineProps<{
   visible: boolean
@@ -67,11 +73,21 @@ interface Book {
 }
 
 const form = reactive<Book>({ ...props.book })
+const titles = ref<string[]>([])
 
 // Reinitialize when new book prop comes in
 watch(() => props.book, (newBook) => {
   Object.assign(form, newBook)
 }, { immediate: true })
+
+
+onMounted( async () => {
+  await getTitles()
+})
+async function getTitles() {
+  const resp = await api.get<string[]>(`/book/titles/${props.book.key}`)
+  titles.value = resp.data
+}
 </script>
 
 <style scoped>
