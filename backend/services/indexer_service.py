@@ -60,7 +60,8 @@ def query_book(book: Book, cfg: ConfigManager):
     else: return None
     item = query["item"] if total == "1" else query["item"][0] 
     guid=item["attr"][2]["@attributes"]["value"]
-    return guid
+    name=item["title"] 
+    return name, guid
 
 def build_queries(book: Book): #TODO revisit
     base_queries = [f"{book.autor.name} {book.name}"]

@@ -1,17 +1,19 @@
 <template>
   <div class="book-item">
-    <div class="cell">
+    <div class="checkbox">
       <input type="checkbox" class="selector" :checked="checked" @click="emit('checkboxClick', { event: $event as MouseEvent, key: book.key })"/>
     </div>
-    <div class="cell">
-      <img class="book-icon" :src="book.bild" :alt="book.name" />
+    <img class="book-icon" :src="book.bild" :alt="book.name" />
+    <div class="info">
+      <router-link :to="`/book/${book.key}`">{{ book.name }}</router-link>
     </div>
-    <div class="cell book-title">
-      <span>{{ book.name }}</span>
+    <div class="info">
+      {{ book.key }}
     </div>
-    <div class="cell book-key">{{ book.key }}</div>
-    <div class="cell book-pos">{{ book.reihe_position?? "" }}</div>
-    <div class="cell book-download">
+    <div class="info">
+      {{ book.reihe_position?? "" }}
+    </div>
+    <div class="book-download">
       <button class="material-symbols-outlined" @click="showEditor = true">edit</button>
       <button class="material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
       <button class="material-symbols-outlined" @click="emit('searchBook', props.book.key)">quick_reference_all</button>
@@ -29,16 +31,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import EditModal from '@/components/EditModal.vue'
-interface Book {
-  key: string
-  name: string
-  autor_key: string
-  bild?: string
-  reihe_key?: string
-  reihe_position?: number
-  a_dl_loc?: string
-  b_dl_loc?: string
-}
+import type { Book } from '@/main.ts'
+
 
 const props = defineProps<{
   book: Book
@@ -60,66 +54,41 @@ function editBook(book: Book) {
 </script>
 
 <style scoped>
-.book-item {
-  display: table-row;
-}
-
-.cell {
-  display: table-cell;
-  border-top: 1px solid var(--borderColor);
-  border-bottom: 1px solid var(--borderColor);
-  background: var(--backgroundWhite);
-  padding: 0 10px;
-  line-height: 0;
-}
-
-.book-item .cell:first-child {
-  width: 20px;
-  background: none;
-  border: none;
-}
-
-.book-item .cell:nth-child(2) {
-  border-left: 1px solid var(--borderColor);
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-  padding-left: 0;
-  width: 40px;
-}
-
-.book-item .cell:last-child {
-  border-right: 1px solid var(--borderColor);
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
-}
-
 .book-icon {
   width: 50px;
   height: 50px;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
 }
 
-/* preserve other cell-specific classes */
-.book-title,
-.book-key,
-.book-pos,
-.book-download {
-  vertical-align: middle;
+.book-item{
+  display: flex;
+  background-color: var(--backgroundWhite);
+  border-radius: 8px;
 }
 
-.book-download {
-  text-align: right;
+.info{
+  display: flex;
+  align-items: center;
+  width: 25%;
+  margin: 0 20px;
 }
-.book-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.book-download{
+  display: flex;
+  justify-content: flex-end;
+  flex-grow: 1;
+  margin: 0 10px;
 }
 
 .selector {
-  transform: scale(1.2) translateY(-15px);
-  margin: 0 5px
+  transform: scale(1.2);/* translateY(10px) translateX(5px); */
+  margin: 0;
+}
+
+.checkbox{
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>

@@ -32,7 +32,9 @@ def get_author_info(author_id: str, session: Session = Depends(get_session)):
 @router.get("/book/{book_id}")
 def get_book(book_id: str, session: Session = Depends(get_session)):
     if book := session.get(Book, book_id):
-        return book
+        resp = book.model_dump()
+        resp["activities"] = book.activities
+        return resp
     raise HTTPException(status_code=404, detail="Book not found")
 
 @router.get("/authors")
@@ -58,8 +60,8 @@ def update_settings(settings: dict, cfg: ConfigManager = Depends(get_cfg_manager
     return cfg.get()
 
 @router.post("/author/{author_id}")
-async def add_author(author_id: str, session: Session = Depends(get_session), override: bool = False):
-    data = await scrape_all_author_data(author_id)
+async def add_author(author_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager), override: bool = False):
+    data = await scrape_all_author_data(author_id, cfg)
     resp = await asyncio.to_thread(save_author_to_db, author_id, session, data, override)
     return resp
 
@@ -150,3 +152,10 @@ async def fake_author(seriesAuthor: SeriesAuthor, session: Session = Depends(get
 async def unite_series(data: UnionSeries, session: Session = Depends(get_session)):
     resp = union_series(data.series_id, data.series_ids, session)
     return resp
+
+@router.get("/book/titles/{book_id}")
+async def get_alternative_titles(book_id: str, session: Session = Depends(get_session)):
+    book = session.get(Book, book_id)
+    if not book: raise HTTPException(status_code=404, detail="Book not found")
+    return [clean_title(ed.titel, book.reihe.name, book.reihe_position) for ed in book.editions]
+    

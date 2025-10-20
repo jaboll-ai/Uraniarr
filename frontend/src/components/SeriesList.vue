@@ -17,9 +17,9 @@
           <button class="ctrl-btn material-symbols-outlined" @click="showCleanup[group.series.key] = false">arrow_right</button>
         </div>
         <button title="Join Series" class="ctrl-btn material-symbols-outlined" @click="openSelector(group.series.key)">join</button>
-        <button title="Include other-author books of this series" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
+        <button title="Complete series (use if missing)" class="ctrl-btn material-symbols-outlined" @click="$emit('completeSeries', group.series.key)">matter</button>
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
-        <button title="Delete entire Series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
+        <button title="Delete entire series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
       <BookList 
       @downloadBook="$emit('downloadBook', $event)" 
@@ -43,6 +43,9 @@
 import { ref } from 'vue'
 import SeriesUnionSelector from '@/components/SeriesUnionModal.vue'
 import BookList from './BookList.vue'
+import type { Book, Series } from '@/main.ts'
+
+
 const props = defineProps<{
   books: Book[] //throw away
   showBox: boolean
@@ -59,23 +62,6 @@ const emit = defineEmits<{
   (e: 'editBook', book: Book): void
   (e: 'cleanupSeries', key: string, name: string): void
 }>()
-
-interface Series {
-  autor_key: string
-  key: string
-  name: string
-}
-
-interface Book {
-  key: string
-  name: string
-  autor_key: string
-  bild?: string
-  reihe_key?: string
-  reihe_position?: number
-  a_dl_loc?: string
-  b_dl_loc?: string
-}
 
 const collapseMap = ref<Record<string, boolean>>({})
 const showCleanup = ref<Record<string, boolean | undefined>>({})

@@ -44,13 +44,8 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, ref } from 'vue'
-
-interface BookNzb {
-  name: string
-  guid: string
-  size: string | number
-}
+import { ref } from 'vue'
+import type { BookNzb } from '@/main.ts'
 
 const props = defineProps<{
   versions: BookNzb[]

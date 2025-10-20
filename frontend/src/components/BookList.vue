@@ -22,6 +22,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import BookItem from '@/components/BookItem.vue'
+import type { Book } from '@/main.ts'
+
 
 const props = defineProps<{
   books: Book[]
@@ -36,16 +38,6 @@ const emit = defineEmits<{
   (e: 'editBook', book: Book): void
 }>()
 
-interface Book {
-  key: string
-  name: string
-  autor_key: string
-  bild?: string
-  reihe_key?: string
-  reihe_position?: number
-  a_dl_loc?: string
-  b_dl_loc?: string
-}
 const selected = ref<string[]>([])
 const lastIndex = ref<number | null>(null)
 
@@ -97,8 +89,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .book-list {
-  display: table;
-  border-spacing: 0 8px;       /* vertical gutter between rows */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
 }
 .group {
   display: flex;

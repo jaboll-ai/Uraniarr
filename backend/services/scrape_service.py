@@ -57,7 +57,7 @@ async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
         editions.append(ed_info)
     return editions, series_name
 
-async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, metadata_only: bool = False):
+async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
     data = await fetch_or_cached(base+author+author_id, xhr=False)
@@ -95,9 +95,9 @@ async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, 
             author_data["_books"].add(artikel["identifier"]["matnr"])
     return author_data
 
-async def scrape_all_author_data(author_id: str) -> dict:
+async def scrape_all_author_data(author_id: str, cfg: ConfigManager) -> dict:
     author_data = await scrape_author_data(author_id)
-    coros = [scrape_book_editions(book_edition_id) for book_edition_id in author_data.get("_books", set())]
+    coros = [scrape_book_editions(book_edition_id, cfg) for book_edition_id in author_data.get("_books", set())]
     books = await asyncio.gather(*coros)
     return {"author_data": author_data, "books": books}
 

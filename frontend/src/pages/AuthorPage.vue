@@ -64,45 +64,10 @@ import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
+import type { Author, BookNzb, Book, Series, InteractiveSearch } from '@/main.ts'
 
 const route = useRoute()
 const router = useRouter()
-
-interface Book {
-  key: string
-  name: string
-  autor_key: string
-  bild?: string
-  reihe_key?: string
-  reihe_position?: number
-  a_dl_loc?: string
-  b_dl_loc?: string
-}
-
-interface Author {
-  name: string
-  key: string
-  bild: string
-  bio: string
-}
-
-interface Series {
-  autor_key: string
-  key: string
-  name: string
-}
-
-interface BookNzb {
-  name: string
-  guid: string
-  size: string | number
-}
-
-interface InteractiveSearch{
-  query: string
-  nzbs: BookNzb[]
-  pages: number
-}
 
 const author = ref<Author | null>(null)
 const books = ref<Book[]>([])
@@ -204,7 +169,7 @@ async function downloadBook(keys: string[]) {
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid})
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, name : nzb.name})
   } catch (err) {
     console.error('Failed to download book', err)
   }
@@ -372,9 +337,19 @@ div.author-image {
 .download-all {
   vertical-align: middle;
   text-align: center;
+  width: 190px;
 }
 .ctrl-btn{
   padding: 0px 8px;
   margin: 10px 2px;
+}
+
+@media (max-width: 600px) {
+  .author-header {
+    flex-direction: column;
+  }
+  .author-bio{
+    margin: 0;
+  }
 }
 </style>

@@ -1,7 +1,7 @@
-from typing import Optional, List
+from typing import Optional, List, Literal
 from sqlmodel import SQLModel, Field, Relationship, case
-from datetime import date
-from pydantic import BaseModel
+from time import time
+from enum import Enum
 from uuid import uuid4
 
 def id_generator():
@@ -51,6 +51,7 @@ class Book(SQLModel, table=True):
     autor: "Author" = Relationship(back_populates="books")
     reihe: Optional["Reihe"] = Relationship(back_populates="books")
     editions: List["Edition"] = Relationship(back_populates="book", sa_relationship_kwargs={"order_by": case(medium_priority, value=Edition.medium, else_=10), "cascade": "all, delete-orphan"})
+    activities: Optional[List["Activity"]] = Relationship(back_populates="book", sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "-Activity.created"})
     
 
 class Author(SQLModel, table=True):
@@ -65,3 +66,18 @@ class Author(SQLModel, table=True):
     books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     
+class ActivityStatus(str, Enum):
+    imported = "imported"
+    download = "download"
+    canceled = "canceled"
+    failed = "failed"
+    overwritten = "overwritten"
+
+class Activity(SQLModel, table=True):
+    nzo_id: str = Field(primary_key=True)
+    created: float = Field(default_factory=time)
+    release_title: str
+    book_key: str = Field(foreign_key="book.key")
+    status: ActivityStatus = ActivityStatus.download
+
+    book: "Book" = Relationship(back_populates="activities")

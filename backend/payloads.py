@@ -11,6 +11,7 @@ class UnionSeries(BaseModel):
 class ManualGUIDDownload(BaseModel):
     book_key: str
     guid: str
+    name: str
 
 class BookNzb(BaseModel):
   name: str
