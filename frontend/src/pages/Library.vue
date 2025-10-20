@@ -12,16 +12,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import AuthorCard from '@/components/AuthorCard.vue'
 import { api } from '@/main.ts'
+import AuthorCard from '@/components/AuthorCard.vue'
 import AddSeriesAuthorModal from '@/components/AddSeriesAuthorModal.vue'
+import type { Author } from '@/main.ts'
 
-interface Author {
-  name: string
-  key: string
-  bild: string
-  bio: string
-}
 
 const authors = ref<Author[]>([])
 const showAdder = ref(false)

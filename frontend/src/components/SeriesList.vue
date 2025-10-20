@@ -43,6 +43,9 @@
 import { ref } from 'vue'
 import SeriesUnionSelector from '@/components/SeriesUnionModal.vue'
 import BookList from './BookList.vue'
+import type { Book, Series } from '@/main.ts'
+
+
 const props = defineProps<{
   books: Book[] //throw away
   showBox: boolean
@@ -59,23 +62,6 @@ const emit = defineEmits<{
   (e: 'editBook', book: Book): void
   (e: 'cleanupSeries', key: string, name: string): void
 }>()
-
-interface Series {
-  autor_key: string
-  key: string
-  name: string
-}
-
-interface Book {
-  key: string
-  name: string
-  autor_key: string
-  bild?: string
-  reihe_key?: string
-  reihe_position?: number
-  a_dl_loc?: string
-  b_dl_loc?: string
-}
 
 const collapseMap = ref<Record<string, boolean>>({})
 const showCleanup = ref<Record<string, boolean | undefined>>({})

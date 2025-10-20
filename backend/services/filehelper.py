@@ -4,62 +4,58 @@ import shutil
 from sqlmodel import Session
 from backend.db import engine
 from backend.config import ConfigManager
-from backend.services.downloader_service import get_config, remove_from_history
-from backend.datamodels import Book, Reihe, Author
+from backend.services.downloader_service import get_config, remove_from_history, get_history
+from backend.datamodels import Book, Reihe, Author, Activity
 from backend.exceptions import FileError
 import os
 
-def move_file(src: Path):
+def move_file(activity: Activity, src: Path):
     cfg = ConfigManager()
+    book = activity.book
     # source is in the SAB “complete” directory for this category
-    book_id = src.name
     try:
-        with Session(engine) as session:
-            book = session.get(Book, book_id)
-            if not book:
-                print(f"Book '{book_id}' not found. Cannot import.")
-                return #TODO better logging
+        if not book:
+            print(f"No book for {src.name} found")
+            return #TODO better logging
 
-            dst_base = Path(cfg.data_path)
-            dst_dir = dst_base / book.autor.name
-            if not book.autor.a_dl_loc: book.autor.a_dl_loc = str(dst_dir)
-            if book.reihe_key: #TODO custom patterns
-                dst_dir = dst_dir / book.reihe.name
-                if not book.reihe.a_dl_loc: book.reihe.a_dl_loc = str(dst_dir) # TODO revisit for book
-                if book.reihe_position is not None:
-                    dst_dir = dst_dir / f"{book.reihe_position} - {book.name}" 
-                else:
-                    dst_dir = dst_dir / book.name
+        dst_base = Path(cfg.data_path)
+        dst_dir = dst_base / book.autor.name
+        if not book.autor.a_dl_loc: book.autor.a_dl_loc = str(dst_dir)
+        if book.reihe_key: #TODO custom patterns
+            dst_dir = dst_dir / book.reihe.name
+            if not book.reihe.a_dl_loc: book.reihe.a_dl_loc = str(dst_dir) # TODO revisit for book
+            if book.reihe_position is not None:
+                dst_dir = dst_dir / f"{book.reihe_position} - {book.name}" 
             else:
-                dst_dir = dst_dir / book.name / book.name
-            if dst_dir.exists():
-                print(f"Directory {dst_dir} already exists. Will replace.")
-                shutil.rmtree(dst_dir)
-            dst_dir.mkdir(parents=True)
-            counts = {}
-            for file in Path(src).iterdir():
-                if file.is_file():
-                    ext = file.suffix.lower()
-                    if not ext: continue
-                    counts[ext] = counts.get(ext, 0) + 1
-            exts = sorted(counts, key=counts.get)
-            
-            for ext in exts[::-1]:
-                if ext not in cfg.unwanted_extensions.split(","):
-                    wanted_ext = ext
-                    break
-            else: wanted_ext = ""
-            for file in Path(src).iterdir():
-                if file.is_file():
-                    if file.suffix.lower() == wanted_ext:
-                        shutil.move(str(file), str(dst_dir)) #TODO pattern
-            shutil.rmtree(src)
-            remove_from_history(cfg, book_id)
-            book.a_dl_loc = str(dst_dir) #TODO revisit for Books
-            # session.delete(book.acti)
-            # delete activities that actually reflect the downloaded file (changes to nzbname needed)
-            # BEWARE we have a list of activites
-            session.commit()
+                dst_dir = dst_dir / book.name
+        else:
+            dst_dir = dst_dir / book.name / book.name
+        if dst_dir.exists():
+            print(f"Directory {dst_dir} already exists. Will replace.")
+            shutil.rmtree(dst_dir)
+        dst_dir.mkdir(parents=True)
+        counts = {}
+        for file in Path(src).iterdir():
+            if file.is_file():
+                ext = file.suffix.lower()
+                if not ext: continue
+                counts[ext] = counts.get(ext, 0) + 1
+        exts = sorted(counts, key=counts.get)
+        
+        for ext in exts[::-1]:
+            if ext not in cfg.unwanted_extensions.split(","):
+                wanted_ext = ext
+                break
+        else: wanted_ext = ""
+        for file in Path(src).iterdir():
+            if file.is_file():
+                if file.suffix.lower() == wanted_ext:
+                    shutil.move(str(file), str(dst_dir)) #TODO pattern
+        shutil.rmtree(src)
+        book.a_dl_loc = str(dst_dir) #TODO revisit for Books
+        # session.delete(book.acti)
+        # delete activities that actually reflect the downloaded file (changes to nzbname needed)
+        # BEWARE we have a list of activites    
     except Exception as e:
         print(e) #TODO LOGGGG and FIX
 
@@ -73,15 +69,20 @@ def scan_and_move_all_files():
         return  # unknown category TODO LOGGG
     subdir = entry.get("dir", "")
     category_dir: Path = complete_base / subdir
-    if os.getenv("DEV", "0") == "1":
+    if os.getenv("DEV") == "1":
         category_dir = Path(".local") / str(category_dir)[1:] # DEV
     if not category_dir.is_dir():
         return  # TODO LOGGG
-    for book_entry in category_dir.iterdir():
-        if not book_entry.is_dir():
-            print(f"Skipping {book_entry}. Not a file.")
-            continue  # TODO LOGGG
-        move_file(book_entry)
+    slots = get_history(cfg)
+    with Session(engine) as session:
+        for slot in slots:
+            activity = session.get(Activity, slot["nzo_id"])
+            if not activity: continue
+            if os.getenv("DEV") == "1":
+                slot["storage"] = Path(".local") / str(slot["storage"])[1:] # DEV
+            move_file(activity, slot["storage"])
+            remove_from_history(cfg, activity.nzo_id)
+            session.commit()
 
 def delete_audio_book(book_id: str, session: Session):
     book = session.get(Book, book_id)

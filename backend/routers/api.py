@@ -32,7 +32,9 @@ def get_author_info(author_id: str, session: Session = Depends(get_session)):
 @router.get("/book/{book_id}")
 def get_book(book_id: str, session: Session = Depends(get_session)):
     if book := session.get(Book, book_id):
-        return book
+        resp = book.model_dump()
+        resp["activities"] = book.activities
+        return resp
     raise HTTPException(status_code=404, detail="Book not found")
 
 @router.get("/authors")

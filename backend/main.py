@@ -48,6 +48,7 @@ SQLModel.metadata.create_all(engine)
 
 @app.exception_handler(BaseError)
 async def handle_scrape_error(request: Request, exc: BaseError):
+    print(exc.detail)
     return JSONResponse(status_code=exc.status_code or 404, content={"detail": exc.detail or "", "type": exc.type}) 
 
 

@@ -24,15 +24,9 @@ import { useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, watch, reactive, computed } from 'vue'
 import { tapi, api } from '@/main.ts'
 import { getInitials } from '@/utils.ts'
+import type { Author } from '@/main.ts'
 
 const route = useRoute()
-
-interface Author {
-  name: string
-  key: string
-  bild: string
-  bio: string
-}
 
 const authors = ref<Author[]>([])
 const loading = ref(false)

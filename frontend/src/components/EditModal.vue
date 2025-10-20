@@ -55,22 +55,13 @@
 <script setup lang="ts">
 import { reactive, ref, watch, onMounted } from 'vue'
 import { api } from '@/main';
+import type { Book } from '@/main.ts'
+
 
 const props = defineProps<{
   visible: boolean
   book: Book
 }>()
-
-interface Book {
-  key: string
-  name: string
-  autor_key: string
-  bild?: string
-  reihe_key?: string
-  reihe_position?: number
-  a_dl_loc?: string
-  b_dl_loc?: string
-}
 
 const form = reactive<Book>({ ...props.book })
 const titles = ref<string[]>([])

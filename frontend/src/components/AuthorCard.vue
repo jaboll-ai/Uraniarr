@@ -10,13 +10,8 @@
 
 <script setup lang="ts">
 import { getInitials } from '@/utils.ts'
+import type { Author } from '@/main.ts'
 
-interface Author {
-  name: string
-  key: string
-  bild: string
-  bio: string
-}
 
 const { author } = defineProps<{
   author: Author

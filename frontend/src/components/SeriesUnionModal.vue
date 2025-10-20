@@ -28,12 +28,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import type { Series } from '@/main.ts'
 
-interface Series {
-  autor_key: string
-  name: string
-  key: string
-}
 
 defineProps<{
   items: Series[]
