@@ -2,7 +2,9 @@
   <div class="download-list">
     <div v-for="item in downloads" :key="item.book_key" class="download-item">
       <div class="header">
-        <div class="title">{{ item.book_name }}</div>
+        <div class="title">
+          <router-link :to="{ name: 'Book', params: { key: item.book_key } }">{{ item.book_name }}</router-link>
+        </div>
         <div class="status">{{ item.status }}</div>
       </div>
 

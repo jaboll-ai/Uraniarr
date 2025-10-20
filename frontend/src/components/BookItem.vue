@@ -5,7 +5,7 @@
     </div>
     <img class="book-icon" :src="book.bild" :alt="book.name" />
     <div class="info">
-      <a :href="`/book/${book.key}`">{{ book.name }}</a>
+      <router-link :to="`/book/${book.key}`">{{ book.name }}</router-link>
     </div>
     <div class="info">
       {{ book.key }}

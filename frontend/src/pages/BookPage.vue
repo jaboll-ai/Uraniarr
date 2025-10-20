@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { api, dapi } from '@/main.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import EditModal from '@/components/EditModal.vue'
@@ -69,6 +69,7 @@ const manualSearchVersions = ref<BookNzb[]>([])
 const query = ref("")
 const manualSearchKey = ref("")
 const manualSearchPages = ref(0)
+const timer = ref<number | null>(null)
 
 
 async function editBook(book: Book) {
@@ -80,16 +81,24 @@ async function editBook(book: Book) {
 }
 
 onMounted(async () => {
+  await fetchBook()
+  timer.value = window.setInterval(fetchBook, 10_000)
+})
+
+onBeforeUnmount(() => {
+  if (timer.value) clearInterval(timer.value)
+})
+
+async function fetchBook() {
   try {
     const { data } = await api.get<Book>(`/book/${route.params.key}`)
     book.value = data
-    // optional author lookup
     const author = await api.get<{ name: string }>(`/author/${data.autor_key}`)
     authorName.value = author.data.name
   } catch (err) {
     console.error('Failed to fetch book:', err)
   }
-})
+}
 
 async function downloadBook(key?: string) {
   if (!key) return
@@ -219,14 +228,11 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
   font-weight: 600;
 }
 
-.activity-status .downloaded {
+.activity-status .download {
   color: #27ae60;
 }
 .activity-status .imported {
   color: var(--mainColor); 
-}
-.activity-status .downloading {
-  color: #3498db;
 }
 .activity-status .canceled {
   color: #7f8c8d;

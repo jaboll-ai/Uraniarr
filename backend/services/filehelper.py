@@ -5,11 +5,11 @@ from sqlmodel import Session
 from backend.db import engine
 from backend.config import ConfigManager
 from backend.services.downloader_service import get_config, remove_from_history, get_history
-from backend.datamodels import Book, Reihe, Author, Activity
+from backend.datamodels import Book, Reihe, Author, Activity, ActivityStatus
 from backend.exceptions import FileError
 import os
 
-def move_file(activity: Activity, src: Path):
+def move_file(activity: Activity, src: Path, cfg: ConfigManager):
     cfg = ConfigManager()
     book = activity.book
     # source is in the SAB “complete” directory for this category
@@ -51,12 +51,18 @@ def move_file(activity: Activity, src: Path):
             if file.is_file():
                 if file.suffix.lower() == wanted_ext:
                     shutil.move(str(file), str(dst_dir)) #TODO pattern
+        for act in book.activities:
+            match act.status:
+                case ActivityStatus.imported:
+                    act.status = ActivityStatus.overwritten
+                case _:
+                    continue
+        activity.status = ActivityStatus.imported
         shutil.rmtree(src)
         book.a_dl_loc = str(dst_dir) #TODO revisit for Books
-        # session.delete(book.acti)
-        # delete activities that actually reflect the downloaded file (changes to nzbname needed)
-        # BEWARE we have a list of activites    
+        remove_from_history(cfg, activity.nzo_id)
     except Exception as e:
+        activity.status = ActivityStatus.failed
         print(e) #TODO LOGGGG and FIX
 
 
@@ -80,8 +86,7 @@ def scan_and_move_all_files():
             if not activity: continue
             if os.getenv("DEV") == "1":
                 slot["storage"] = Path(".local") / str(slot["storage"])[1:] # DEV
-            move_file(activity, slot["storage"])
-            remove_from_history(cfg, activity.nzo_id)
+            move_file(activity, slot["storage"], cfg)
             session.commit()
 
 def delete_audio_book(book_id: str, session: Session):

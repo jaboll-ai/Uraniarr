@@ -23,7 +23,8 @@ def get_history(cfg: ConfigManager):
 
 def remove_from_history(cfg: ConfigManager, nzo_id: str):
     try:
-        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"history", "name":"delete", "value":",".join(nzo_id)})
+        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"history", "name":"delete", "value":",".join([nzo_id] if type(nzo_id) == str else nzo_id), "output":"json"})
+        print(resp.text)
     except KeyError as e:
         raise NzbsError(status_code=resp.status_code, detail=e)
     return nzo_id
