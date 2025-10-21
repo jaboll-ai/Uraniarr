@@ -77,6 +77,7 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
 
 
 def scan_and_move_all_files():
+    print("scanning")
     cfg = ConfigManager()
     complete_base = Path(get_config(cfg, "misc", "complete_dir"))
     cats = get_config(cfg, "categories")
