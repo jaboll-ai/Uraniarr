@@ -12,7 +12,7 @@
       </div>
       <div style="display: flex;">
         <div style="flex-grow: 1;"></div>
-        <button :disabled="isDisabled(author.key)" class="add-button" @click="add(author.key)">{{ authorStatus[author.key]?.adding ? dots : authorStatus[author.key]?.added ? 'Added' : 'Add' }}</button>
+        <button :disabled="isDisabled(author.key)" class="add-button" @click="add(author.key, author.name)">{{ authorStatus[author.key]?.adding ? dots : authorStatus[author.key]?.added ? 'Added' : 'Add' }}</button>
       </div>
     </div>
   </div>
@@ -39,11 +39,11 @@ const isDisabled = computed(() => (author: string) => {
   return status ? status.adding || status.added : false
 })
 
-async function add(author: string){
+async function add(author: string, name: string) {
   authorStatus[author].adding = true
   console.log("added pressed")
   try {
-    await api.post(`/author/${author}`)
+    await api.post(`/author/${author}`, {}, { params: { name: name } })
     authorStatus[author].added = true
   } finally {
     authorStatus[author].adding = false
@@ -94,6 +94,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.search-author {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
 .author-header {
   display: flex;
   flex-direction: column;
