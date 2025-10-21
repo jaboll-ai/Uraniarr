@@ -10,7 +10,6 @@ from backend.exceptions import FileError
 import os
 
 def move_file(activity: Activity, src: Path, cfg: ConfigManager):
-    print(f"Moving {src}")
     src = src.parent if src.is_file() else src
     cfg = ConfigManager()
     book = activity.book
@@ -23,6 +22,7 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
         dst_base = Path(cfg.audio_path if activity.audio else cfg.book_path)
         dst_dir = dst_base / book.autor.name
         var_name = "a_dl_loc" if activity.audio else "b_dl_loc"
+        print(1)
         if not getattr(book.autor, var_name): setattr(book.autor, var_name, str(dst_dir))
         if book.reihe_key: #TODO custom patterns
             dst_dir = dst_dir / book.reihe.name
@@ -33,11 +33,13 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
                 dst_dir = dst_dir / book.name
         else:
             dst_dir = dst_dir / book.name #TODO revisit? same depth vs clearer structure
+        print(2)
         if dst_dir.exists():
             print(f"Directory {dst_dir} already exists. Will replace.")
             shutil.rmtree(dst_dir)
         dst_dir.mkdir(parents=True)
         counts = {}
+        print(3)
         if activity.audio:
             for file in Path(src).iterdir():
                 if file.is_file():
@@ -45,7 +47,7 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
                     if not ext: continue
                     counts[ext] = counts.get(ext, 0) + 1
             exts = sorted(counts, key=counts.get, reverse=True)
-            
+            print(4)
             for ext in cfg.audio_extensions_rating.split(","):
                 if ext in exts:
                     wanted_ext = ext
@@ -55,11 +57,14 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
                 if file.is_file():
                     if file.suffix.lower() == wanted_ext:
                         shutil.move(str(file), str(dst_dir)) #TODO pattern
+            print(5)
         else:
+            print(6)
             for file in Path(src).iterdir():
                 if file.is_file():
                     if file.suffix.lower() in cfg.book_extensions.split(","):
                         shutil.move(str(file), str(dst_dir))
+        print(7)
         for act in book.activities:
             if act.audio != activity.audio: continue
             match act.status:
@@ -67,10 +72,13 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
                     act.status = ActivityStatus.overwritten
                 case _:
                     continue
+        print(8)
         activity.status = ActivityStatus.imported
         shutil.rmtree(src)
         setattr(book, var_name, str(dst_dir)) #TODO revisit for Books
+        print(9)
         remove_from_history(cfg, activity.nzo_id)
+        print(10)
     except Exception as e:
         activity.status = ActivityStatus.failed
         print(e) #TODO LOGGGG and FIX
@@ -91,7 +99,6 @@ def scan_and_move_all_files():
     if not category_dir.is_dir():
         return  # TODO LOGGG
     slots = get_history(cfg)
-    print(slots)
     with Session(engine) as session:
         for slot in slots:
             activity = session.get(Activity, slot["nzo_id"])
