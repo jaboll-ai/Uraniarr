@@ -10,12 +10,6 @@ from backend.exceptions import FileError
 import os
 
 def move_file(activity: Activity, src: Path, cfg: ConfigManager):
-    with open("/config/debug.log", "a") as f:
-        f.write(f"Moving {src}\n")
-        f.write(f"Audio: {activity.audio}\n")
-        f.write(",".join(list(src.iterdir())))
-        f.write("TEstttt","\n")
-        
     src = src.parent if src.is_file() else src
     cfg = ConfigManager()
     book = activity.book
@@ -136,6 +130,6 @@ async def poll_folder(interval: int = 60):
     while True:
         try:
             await asyncio.to_thread(scan_and_move_all_files)
-        except Exception:
-            pass #TODO LOGGG
+        except Exception as e:
+            print(e)
         await asyncio.sleep(interval)
