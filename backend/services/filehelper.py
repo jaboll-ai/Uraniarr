@@ -38,7 +38,7 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
         dst_dir.mkdir(parents=True)
         counts = {}
         if activity.audio:
-            for file in Path(src).iterdir():
+            for file in src.iterdir():
                 if file.is_file():
                     ext = file.suffix.lower()
                     if not ext: continue
@@ -50,12 +50,12 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
                     wanted_ext = ext
                     break
             else: wanted_ext = exts[0]
-            for file in Path(src).iterdir():
+            for file in src.iterdir():
                 if file.is_file():
                     if file.suffix.lower() == wanted_ext:
                         shutil.move(str(file), str(dst_dir)) #TODO pattern
         else:
-            for file in Path(src).iterdir():
+            for file in src.iterdir():
                 if file.is_file():
                     if file.suffix.lower() in cfg.book_extensions.split(","):
                         shutil.move(str(file), str(dst_dir))
@@ -77,13 +77,6 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
 
 def scan_and_move_all_files():
     cfg = ConfigManager()
-    complete_base = Path(get_config(cfg, "misc", "complete_dir"))
-    cats = get_config(cfg, "categories")
-    entry = next((c for c in cats if c["name"] == cfg.downloader_category), None) #TIL lol
-    if not entry:
-        return  # unknown category TODO LOGGG
-    subdir = entry.get("dir", "")
-    category_dir: Path = complete_base / subdir
     if os.getenv("DEV") == "1":
         category_dir = Path(".local") / str(category_dir)[1:] # DEV
     if not category_dir.is_dir():
@@ -94,9 +87,10 @@ def scan_and_move_all_files():
             activity = session.get(Activity, slot["nzo_id"])
             if not activity: continue
             if not slot["status"] == "Completed": continue
+            src = Path(slot["storage"])
             if os.getenv("DEV") == "1":
-                slot["storage"] = Path(".local") / str(slot["storage"])[1:] # DEV
-            move_file(activity, slot["storage"], cfg)
+                src = Path(".local") / str(slot["storage"])[1:] # DEV
+            move_file(activity, src, cfg)
             session.commit()
 
 def delete_audio_book(book_id: str, session: Session):
@@ -131,6 +125,6 @@ async def poll_folder(interval: int = 60):
     while True:
         try:
             await asyncio.to_thread(scan_and_move_all_files)
-        except Exception:
-            pass #TODO LOGGG
+        except Exception as e:
+            print(e) #TODO LOGGG
         await asyncio.sleep(interval)
