@@ -14,6 +14,8 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
         f.write(f"Moving {src}\n")
         f.write(f"Audio: {activity.audio}\n")
         f.write(src.is_file(),"\n")
+        f.write("TEstttt","\n")
+        
     src = src.parent if src.is_file() else src
     cfg = ConfigManager()
     book = activity.book
