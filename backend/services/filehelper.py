@@ -10,12 +10,11 @@ from backend.exceptions import FileError
 import os
 
 def move_file(activity: Activity, src: Path, cfg: ConfigManager):
-    print(1)
+    print(src)
+    print(src.is_file())
     src = src.parent if src.is_file() else src
-    print(2)
     cfg = ConfigManager()
     book = activity.book
-    print(3)
     # source is in the SAB “complete” directory for this category
     try:
         if not book:
@@ -79,7 +78,6 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
 
 
 def scan_and_move_all_files():
-    print("scanning")
     cfg = ConfigManager()
     complete_base = Path(get_config(cfg, "misc", "complete_dir"))
     cats = get_config(cfg, "categories")
@@ -93,7 +91,6 @@ def scan_and_move_all_files():
     if not category_dir.is_dir():
         return  # TODO LOGGG
     slots = get_history(cfg)
-    print(slots)
     with Session(engine) as session:
         for slot in slots:
             activity = session.get(Activity, slot["nzo_id"])
