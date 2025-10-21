@@ -26,7 +26,8 @@
       @deleteBook="$emit('deleteBook', $event)" 
       @editBook="$emit('editBook', $event)" 
       @searchBook="$emit('searchBook', $event)"
-      :showBox="showBox" :books="group.books" :seriesGroups="[]"/>
+      :showBox="showBox" :books="group.books" :seriesGroups="[]"
+      :audio="audio"/>
     </div>
   </div>
 
@@ -50,6 +51,7 @@ const props = defineProps<{
   books: Book[] //throw away
   showBox: boolean
   seriesGroups: Array<{ series: Series; books: Book[] }>
+  audio: boolean
 }>()
 const emit = defineEmits<{
   (e: 'downloadBook', key: string[]): void

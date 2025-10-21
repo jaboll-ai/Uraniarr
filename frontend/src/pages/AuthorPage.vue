@@ -6,7 +6,7 @@
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
-          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">download</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">{{ downloading ? 'progress_activity' : 'download' }}</button>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmAuthor = true">delete</button>
         </div>
       </div>
@@ -16,8 +16,8 @@
       <button
         v-for="tab in tabs"
         :key="tab.name"
-        @click="current = tab.name"
-        :class="{ active: current === tab.name }"
+        @click="current = tab.name; audio = tab.audio"
+        :class="{ active: current === tab.name && audio === tab.audio }"
       >
         {{ tab.label }}
       </button>
@@ -28,7 +28,7 @@
           @downloadBook="downloadBook" @completeSeries="completeSeries"
           @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="editBook"
           @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries" @searchBook="searchBook"
-          :showBox="showBox" :books="books" :seriesGroups="seriesGroups"/>
+          :showBox="showBox" :books="books" :seriesGroups="seriesGroups" :audio="audio"/>
       </keep-alive>
     </div>
     <ConfirmModal
@@ -85,6 +85,7 @@ const manualSearchVersions = ref<BookNzb[]>([])
 const query = ref("")
 const manualSearchKey = ref("")
 const manualSearchPages = ref(0)
+const downloading = ref(false)
 
 onMounted(async () => {
   try {
@@ -96,12 +97,14 @@ onMounted(async () => {
   fetchBooks()
 })
 const tabs = [
-  { name: 'BookList',     label: 'Books'    },
-  { name: 'SeriesList',  label: 'Series'  },
-  // { name: 'SettingsPage', label: 'Settings' },
+  { name: 'BookList', label: 'Books', audio: false },
+  { name: 'BookList', label: 'Audiobooks', audio: true },
+  { name: 'SeriesList', label: 'Series', audio: false },
+  { name: 'SeriesList', label: 'Audio Series', audio: true },
 ]
 
 const current = ref<string>('BookList')
+const audio = ref<boolean>(true)
 const componentsMap: Record<string, any> = {
   BookList,
   SeriesList,
@@ -134,7 +137,7 @@ async function searchBook(key: string) {
 async function searchBookPaginate(key: string, page: number) {
   try {
     interactiveSearch.value = true
-    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`, { params: { page: page } })
+    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`, { params: { page: page, audio: audio.value } })
     manualSearchVersions.value = response.data.nzbs
     query.value = response.data.query
     manualSearchPages.value = response.data.pages
@@ -160,7 +163,7 @@ async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
 async function downloadBook(keys: string[]) {
   try {
     for (const key of keys) {
-      await dapi.post(`/book/${key}`)
+      await dapi.post(`/book/${key}`, null, { params: { audio : audio.value } })
     }
   } catch (err) {
     console.error('Failed to download book', err)
@@ -169,7 +172,7 @@ async function downloadBook(keys: string[]) {
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, name : nzb.name})
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, name : nzb.name}, { params: { audio : audio.value } })
   } catch (err) {
     console.error('Failed to download book', err)
   }
@@ -177,7 +180,7 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
 
 async function downloadSeries(key: string) {
   try {
-    await dapi.post(`/series/${key}`)
+    await dapi.post(`/series/${key}`, null, { params: { audio : audio.value } })
   } catch (err) {
     console.error('Failed to download Series', err)
   }
@@ -186,7 +189,9 @@ async function downloadSeries(key: string) {
 async function downloadAuthor(key:string | undefined) {
   if (!key) return
   try {
+    downloading.value = true
     await dapi.post(`/author/${key}`)
+    downloading.value = false
   } catch (err) {
     console.error('Failed to download Author', err)
   }

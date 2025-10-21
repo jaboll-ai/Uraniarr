@@ -79,5 +79,6 @@ class Activity(SQLModel, table=True):
     release_title: str
     book_key: str = Field(foreign_key="book.key")
     status: ActivityStatus = ActivityStatus.download
+    audio: bool
 
     book: "Book" = Relationship(back_populates="activities")

@@ -10,6 +10,7 @@ from backend.exceptions import FileError
 import os
 
 def move_file(activity: Activity, src: Path, cfg: ConfigManager):
+    src = src.parent if src.is_file() else src
     cfg = ConfigManager()
     book = activity.book
     # source is in the SAB “complete” directory for this category
@@ -18,40 +19,48 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
             print(f"No book for {src.name} found")
             return #TODO better logging
 
-        dst_base = Path(cfg.data_path)
+        dst_base = Path(cfg.audio_path if activity.audio else cfg.book_path)
         dst_dir = dst_base / book.autor.name
-        if not book.autor.a_dl_loc: book.autor.a_dl_loc = str(dst_dir)
+        var_name = "a_dl_loc" if activity.audio else "b_dl_loc"
+        if not getattr(book.autor, var_name): setattr(book.autor, var_name, str(dst_dir))
         if book.reihe_key: #TODO custom patterns
             dst_dir = dst_dir / book.reihe.name
-            if not book.reihe.a_dl_loc: book.reihe.a_dl_loc = str(dst_dir) # TODO revisit for book
+            if not getattr(book.reihe, var_name): setattr(book.reihe, var_name, str(dst_dir))
             if book.reihe_position is not None:
                 dst_dir = dst_dir / f"{book.reihe_position} - {book.name}" 
             else:
                 dst_dir = dst_dir / book.name
         else:
-            dst_dir = dst_dir / book.name / book.name
+            dst_dir = dst_dir / book.name #TODO revisit? same depth vs clearer structure
         if dst_dir.exists():
             print(f"Directory {dst_dir} already exists. Will replace.")
             shutil.rmtree(dst_dir)
         dst_dir.mkdir(parents=True)
         counts = {}
-        for file in Path(src).iterdir():
-            if file.is_file():
-                ext = file.suffix.lower()
-                if not ext: continue
-                counts[ext] = counts.get(ext, 0) + 1
-        exts = sorted(counts, key=counts.get)
-        
-        for ext in exts[::-1]:
-            if ext not in cfg.unwanted_extensions.split(","):
-                wanted_ext = ext
-                break
-        else: wanted_ext = ""
-        for file in Path(src).iterdir():
-            if file.is_file():
-                if file.suffix.lower() == wanted_ext:
-                    shutil.move(str(file), str(dst_dir)) #TODO pattern
+        if activity.audio:
+            for file in Path(src).iterdir():
+                if file.is_file():
+                    ext = file.suffix.lower()
+                    if not ext: continue
+                    counts[ext] = counts.get(ext, 0) + 1
+            exts = sorted(counts, key=counts.get, reverse=True)
+            
+            for ext in cfg.audio_extensions_rating.split(","):
+                if ext in exts:
+                    wanted_ext = ext
+                    break
+            else: wanted_ext = exts[0]
+            for file in Path(src).iterdir():
+                if file.is_file():
+                    if file.suffix.lower() == wanted_ext:
+                        shutil.move(str(file), str(dst_dir)) #TODO pattern
+        else:
+            for file in Path(src).iterdir():
+                if file.is_file():
+                    if file.suffix.lower() in cfg.book_extensions.split(","):
+                        shutil.move(str(file), str(dst_dir))
         for act in book.activities:
+            if act.audio != activity.audio: continue
             match act.status:
                 case ActivityStatus.imported:
                     act.status = ActivityStatus.overwritten
@@ -59,7 +68,7 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
                     continue
         activity.status = ActivityStatus.imported
         shutil.rmtree(src)
-        book.a_dl_loc = str(dst_dir) #TODO revisit for Books
+        setattr(book, var_name, str(dst_dir)) #TODO revisit for Books
         remove_from_history(cfg, activity.nzo_id)
     except Exception as e:
         activity.status = ActivityStatus.failed
@@ -84,6 +93,7 @@ def scan_and_move_all_files():
         for slot in slots:
             activity = session.get(Activity, slot["nzo_id"])
             if not activity: continue
+            if not slot["status"] == "Completed": continue
             if os.getenv("DEV") == "1":
                 slot["storage"] = Path(".local") / str(slot["storage"])[1:] # DEV
             move_file(activity, slot["storage"], cfg)

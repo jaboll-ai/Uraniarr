@@ -4,7 +4,7 @@
       <input type="checkbox" class="selector" :checked="checked" @click="emit('checkboxClick', { event: $event as MouseEvent, key: book.key })"/>
     </div>
     <img class="book-icon" :src="book.bild" :alt="book.name" />
-    <div class="info">
+    <div class="book-name">
       <router-link :to="`/book/${book.key}`">{{ book.name }}</router-link>
     </div>
     <div class="info">
@@ -12,6 +12,9 @@
     </div>
     <div class="info">
       {{ book.reihe_position?? "" }}
+    </div>
+    <div class="info material-symbols-outlined">
+      {{ getStatus() }}
     </div>
     <div class="book-download">
       <button class="material-symbols-outlined" @click="showEditor = true">edit</button>
@@ -38,6 +41,7 @@ const props = defineProps<{
   book: Book
   showBox: boolean
   checked?: boolean
+  audio: boolean
 }>()
 const emit = defineEmits<{
   (e: 'checkboxClick', payload: { event: MouseEvent; key: string }): void
@@ -50,6 +54,17 @@ const showEditor = ref(false)
 function editBook(book: Book) {
   showEditor.value = false
   emit('editBook', book)
+}
+
+function getStatus() {
+  const acts = props.book.activities.filter((act) => act.audio === props.audio)
+  if (acts.some(a => a.status.includes('download'))) {
+    return 'cloud_download'
+  }
+  if (acts.some(a => a.status === 'imported')) {
+    return 'cloud_done'
+  }
+  return 'cloud_off'
 }
 </script>
 
@@ -65,12 +80,20 @@ function editBook(book: Book) {
   display: flex;
   background-color: var(--backgroundWhite);
   border-radius: 8px;
+  max-height: 50px;
 }
 
+.book-name{
+  display: flex;
+  align-items: center;
+  width: 30%;
+  margin: 0 20px;
+}
 .info{
   display: flex;
   align-items: center;
-  width: 25%;
+  justify-content: center;
+  width: 20%;
   margin: 0 20px;
 }
 .book-download{

@@ -8,8 +8,9 @@
         :book="book"
         :showBox="showBox"
         :checked="selected.includes(book.key)"
+        :audio="audio"
         @checkboxClick="onCheckboxClick($event, index)"
-        @downloadBook="$emit('downloadBook', $event)"
+        @downloadBook="downloadBook"
         @searchBook="$emit('searchBook', $event)"
         @deleteBook="deleteBook"
         @editBook="$emit('editBook', $event)"
@@ -29,6 +30,7 @@ const props = defineProps<{
   books: Book[]
   showBox: boolean
   seriesGroups: any
+  audio: boolean
 }>()
 
 const emit = defineEmits<{
@@ -46,6 +48,14 @@ function deleteBook(keys: string[]) {
     emit('deleteBook', selected.value)
   } else {
     emit('deleteBook', keys)
+  }
+}
+
+function downloadBook(keys: string[]) {
+  if (selected.value.length > 0) {
+    emit('downloadBook', selected.value)
+  } else {
+    emit('downloadBook', keys)
   }
 }
 

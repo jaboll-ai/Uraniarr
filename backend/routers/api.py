@@ -20,7 +20,12 @@ def get_author_series(author_id: str, session: Session = Depends(get_session)):
 @router.get("/author/{author_id}/books")
 def get_author_books(author_id: str, session: Session = Depends(get_session)):
     if author := session.get(Author, author_id):
-        return author.books
+        books = []
+        for book in author.books:
+            resp = book.model_dump()
+            resp["activities"] = book.activities
+            books.append(resp)
+        return resp
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/author/{author_id}")
@@ -44,7 +49,12 @@ def get_authors(session: Session = Depends(get_session)):
 @router.get("/series/{series_id}/books")
 def get_books_of_series(series_id: str, session: Session = Depends(get_session)):
     if reihe := session.get(Reihe, series_id):
-        return reihe.books
+        books = []
+        for book in reihe.books:
+            resp = book.model_dump()
+            resp["activities"] = book.activities
+            books.append(resp)
+        return books
     raise HTTPException(status_code=404, detail="Series not found") 
 
 @router.get("/settings")
@@ -157,5 +167,5 @@ async def unite_series(data: UnionSeries, session: Session = Depends(get_session
 async def get_alternative_titles(book_id: str, session: Session = Depends(get_session)):
     book = session.get(Book, book_id)
     if not book: raise HTTPException(status_code=404, detail="Book not found")
-    return [clean_title(ed.titel, book.reihe.name, book.reihe_position) for ed in book.editions]
+    return [clean_title(ed.titel, book.reihe.name if book.reihe_key else None, book.reihe_position) for ed in book.editions]
     
