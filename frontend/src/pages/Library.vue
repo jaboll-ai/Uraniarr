@@ -1,6 +1,7 @@
 <template>
-  <div class="authors">
-    <AuthorCard
+  <div class="placeholder" v-if="authors.length === 0"><span class="symbol material-symbols-outlined no-select">book_2</span></div>
+  <div class="authors" v-if="authors.length > 0">
+    <AuthorCard 
       v-for="author in authors"
       :key="author.key"
       :author="author"
@@ -77,5 +78,18 @@ async function addSeriesAuthor(data: {name: string, entry_id: string}){
   width: 60px;
   height: 60px;
   font-size: 33px;
+}
+
+.placeholder{
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  align-items: center;
+  color: var(--offWhite);
+  flex-direction: column;
+  margin: 0 200px
+}
+.symbol{
+  font-size: 260pt;
 }
 </style>

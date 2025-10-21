@@ -1,6 +1,6 @@
 <template>
-  <div v-if="loading" class="loading-screen">
-    Loading…
+  <div v-if="loading" class="placeholder">
+    <span class="symbol material-symbols-outlined no-select">progress_activity</span>
   </div>
   <div v-else class="search-author">
     <div class="author-header" v-for="author in authors" :key="author.key">
@@ -175,5 +175,27 @@ div.author-image {
   box-sizing: border-box;
   margin: 0;
   max-height: 98px;
+}
+.placeholder{
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  align-items: center;
+  color: var(--fontColor);
+  flex-direction: column;
+  margin: 0 200px
+}
+.symbol{
+  font-size: 100pt;
+  animation: spin 2s ease-in-out infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
