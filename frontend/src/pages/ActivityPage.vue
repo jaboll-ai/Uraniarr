@@ -1,5 +1,6 @@
 <template>
-  <div class="download-list">
+  <div class="placeholder" v-if="downloads.length === 0"><span class="symbol material-symbols-outlined no-select">history_toggle_off</span></div>
+  <div class="download-list" v-if="downloads.length > 0">
     <div v-for="item in downloads" :key="item.book_key" class="download-item">
       <div class="header">
         <div class="title">
@@ -106,5 +107,18 @@ async function fetchQueue() {
   font-size: 0.8rem;
   color: var(--fontColor);
   margin-top: 0.4rem;
+}
+
+.placeholder{
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  align-items: center;
+  color: var(--offWhite);
+  flex-direction: column;
+  margin: 0 200px
+}
+.symbol{
+  font-size: 260pt;
 }
 </style>

@@ -43,6 +43,13 @@ h1 {
   line-height: 1.1;
 }
 
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 button {
   color: var(--fontColor);
   padding: 0;

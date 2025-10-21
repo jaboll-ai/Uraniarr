@@ -14,13 +14,13 @@ import TopBar from './components/TopBar.vue';
 
 <style scoped>
 .page-container{
-  position: relative;
   display: flex;
   overflow-x: hidden;
   padding: 10px;
   margin-left : 200px;
-  top: 60px;
+  margin-top: 60px;
   box-sizing: border-box;
+  flex-grow: 1;
 }
 @media (max-width: 768px) {
   .page-container {
