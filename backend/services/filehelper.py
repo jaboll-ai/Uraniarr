@@ -10,8 +10,10 @@ from backend.exceptions import FileError
 import os
 
 def move_file(activity: Activity, src: Path, cfg: ConfigManager):
-    print(src)
-    print(src.is_file())
+    with open("/config/debug.log", "a") as f:
+        f.write(f"Moving {src}\n")
+        f.write(f"Audio: {activity.audio}\n")
+        f.write(src.is_file(),"\n")
     src = src.parent if src.is_file() else src
     cfg = ConfigManager()
     book = activity.book
@@ -20,7 +22,6 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
         if not book:
             print(f"No book for {src.name} found")
             return #TODO better logging
-        print(4)
         dst_base = Path(cfg.audio_path if activity.audio else cfg.book_path)
         dst_dir = dst_base / book.autor.name
         var_name = "a_dl_loc" if activity.audio else "b_dl_loc"
