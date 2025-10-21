@@ -3,10 +3,10 @@ from backend.exceptions import IndexerError
 import requests
 from backend.services.scrape_service import fix_umlaut, has_umlaut
 from backend.datamodels import Book
-def indexer_search(q: str, cfg: ConfigManager):
+def indexer_search(q: str, cfg: ConfigManager, audio: bool):
     search = {
         "t": "search",
-        "cat":3000,
+        "cat":cfg.indexer_audio_category if audio else cfg.indexer_book_category,
         "o" : "json",
         "q": q,
         "apikey": cfg.indexer_apikey
@@ -31,9 +31,9 @@ def grab_nzb(guid: str, cfg: ConfigManager):
     if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
     return response.content
 
-def query_manual(book: Book, page: int, cfg: ConfigManager):
+def query_manual(book: Book, page: int, cfg: ConfigManager, audio: bool):
     base_queries = build_queries(book)
-    data = indexer_search(base_queries[page], cfg=cfg)
+    data = indexer_search(base_queries[page], cfg=cfg, audio=audio)
     query = data["channel"]
     if (total:=query["response"]["@attributes"]["total"]) == "0":
         return { "query": base_queries[page], "nzbs": [], "pages": len(base_queries)}
@@ -50,14 +50,14 @@ def query_manual(book: Book, page: int, cfg: ConfigManager):
     #         break
     # else: return { "query": used_term, "nzbs": [] }
 
-def query_book(book: Book, cfg: ConfigManager):
+def query_book(book: Book, cfg: ConfigManager, audio: bool):
     base_queries = build_queries(book)
     for q in base_queries: #TODO
-        data = indexer_search(q, cfg=cfg)
+        data = indexer_search(q, cfg=cfg, audio=audio)
         query = data["channel"]
         if (total:=query["response"]["@attributes"]["total"]) != "0":
             break
-    else: return None
+    else: return None, None
     item = query["item"] if total == "1" else query["item"][0] 
     guid=item["attr"][2]["@attributes"]["value"]
     name=item["title"] 

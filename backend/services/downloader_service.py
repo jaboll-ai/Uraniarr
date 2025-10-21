@@ -1,6 +1,7 @@
 from backend.exceptions import NzbsError
 import requests
 from backend.config import ConfigManager
+from sqlmodel import Session
 
 def download(nzb : bytes, cfg: ConfigManager, nzbname: str):
     resp=requests.post(cfg.downloader_url, params={"apikey": cfg.downloader_apikey}, data={"mode": "addfile", "nzbname": nzbname, "cat": cfg.downloader_category or ""}, files={"nzbfile": nzb})
@@ -24,7 +25,13 @@ def get_history(cfg: ConfigManager):
 def remove_from_history(cfg: ConfigManager, nzo_id: str):
     try:
         resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"history", "name":"delete", "value":",".join([nzo_id] if type(nzo_id) == str else nzo_id), "output":"json"})
-        print(resp.text)
+    except KeyError as e:
+        raise NzbsError(status_code=resp.status_code, detail=e)
+    return nzo_id
+
+def remove_from_queue(cfg: ConfigManager, nzo_id: str):
+    try:
+        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"queue", "name":"delete", "value":",".join([nzo_id] if type(nzo_id) == str else nzo_id), "output":"json"})
     except KeyError as e:
         raise NzbsError(status_code=resp.status_code, detail=e)
     return nzo_id

@@ -1,7 +1,7 @@
 <template>
   <div class="placeholder" v-if="downloads.length === 0"><span class="symbol material-symbols-outlined no-select">history_toggle_off</span></div>
   <div class="download-list" v-if="downloads.length > 0">
-    <div v-for="item in downloads" :key="item.book_key" class="download-item">
+    <div v-for="item in downloads" class="download-item">
       <div class="header">
         <div class="title">
           <router-link :to="{ name: 'Book', params: { key: item.book_key } }">{{ item.book_name }}</router-link>
@@ -10,23 +10,34 @@
       </div>
 
       <div class="filename">{{ item.filename }}</div>
-
-      <div class="progress-bar">
-        <div class="progress" :style="{ width: item.percentage + '%' }"></div>
-      </div>
-
-      <div class="footer">
-        <span>{{ item.percentage }}%</span>
+      <div class="progress-container">
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress" :style="{ width: item.percentage + '%' }"></div>
+          </div>
+          <div class="footer">
+            <span>{{ item.percentage }}%</span>
+          </div>
+        </div>
+        <button class="btn material-symbols-outlined" @click="showCancel = true; downloadId = item.id">close</button>
       </div>
     </div>
+    <ConfirmModal
+      message="Are you sure you want to cancel this download?"
+      :visible="showCancel"
+      @confirm="cancelDownload(downloadId)"
+      @cancel="showCancel = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { dapi } from '@/main'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 interface DownloadItem {
+  id: string
   percentage: string
   filename: string
   book_key: string
@@ -35,6 +46,8 @@ interface DownloadItem {
 }
 
 const downloads = ref<DownloadItem[]>([])
+const showCancel = ref(false)
+const downloadId = ref('')
 
 const timer = ref<number | null>(null)
 
@@ -46,6 +59,16 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (timer.value) clearInterval(timer.value)
 })
+
+async function cancelDownload(id: string) {
+  try {
+    await dapi.delete(`/activity/${id}`)
+    await fetchQueue()
+    showCancel.value = false
+  } catch (error) {
+    console.error('Failed to cancel download:', error)
+  }
+}
 
 async function fetchQueue() {
   try {
@@ -89,11 +112,24 @@ async function fetchQueue() {
   word-break: break-all;
 }
 
+.progress-container {
+  display: flex;
+}
+
+.progress-bar-container {
+  flex-grow: 1;
+}
+
+.btn{
+  margin: 0 10px;
+}
+
 .progress-bar {
   height: 8px;
   background: var(--fontColor);
   border-radius: 4px;
   overflow: hidden;
+  flex-grow: 1;
 }
 
 .progress {

@@ -30,6 +30,7 @@ export interface Activity {
   nzo_id: string
   release_title: string
   status: string
+  audio: boolean
 }
 
 export interface InteractiveSearch{
@@ -47,7 +48,7 @@ export interface Book {
   autor_key: string
   reihe_key?: string
   a_dl_loc?: string | null
-  activities?: Activity[]
+  activities: Activity[]
 }
 
 export interface BookNzb {

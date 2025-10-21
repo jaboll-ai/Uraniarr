@@ -95,8 +95,8 @@ async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool 
             author_data["_books"].add(artikel["identifier"]["matnr"])
     return author_data
 
-async def scrape_all_author_data(author_id: str, cfg: ConfigManager) -> dict:
-    author_data = await scrape_author_data(author_id)
+async def scrape_all_author_data(author_id: str, cfg: ConfigManager, name: str) -> dict:
+    author_data = await scrape_author_data(author_id, name=name)
     coros = [scrape_book_editions(book_edition_id, cfg) for book_edition_id in author_data.get("_books", set())]
     books = await asyncio.gather(*coros)
     return {"author_data": author_data, "books": books}

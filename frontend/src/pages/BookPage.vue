@@ -20,16 +20,26 @@
       </div>
     </div>
 
-    <div class="book-activities">
-      <h3>Activities</h3>
-      <div v-for="act in book?.activities" :key="act.nzo_id" class="activity-item">
-        <div class="activity-title">{{ act.release_title }}</div>
-        <div class="activity-status">
-          Status: <span :class="act.status">{{ act.status }}</span>
+    <div class="book-act-container">
+      <div class="book-activities">
+        <h3>Audio activities</h3>
+        <div v-for="act in book?.activities?.filter(a => a.audio)" :key="act.nzo_id" class="activity-item">
+          <div class="activity-title">{{ act.release_title }}</div>
+          <div class="activity-status">
+            Status: <span :class="act.status">{{ act.status }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="book-activities">
+        <h3>Book activities</h3>
+        <div v-for="act in book?.activities?.filter(a => !a.audio)" :key="act.nzo_id" class="activity-item">
+          <div class="activity-title">{{ act.release_title }}</div>
+          <div class="activity-status">
+            Status: <span :class="act.status">{{ act.status }}</span>
+          </div>
         </div>
       </div>
     </div>
-
     <ConfirmModal
       :visible="showConfirmDelete"
       message="Are you sure you want to delete this book?"
@@ -157,7 +167,7 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
 .book-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   flex: 1;
 }
 
@@ -212,7 +222,14 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
   margin: 10px 2px;
 }
 
+.book-act-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
 .book-activities {
+  flex-grow: 1;
   background: var(--backgroundWhite);
   border-radius: 8px;
   padding: 10px;
@@ -254,6 +271,10 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
   .book-placeholder {
     width: 100%;
     max-width: 250px;
+  }
+
+  .book-act-container {
+    flex-direction: column;
   }
 }
 </style>

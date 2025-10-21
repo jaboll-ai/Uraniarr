@@ -71,9 +71,4 @@ function submit() {
   border: 1px solid #ccc;
   border-radius: 4px;
 }
-.ctrl-btn {
-  background: var(--darkGray);
-  padding: 0px 8px;
-  margin: 10px 2px;
-}
 </style>

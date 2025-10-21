@@ -26,6 +26,14 @@ class ConfigManager:
                 "value": "",
                 "input_type": "password",
             },
+            "indexer_audio_category": {
+                "value": "3000",
+                "input_type": "text",
+            },
+            "indexer_book_category": {
+                "value": "7000",
+                "input_type": "text",
+            },
             "downloader_url": {
                 "value": "",
                 "input_type": "text",
@@ -38,7 +46,11 @@ class ConfigManager:
                 "value": "",
                 "input_type": "text",
             },
-            "data_path": {
+            "audio_path": {
+                "value": "",
+                "input_type": "text",
+            },
+            "book_path": {
                 "value": "",
                 "input_type": "text",
             },
@@ -46,8 +58,12 @@ class ConfigManager:
                 "value": 60,
                 "input_type": "number"
             },
-            "unwanted_extensions": {
-                "value": ".nfo,.sample,.url,.htm,.jpg,.png",
+            "audio_extensions_rating": {
+                "value": ".flac,.mp3,.mkv",
+                "input_type": "text"
+            },
+            "book_extensions": {
+                "value": ".epub,.mobi,.cbr,.azw,.azw3",
                 "input_type": "text"
             },
             "playwright": {
