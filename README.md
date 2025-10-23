@@ -13,6 +13,11 @@
 
 [Uraniarr](https://de.wikipedia.org/wiki/Urania) is a FastAPI-based application for scraping book metadata from a german vendor, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
 
+## Overview
+<img width="49%" alt="light-and-dark" src="https://github.com/user-attachments/assets/5472fd32-d5ae-486c-a5d1-0fb581656b7b" />
+<img width="49%" alt="light-and-dark-author" src="https://github.com/user-attachments/assets/7ab33591-9ffd-4bea-ac29-2509f133d1cc" />
+
+
 ## Features
 
 - **Web Scraping**  
