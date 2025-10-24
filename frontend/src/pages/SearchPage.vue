@@ -114,6 +114,7 @@ onUnmounted(() => {
   max-height: 140px;
 }
 .author-image {
+  max-width: 100px;
   min-width: 100px;
   border-radius: 50%;
   aspect-ratio: 1/1;
