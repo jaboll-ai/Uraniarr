@@ -45,28 +45,29 @@ def add_books_to_author(author: Author, session : Session, books_data: list):
             sanity_dedub.add(i["key"])
         book.editions = editions
         author.books.append(book)
-        author.reihen.extend(list(reihen.values()))
     session.add(author)
-
+    session.flush()
     auto_union_series(author.reihen, session)
     for reihe in author.reihen: #really inefficient needs revisit #TODO
-        clean_series_duplicates(reihe)
+        clean_series_duplicates(reihe, session)
     session.commit()
     return author.key
 
 def auto_union_series(reihen: list[Reihe], session: Session):
     for r1, r2 in combinations(reihen, 2):
-        if len(r1.name) > 5 and fuzz.token_set_ratio(r1.name, r2.name) > 80:
-            if len(r1.name) > len(r2.name): r1.name = r2.name
-            union_series(r1.key, [r2.key], session)
+        if len(r1.name) > 5 and fuzz.token_set_ratio(r1.name.replace("-", " "), r2.name.replace("-", " ")) > 80:
+            if len(r1.name) > len(r2.name): r1, r2 = r2, r1
+            for book in r2.books:
+                book.name = clean_title(book.name, r1.name, book.reihe_position)
+            r1.books.extend(r2.books)
+            session.delete(r2)
 
-def clean_series_duplicates(reihe: Reihe):
+def clean_series_duplicates(reihe: Reihe, session: Session):
     for book, book2 in combinations(reihe.books, 2):
         if not book.reihe_position or not book2.reihe_position: continue
         if fuzz.ratio(book.name, book2.name) > 80 and float(book.reihe_position) == float(book2.reihe_position): # we basically have the same book twice
-            for edition in book2.editions:
-                book.editions.append(edition)
-            reihe.books.remove(book2)
+            book.editions.extend(book2.editions)
+            session.delete(book2)
 
 def complete_series_in_db(series_id: str, session: Session, scraped: dict):
     reihe = session.get(Reihe, series_id)

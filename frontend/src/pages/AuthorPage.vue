@@ -37,7 +37,7 @@
     </div>
     <ConfirmModal
       :visible="showConfirmAuthor"
-      message="Are you sure yopu want to delete this author?"
+      message="Are you sure you want to delete this author?"
       @confirm="deleteAuthor(author?.key)"
       @cancel="showConfirmAuthor = false"
     />
