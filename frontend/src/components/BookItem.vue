@@ -13,7 +13,7 @@
     <div class="info">
       {{ book.reihe_position?? "" }}
     </div>
-    <div class="info material-symbols-outlined">
+    <div class="info material-symbols-outlined" :title="getTooltip()">
       {{ getStatus() }}
     </div>
     <div class="book-download">
@@ -65,6 +65,16 @@ function getStatus() {
     return 'cloud_done'
   }
   return 'cloud_off'
+}
+function getTooltip() {
+  const acts = props.book.activities.filter((act) => act.audio === props.audio)
+  if (acts.some(a => a.status.includes('download'))) {
+    return 'Downloading'
+  }
+  if (acts.some(a => a.status === 'imported')) {
+    return 'Imported'
+  }
+  return 'Not downloaded'
 }
 </script>
 

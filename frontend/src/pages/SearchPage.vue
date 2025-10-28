@@ -1,6 +1,7 @@
 <template>
-  <div v-if="loading" class="placeholder">
-    <span class="symbol material-symbols-outlined no-select">progress_activity</span>
+  <div v-if="authors.length === 0" class="placeholder">
+    <VueSpinner v-if="loading" class="symbol"/>
+    <div v-else class="symbol material-symbols-outlined" :title="errorMsg">error</div>
   </div>
   <div v-else class="search-author">
     <div class="author-header" v-for="author in authors" :key="author.key">
@@ -12,8 +13,11 @@
       </div>
       <div style="display: flex;">
         <div style="flex-grow: 1;"></div>
-        <button :disabled="isDisabled(author.key)" class="add-button" @click="add(author.key, author.name)">{{ authorStatus[author.key]?.adding ? dots : authorStatus[author.key]?.added ? 'Added' : 'Add' }}</button>
-      </div>
+        <button :disabled="isDisabled(author.key)" class="add-button" @click="add(author.key, author.name)">
+          <VueSpinner v-if="authorStatus[author.key]?.adding"/>
+          <span v-else> {{ authorStatus[author.key]?.added ? 'Added' : 'Add' }}</span>
+        </button>
+        </div>
     </div>
   </div>
 </template>
@@ -21,18 +25,18 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted, watch, reactive, computed } from 'vue'
+import { ref, onMounted, watch, reactive, computed } from 'vue'
 import { tapi, api } from '@/main.ts'
 import { getInitials } from '@/utils.ts'
 import type { Author } from '@/main.ts'
+import { VueSpinner } from 'vue3-spinners'
 
 const route = useRoute()
 
 const authors = ref<Author[]>([])
 const loading = ref(false)
+const errorMsg = ref('')
 const authorStatus = reactive<Record<string, { adding: boolean; added: boolean }>>({})
-const dots = ref('')
-let timer: number
 
 const isDisabled = computed(() => (author: string) => {
   const status = authorStatus[author]
@@ -53,30 +57,28 @@ async function add(author: string, name: string) {
 async function search() {
   try {
     loading.value = true
+    errorMsg.value = ''
     const response = await tapi.get<Author[]>("/search", { params: { q: route.query.q } })
     loading.value = false
     authors.value = response.data
     for (const author of authors.value) {
       try {
         await api.get(`/author/${author.key}`)
-        console.log("found em")
         authorStatus[author.key] = { adding: false, added: true }
       } catch(err) {
-        console.log("not found")
         authorStatus[author.key] = { adding: false, added: false }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
+    loading.value = false
     console.error('Failed to fetch books:', error)
+    errorMsg.value = error.message
   }
   console.log(authorStatus)
 }
 
 onMounted(async () => {
   search()
-  timer = window.setInterval(() => {
-    dots.value = dots.value.length < 3 ? dots.value + '.' : ''
-  }, 500)
 })
 
 watch(
@@ -87,10 +89,6 @@ watch(
     }
   }
 )
-
-onUnmounted(() => {
-  clearInterval(timer)
-})
 </script>
 
 <style scoped>
@@ -194,6 +192,5 @@ div.author-image {
 }
 .symbol{
   font-size: 100pt;
-  animation: spin 2s ease-in-out infinite;
 }
 </style>

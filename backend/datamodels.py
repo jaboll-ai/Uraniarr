@@ -47,6 +47,7 @@ class Book(SQLModel, table=True):
     reihe_position: Optional[float] = None
     a_dl_loc: Optional[str] = None
     b_dl_loc: Optional[str] = None
+    blocked: bool = False
     
     autor: "Author" = Relationship(back_populates="books")
     reihe: Optional["Reihe"] = Relationship(back_populates="books")
@@ -80,5 +81,10 @@ class Activity(SQLModel, table=True):
     book_key: str = Field(foreign_key="book.key")
     status: ActivityStatus = ActivityStatus.download
     audio: bool
+    guid: str
 
     book: "Book" = Relationship(back_populates="activities")
+
+class BlocklistNZB(SQLModel, table=True):
+    guid: str = Field(primary_key=True)
+    created: float = Field(default_factory=time)

@@ -1,18 +1,27 @@
 <template>
   <div v-if="visible" class="overlay">
     <div class="modal">
-      <p>{{ message }}</p>
+      <span class="message">{{ message }}</span>
+      <div style="display: flex;" v-if="blocking">
+        <span>Also block from future completions or searches?</span>
+        <input class="selector" type="checkbox" :checked="checked" @click="checked = !checked"/>
+      </div>
       <div class="actions">
-        <button class="btns material-symbols-outlined" @click="$emit('confirm')">check</button>
-        <button class="btns material-symbols-outlined" @click="$emit('cancel')">cancel</button>
+        <button class="btns material-symbols-outlined" @click="$emit('confirm', checked); checked = false">check</button>
+        <button class="btns material-symbols-outlined" @click="$emit('cancel'); checked = false">cancel</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{ visible: boolean; message?: string }>()
-defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
+import { ref } from 'vue'
+defineProps<{ visible: boolean; message?: string, blocking?: boolean }>()
+defineEmits<{ 
+  (e: 'confirm', blocking?: boolean ): void
+  (e: 'cancel'): void 
+}>()
+const checked = ref(false)
 </script>
 
 <style scoped>
@@ -42,4 +51,13 @@ defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
   padding: 8px;
 }
 
+.message {
+  text-align: center;
+  font-weight: 500;
+  font-size: large;
+}
+
+.selector {
+  margin-left: 0 8px;
+}
 </style>

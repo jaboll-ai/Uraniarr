@@ -127,7 +127,6 @@ async def scrape_book_series(book_id: str, cfg: ConfigManager):
                 except Exception:
                     book_info["_pos"] = None
             books.append(book_info)
-    print()
     return books
 
 def strip_id(url: str):

@@ -14,10 +14,19 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
             raise AuthorError(detail=f"Author {author_id} already exists", status_code=403)
         else: session.delete(author)
     author = Author(**author_data)
+    resp = add_books_to_author(author, session, books_data)
+    return resp
+
+def add_books_to_author(author: Author, session : Session, books_data: list):
     reihen: dict[str, Reihe] = {}
     sanity_dedub = set() # see A1040945738 for funky shit
+    in_db = set(session.exec(select(Edition.key)).all())
     for eds, series_title in books_data:
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
+        for ed in eds:
+            if ed["key"] in in_db: continue
+            break
+        else: continue
         book = Book(autor_key=author.key)
         book.name, book.bild, book.reihe_position = eds[0].get("titel"), eds[0].get("bild"), eds[0].get("_pos")
         if series_title:
@@ -29,7 +38,6 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
             #     for idx, b in enumerate(bs):
             #         b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
         editions = []
-        in_db = set(session.exec(select(Edition.key)).all())
         for i in eds:
             if i["key"] in sanity_dedub or i["key"] in in_db:
                 continue
@@ -37,33 +45,31 @@ def save_author_to_db(author_id: str, session: Session, scraped: dict, override:
             sanity_dedub.add(i["key"])
         book.editions = editions
         author.books.append(book)
-        author.reihen = list(reihen.values())
+        author.reihen.extend(list(reihen.values()))
     session.add(author)
-    # session.flush()
-    # for r1, r2 in combinations(author.reihen, 2):
-    #     if fuzz.token_set_ratio(r1.name, r2.name) > 80:
-    #         if len(r1.name) > len(r2.name): r1, r2 = r2, r1
-    #         if not set(b.reihe_position for b in r1.books).intersection(set(b.reihe_position for b in r2.books)):
-    #             r1.books.extend(r2.books)
-    #             author.reihen.remove(r2)
-    #             # session.flush()
-    #             for book in r1.books:
-    #                 print(book.name, r1.name, book.reihe_position)
-    #                 book.name = clean_title(book.name, r1.name, book.reihe_position)
-    session.flush()
+
+    auto_union_series(author.reihen, session)
     for reihe in author.reihen: #really inefficient needs revisit #TODO
-        for book, book2 in combinations(reihe.books, 2):
-            if not book.reihe_position or not book2.reihe_position: continue
-            if fuzz.ratio(book.name, book2.name) > 80 and float(book.reihe_position) == float(book2.reihe_position): # we basically have the same book twice
-                for edition in book2.editions:
-                    book.editions.append(edition)
-                author.books.remove(book2)
+        clean_series_duplicates(reihe)
     session.commit()
     return author.key
 
+def auto_union_series(reihen: list[Reihe], session: Session):
+    for r1, r2 in combinations(reihen, 2):
+        if len(r1.name) > 5 and fuzz.token_set_ratio(r1.name, r2.name) > 80:
+            if len(r1.name) > len(r2.name): r1.name = r2.name
+            union_series(r1.key, [r2.key], session)
+
+def clean_series_duplicates(reihe: Reihe):
+    for book, book2 in combinations(reihe.books, 2):
+        if not book.reihe_position or not book2.reihe_position: continue
+        if fuzz.ratio(book.name, book2.name) > 80 and float(book.reihe_position) == float(book2.reihe_position): # we basically have the same book twice
+            for edition in book2.editions:
+                book.editions.append(edition)
+            reihe.books.remove(book2)
+
 def complete_series_in_db(series_id: str, session: Session, scraped: dict):
     reihe = session.get(Reihe, series_id)
-    positions = set(b.reihe_position for b in reihe.books)
     if not reihe:
         raise AuthorError(status_code=404, detail="Series not found")
     for book_data in scraped:
@@ -102,5 +108,6 @@ def union_series(series_id: str, series_ids: list[str], session: Session):
             book.name = clean_title(book.name, reihe.name, book.reihe_position)
         reihe.books.extend(reihe2.books)
         session.delete(reihe2)
+    clean_series_duplicates(reihe)
     session.commit()
     return id
