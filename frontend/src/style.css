@@ -30,6 +30,9 @@ a {
   color: var(--fontColor)
 }
 
+input {
+  accent-color: var(--mainColor);
+}
 
 body {
   margin: 0;

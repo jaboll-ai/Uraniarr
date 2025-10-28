@@ -152,7 +152,6 @@ async function fetchQueue() {
   align-items: center;
   color: var(--offWhite);
   flex-direction: column;
-  margin: 0 200px
 }
 .symbol{
   font-size: 260pt;

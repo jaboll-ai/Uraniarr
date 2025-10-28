@@ -5,7 +5,7 @@
     </div>
     <img class="book-icon" :src="book.bild" :alt="book.name" />
     <div class="book-name">
-      <router-link :to="`/book/${book.key}`">{{ book.name }}</router-link>
+      <router-link class="name-text" :to="`/book/${book.key}`">{{ book.name }}</router-link>
     </div>
     <div class="info">
       {{ book.key }}
@@ -13,7 +13,7 @@
     <div class="info">
       {{ book.reihe_position?? "" }}
     </div>
-    <div class="info material-symbols-outlined">
+    <div class="info material-symbols-outlined" :title="getTooltip()">
       {{ getStatus() }}
     </div>
     <div class="book-download">
@@ -66,6 +66,16 @@ function getStatus() {
   }
   return 'cloud_off'
 }
+function getTooltip() {
+  const acts = props.book.activities.filter((act) => act.audio === props.audio)
+  if (acts.some(a => a.status.includes('download'))) {
+    return 'Downloading'
+  }
+  if (acts.some(a => a.status === 'imported')) {
+    return 'Imported'
+  }
+  return 'Not downloaded'
+}
 </script>
 
 <style scoped>
@@ -88,13 +98,14 @@ function getStatus() {
   align-items: center;
   width: 30%;
   margin: 0 20px;
+  overflow: hidden; 
+  text-overflow: ellipsis;
 }
 .info{
   display: flex;
   align-items: center;
   justify-content: center;
   width: 20%;
-  margin: 0 20px;
 }
 .book-download{
   display: flex;
@@ -108,8 +119,13 @@ function getStatus() {
   margin: 0;
 }
 
+.name-text{
+  white-space: nowrap;          /* prevents line breaks */
+}
+
 .checkbox{
   width: 50px;
+  min-width: 50px;
   display: flex;
   justify-content: center;
   align-items: center;

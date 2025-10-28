@@ -6,8 +6,12 @@
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
-          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">{{ downloading ? 'progress_activity' : 'download' }}</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">
+            <VueSpinner v-if="downloadingAuthor=='throbber'"/>
+            <span v-else>{{ downloadingAuthor }}</span>
+          </button>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmAuthor = true">delete</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="audio = !audio">{{ audio ? "headphones" : "book" }}</button>
         </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
@@ -16,8 +20,8 @@
       <button
         v-for="tab in tabs"
         :key="tab.name"
-        @click="current = tab.name; audio = tab.audio"
-        :class="{ active: current === tab.name && audio === tab.audio }"
+        @click="current = tab.name;"
+        :class="{ active: current === tab.name }"
       >
         {{ tab.label }}
       </button>
@@ -33,13 +37,14 @@
     </div>
     <ConfirmModal
       :visible="showConfirmAuthor"
-      message="Are you sure yopu want to delete this author?"
+      message="Are you sure you want to delete this author?"
       @confirm="deleteAuthor(author?.key)"
       @cancel="showConfirmAuthor = false"
     />
     <ConfirmModal
       :visible="showConfirmBook"
       :message="messageConfirmBook"
+      :blocking=true
       @confirm="deleteBook"
       @cancel="showConfirmBook = false"
     />
@@ -57,6 +62,7 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
+import { VueSpinner } from 'vue3-spinners'
 import { ref, onMounted, computed } from 'vue'
 import { api, dapi as dapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
@@ -85,7 +91,7 @@ const manualSearchVersions = ref<BookNzb[]>([])
 const query = ref("")
 const manualSearchKey = ref("")
 const manualSearchPages = ref(0)
-const downloading = ref(false)
+const downloadingAuthor = ref("download")
 
 onMounted(async () => {
   try {
@@ -97,10 +103,8 @@ onMounted(async () => {
   fetchBooks()
 })
 const tabs = [
-  { name: 'BookList', label: 'Books', audio: false },
-  { name: 'BookList', label: 'Audiobooks', audio: true },
-  { name: 'SeriesList', label: 'Series', audio: false },
-  { name: 'SeriesList', label: 'Audio Series', audio: true },
+  { name: 'BookList', label: "Books" },
+  { name: 'SeriesList', label: "Series" },
 ]
 
 const current = ref<string>('BookList')
@@ -189,11 +193,14 @@ async function downloadSeries(key: string) {
 async function downloadAuthor(key:string | undefined) {
   if (!key) return
   try {
-    downloading.value = true
+    downloadingAuthor.value = "throbber"
     await dapi.post(`/author/${key}`)
-    downloading.value = false
+    downloadingAuthor.value = "download"
   } catch (err) {
     console.error('Failed to download Author', err)
+    downloadingAuthor.value = "error"
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    downloadingAuthor.value = "download"
   }
 }
 
@@ -228,11 +235,12 @@ async function confirmDeleteSeries(key: string) {
   shouldDeleteSeries.value = key
 }
 
-async function deleteBook() {
+async function deleteBook(blocking?: boolean) {
+  console.log(blocking)
   showConfirmBook.value = false
   try {
     for (const key of shouldDeleteBooks.value) {
-      await api.delete(`/book/${key}`)
+      await api.delete(`/book/${key}`, { params: { block: blocking } })
     }
   } catch (err) {
     console.error('Failed to delete book', err)
@@ -345,10 +353,9 @@ div.author-image {
   width: 190px;
 }
 .ctrl-btn{
-  padding: 0px 8px;
-  margin: 10px 2px;
+  width: 50px;
+  height: 50px;
 }
-
 @media (max-width: 600px) {
   .author-header {
     flex-direction: column;

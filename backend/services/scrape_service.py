@@ -24,7 +24,7 @@ async def scrape_search(q: str, cfg: ConfigManager, page: int = 1):
     data = json.load(BytesIO(data))
     author_datas = set()
     for artikel in data["artikelliste"]:
-        for personen in artikel["personen"]:
+        for personen in artikel.get("personen", []):
             if personen["typ"] == "Autor":
                 author_datas.add((str(personen["identNr"]), personen.get("name")))
     coros = [scrape_author_data(identNr, name, metadata_only=True) for identNr, name in author_datas] # TODO LOGGGG
@@ -127,7 +127,6 @@ async def scrape_book_series(book_id: str, cfg: ConfigManager):
                 except Exception:
                     book_info["_pos"] = None
             books.append(book_info)
-    print()
     return books
 
 def strip_id(url: str):

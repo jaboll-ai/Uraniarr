@@ -1,6 +1,14 @@
 <template>
   <!-- <button title="Select" class="ctrl-btn material-symbols-outlined" @click="showBox = !showBox">check_box</button> -->
   <div class="group">
+    <div class="header">
+      <div class="spacer1"></div>
+      <div class="name">Name</div>
+      <div class="info">Key</div>
+      <div class="info">Position</div>
+      <div class="info">Status</div>
+      <div class="spacer2"></div>
+    </div>
     <div class="book-list">
       <BookItem
         v-for="(book, index) in books"
@@ -49,6 +57,7 @@ function deleteBook(keys: string[]) {
   } else {
     emit('deleteBook', keys)
   }
+  selected.value = []
 }
 
 function downloadBook(keys: string[]) {
@@ -102,7 +111,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 10px 0;
 }
 .group {
   display: flex;
@@ -113,5 +121,35 @@ onBeforeUnmount(() => {
   border: 1px solid var(--borderColor);
   background-color: var(--offWhite);
   border-radius: 8px;
+}
+
+.spacer1{
+  width: 100px;
+  min-width: 100px;
+}
+.spacer2{
+  width: 116px;
+  min-width: 116px;
+}
+.name{
+  display: flex;
+  align-items: center;
+  width: 30%;
+  margin: 0 20px;
+}
+.header{
+  display: flex;
+  flex-direction: row;
+  border-radius: 8px;
+  color: var(--mainColor);
+  margin-top: 10px;
+  /* border-bottom: 1px dashed var(--mainColor); */
+  font-size: 13pt;
+}
+.info{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20%;
 }
 </style>

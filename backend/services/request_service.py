@@ -26,6 +26,8 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
             async with page.expect_response(target) as response_info:
                 await page.goto(target)
             response = await response_info.value
+            if response.status != 200:
+                raise ScrapeError(status_code=response.status, detail=response.text)
             data = await response.body()
         else:
             await page.goto(target)
@@ -33,6 +35,8 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
         await page.close()
     else:
         response = await asyncio.to_thread(scraper.get, target)
+        if response.status_code != 200:
+                raise ScrapeError(status_code=response.status_code, detail=response.text)
         data = response.content
     if not data:
         raise ScrapeError(status_code=response.status_code, detail=response.text)
