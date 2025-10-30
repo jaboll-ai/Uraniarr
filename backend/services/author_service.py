@@ -9,6 +9,7 @@ from backend.services.scrape_service import clean_title
 def save_author_to_db(author_id: str, session: Session, scraped: dict, override: bool = False):
     author_data = scraped["author_data"]
     books_data = scraped["books"]
+    print(len(books_data))
     if (author:=session.get(Author, author_id)):
         if not override:
             raise AuthorError(detail=f"Author {author_id} already exists", status_code=403)
@@ -28,7 +29,7 @@ def add_books_to_author(author: Author, session : Session, books_data: list):
             break
         else: continue
         book = Book(autor_key=author.key)
-        book.name, book.bild, book.reihe_position = eds[0].get("titel"), eds[0].get("bild"), eds[0].get("_pos")
+        book.name, book.bild, book.reihe_position = clean_title(eds[0].get("titel")), eds[0].get("bild"), eds[0].get("_pos")
         if series_title:
             ctitles = [clean_title(ed.get("titel"), series_title, ed.get("_pos")) for ed in eds]
             book.name = sorted(ctitles, key=lambda x: len(x))[0]
@@ -65,7 +66,11 @@ def auto_union_series(reihen: list[Reihe], session: Session):
 def clean_series_duplicates(reihe: Reihe, session: Session):
     for book, book2 in combinations(reihe.books, 2):
         if not book.reihe_position or not book2.reihe_position: continue
-        if fuzz.ratio(book.name, book2.name) > 80 and float(book.reihe_position) == float(book2.reihe_position): # we basically have the same book twice
+        if float(book.reihe_position) == float(book2.reihe_position) and ( 
+            (_b1:=clean_title(book.name, reihe.name, book.reihe_position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
+            clean_title(book2.name, reihe.name, book2.reihe_position, can_be_empty=True)=="" or
+            fuzz.ratio(book.name, book2.name) > 80): # we basically have the same book twice
+            if _b1: book, book2 = book2, book
             book.editions.extend(book2.editions)
             session.delete(book2)
 

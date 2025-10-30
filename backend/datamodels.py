@@ -64,7 +64,7 @@ class Author(SQLModel, table=True):
     b_dl_loc: Optional[str] = None
     is_series: bool = False
     
-    books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"order_by": (Book.reihe_key, Book.reihe_position), "cascade": "all, delete-orphan"})
     reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     
 class ActivityStatus(str, Enum):

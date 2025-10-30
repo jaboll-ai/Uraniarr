@@ -22,11 +22,12 @@ def get_author_books(author_id: str, session: Session = Depends(get_session)):
     if author := session.get(Author, author_id):
         books = []
         for book in author.books:
+            print(book.blocked)
             if book.blocked: continue
             resp = book.model_dump()
             resp["activities"] = book.activities
             books.append(resp)
-        return resp
+        return books
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/author/{author_id}")
@@ -86,7 +87,7 @@ async def complete_series_of_author(series_id: str, session: Session = Depends(g
     return resp
 
 @router.post("/author/complete/{author_id}")
-async def complete_series_of_author(author_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+async def complete_author(author_id: str, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     author = session.get(Author, author_id)
     if not author:
         raise HTTPException(status_code=404, detail="Author not found")

@@ -49,7 +49,7 @@ def download_author(author_id: str, session: Session = Depends(get_session), cfg
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
     for book in author.books:
-        if book.a_dl_loc: continue
+        if book.a_dl_loc or book.blocked: continue
         name, guid = query_book(book, cfg=cfg, audio=True)
         if not guid:
             not_found.append(book.key)
@@ -57,7 +57,7 @@ def download_author(author_id: str, session: Session = Depends(get_session), cfg
         nzb = grab_nzb(guid, cfg=cfg)
         schedule_download(name, nzb, book=book, cfg=cfg, session=session, audio=True)
     for book in author.books:
-        if book.b_dl_loc: continue
+        if book.b_dl_loc or book.blocked: continue
         name, guid = query_book(book, cfg=cfg, audio=False)
         if not guid:
             not_found.append(book.key)
@@ -75,7 +75,7 @@ def download_reihe(reihe_id: str, audio: bool = True, session: Session = Depends
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
     for book in reihe.books:
-        if (audio and book.a_dl_loc) or (not audio and book.b_dl_loc): continue
+        if (audio and book.a_dl_loc) or (not audio and book.b_dl_loc) or book.blocked: continue
         name, guid = query_book(book, cfg=cfg, audio=audio)
         if not guid:
             not_found.append(book.key)

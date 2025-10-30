@@ -21,7 +21,7 @@
 
 
   --mainColor: #9d8ebe;
-  --btnColor: #7155ad;
+  --btnColor: color-mix(in lab, var(--mainColor) 70%, var(--backgroundWhite) 30%);
 }
 
 a {

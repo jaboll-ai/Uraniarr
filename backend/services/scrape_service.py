@@ -134,7 +134,7 @@ def strip_id(url: str):
 def strip_id_from_slug(url: str):
     return url.strip("/").split("/")[-1].split("?")[0].split("-")[-1]
 
-def clean_title(title: str, series_title: str = None, series_pos: int = None):
+def clean_title(title: str, series_title: str = None, series_pos: int = None, can_be_empty: bool = False):
     bak = title
     if series_title:
         title = re.sub(fr"\b{re.escape(series_title)}\W", "", title)
@@ -154,6 +154,8 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None):
     ########################
     title = strip_non_word(title)
     title = reconstruct_parentheses(title)
+    if can_be_empty:
+        return title
     return title or bak.strip() # sanity check dont return empty string
 
 def clean_series_title(title: str):
