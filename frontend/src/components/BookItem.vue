@@ -48,6 +48,9 @@ function getStatus() {
   if (acts.some(a => a.status.includes('download'))) {
     return 'cloud_download'
   }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'error'
+  }
   if (acts.some(a => a.status === 'imported')) {
     return 'cloud_done'
   }

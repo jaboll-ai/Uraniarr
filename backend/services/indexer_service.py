@@ -38,10 +38,16 @@ def query_manual(book: Book, page: int, cfg: ConfigManager, audio: bool):
     if (total:=query["response"]["@attributes"]["total"]) == "0":
         return { "query": base_queries[page], "nzbs": [], "pages": len(base_queries)}
     items = [query["item"]] if total == "1" else query["item"]
-    reponse = [{"name": item["title"],
-                "guid": item["attr"][2]["@attributes"]["value"],
-                "size": item["attr"][1]["@attributes"]["value"] } for item in items ]
-    return { "query": base_queries[page], "nzbs": reponse , "pages": len(base_queries) }
+    response = []
+    for item in items:
+        i = {"name": item["title"]}
+        for attribute in item["attr"]:
+            if attribute["@attributes"]["name"] == "guid":
+                i["guid"] = attribute["@attributes"]["value"]
+            elif attribute["@attributes"]["name"] == "size":
+                i["size"] = attribute["@attributes"]["value"]
+        response.append(i)
+    return { "query": base_queries[page], "nzbs": response , "pages": len(base_queries) }
     # for autor, name in base_queries:
     #     used_term = f"{autor} {name}"
     #     data = indexer_search(used_term, cfg=cfg)
@@ -58,27 +64,30 @@ def query_book(book: Book, cfg: ConfigManager, audio: bool):
         if (total:=query["response"]["@attributes"]["total"]) != "0":
             break
     else: return None, None
-    item = query["item"] if total == "1" else query["item"][0] 
-    guid=item["attr"][2]["@attributes"]["value"]
-    name=item["title"] 
+    item = query["item"] if total == "1" else query["item"][0]
+    name = item["title"]
+    for attribute in item["attr"]:
+        if attribute["@attributes"]["name"] == "guid":
+            guid = attribute["@attributes"]["value"]
     return name, guid
 
 def build_queries(book: Book): #TODO revisit
     base_queries = [f"{book.autor.name} {book.name}"]
-    author_fix = fix_umlaut(book.autor.name)
-    book_fix = fix_umlaut(book.name)
-    base_queries.append(f"{author_fix} {book_fix}")
-    if book.reihe_key and book.reihe_position is not None:
-        series_fix = fix_umlaut(book.reihe.name)
-        base_queries.append(f"{book.reihe.name} {round(book.reihe_position)}")
+    base_queries.append(book.name)
+    if has_umlaut(book.autor.name) or has_umlaut(book.name):
+        base_queries.append(f"{fix_umlaut(book.autor.name)} {fix_umlaut(book.name)}")
+    if has_umlaut(book.name):
+        base_queries.append(f"{fix_umlaut(book.name)}")
+
+    if book.reihe_key and book.reihe_position:
         if book.reihe_position % 1 != 0:
             base_queries.append(f"{book.reihe.name} {book.reihe_position}")
-        if has_umlaut(series_fix):
-            base_queries.append(f"{series_fix} {round(book.reihe_position)}")
+        else:
+            base_queries.append(f"{book.reihe.name} {round(book.reihe_position)}")
+        if has_umlaut(book.reihe.name):
             if book.reihe_position % 1 != 0:
-                base_queries.append(f"{series_fix} {book.reihe_position}")
-        for entry in list(base_queries)[:2]:
-            base_queries.append(f"{entry} {round(book.reihe_position)}")
-            if book.reihe_position % 1 != 0:
-                base_queries.append(f"{entry} {book.reihe_position}")
+                base_queries.append(f"{fix_umlaut(book.reihe.name)} {book.reihe_position}")
+            else:
+                base_queries.append(f"{fix_umlaut(book.reihe.name)} {round(book.reihe_position)}")
+
     return base_queries

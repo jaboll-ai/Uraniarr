@@ -138,6 +138,7 @@ async function fetchBooks() {
     const r1 = await api.get<Book[]>(`/author/${route.params.key}/books`)
     books.value = r1.data
     const { data: series } = await api.get<Series[]>(`/author/${route.params.key}/series`)
+    seriesGroups.value = []
     for (const s of series) {
       seriesGroups.value.push({
         series: s,
