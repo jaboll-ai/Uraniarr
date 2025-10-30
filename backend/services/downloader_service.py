@@ -9,7 +9,11 @@ def download(nzb : bytes, cfg: ConfigManager, nzbname: str):
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not queue item for SABnzbd. Is the service running?")
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
-    return resp.json()
+    try:
+        return resp.json()
+    except Exception as e:
+        print(e, resp.text)
+        raise NzbsError(status_code=500, detail="Could not queue item for SABnzbd. Internal Error") 
 
 def get_config(cfg: ConfigManager, section: str, keyword: str = None) -> dict:
     try:

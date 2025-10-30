@@ -5,7 +5,7 @@ from uuid import uuid4
 from backend.config import ConfigManager
 
 from backend.dependencies import get_session, get_cfg_manager
-from backend.services.downloader_service import download, get_config, remove_from_history, remove_from_queue, get_queue
+from backend.services.downloader_service import download, get_config, remove_from_history, remove_from_queue, get_queue, get_history
 from backend.services.indexer_service import grab_nzb, query_book, query_manual
 
 from backend.datamodels import Book, Author, Reihe, Activity, ActivityStatus
@@ -97,6 +97,7 @@ def delete_book_from_history(book_id: str, cfg: ConfigManager = Depends(get_cfg_
 @router.get("/activities")
 def get_activities(session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     queue = get_queue(cfg=cfg)
+    history = get_history(cfg=cfg)
     resp = []
     for item in queue:
         activity = session.get(Activity, item["nzo_id"])
@@ -108,6 +109,17 @@ def get_activities(session: Session = Depends(get_session), cfg: ConfigManager =
             "book_key": activity.book_key,
             "book_name": activity.book.name,
             "status": item["status"]
+        })
+    for item in history:
+        activity = session.get(Activity, item["nzo_id"])
+        if not activity: continue
+        resp.append({
+            "id": item["nzo_id"],
+            "percentage": 100,
+            "filename": item["name"],
+            "book_key": activity.book_key,
+            "book_name": activity.book.name,
+            "status": "Failed to import" if activity.status == ActivityStatus.failed else item["status"]
         })
     return resp
     

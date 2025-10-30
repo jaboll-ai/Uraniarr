@@ -61,6 +61,9 @@ function getTooltip() {
   if (acts.some(a => a.status.includes('download'))) {
     return 'Downloading'
   }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'An error occured while importing'
+  }
   if (acts.some(a => a.status === 'imported')) {
     return 'Imported'
   }
