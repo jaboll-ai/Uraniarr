@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { api } from '@/main';
 import type { Book } from '@/main.ts'
 
@@ -63,18 +63,17 @@ const props = defineProps<{
   book: Book
 }>()
 
-const form = reactive<Book>({ ...props.book })
+const form = reactive<Book>({ ...props.book})
 const titles = ref<string[]>([])
 
 // Reinitialize when new book prop comes in
 watch(() => props.book, (newBook) => {
-  Object.assign(form, newBook)
-}, { immediate: true })
+  Object.assign(form, newBook);
+  getTitles()
+}, 
+{ immediate: true })
 
 
-onMounted( async () => {
-  await getTitles()
-})
 async function getTitles() {
   const resp = await api.get<string[]>(`/book/titles/${props.book.key}`)
   titles.value = resp.data

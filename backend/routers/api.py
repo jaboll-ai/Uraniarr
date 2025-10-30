@@ -22,7 +22,6 @@ def get_author_books(author_id: str, session: Session = Depends(get_session)):
     if author := session.get(Author, author_id):
         books = []
         for book in author.books:
-            print(book.blocked)
             if book.blocked: continue
             resp = book.model_dump()
             resp["activities"] = book.activities

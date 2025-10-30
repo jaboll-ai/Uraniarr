@@ -36,7 +36,7 @@
       <keep-alive>
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
-          @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="editBook"
+          @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="confirmEditBook"
           @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries" @searchBook="searchBook"
           :showBox="showBox" :books="books" :seriesGroups="seriesGroups" :audio="audio"/>
       </keep-alive>
@@ -60,6 +60,12 @@
       @confirm="deleteSeries"
       @cancel="showConfirmSeries = false"
     />
+    <EditModal v-if="editedBook"
+      :visible="showEditor"
+      :book="editedBook"
+      @close="showEditor = false"
+      @editBook="editBook"
+    />
     <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey" 
     :pages="manualSearchPages" :versions="manualSearchVersions"
      @close="closeManualSearch" @select="downloadBookManual" @paginate="searchBookPaginate"/>
@@ -76,6 +82,7 @@ import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
+import EditModal from '@/components/EditModal.vue'
 import type { Author, BookNzb, Book, Series, InteractiveSearch } from '@/main.ts'
 
 const route = useRoute()
@@ -99,6 +106,8 @@ const manualSearchKey = ref("")
 const manualSearchPages = ref(0)
 const downloadingAuthor = ref("download")
 const completingAuthor = ref("matter")
+const showEditor = ref(false)
+const editedBook = ref<Book>()
 
 onMounted(async () => {
   try {
@@ -132,7 +141,7 @@ async function fetchBooks() {
     for (const s of series) {
       seriesGroups.value.push({
         series: s,
-        books: (await api.get<Book[]>(`/series/${s.key}/books`)).data,
+        books: books.value.filter((b) => b.reihe_key === s.key),
       })
     }
   } catch (err) {
@@ -245,6 +254,11 @@ async function confirmDeleteBook(keys: string[]) {
   showConfirmBook.value = true
   messageConfirmBook.value = `Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`
   shouldDeleteBooks.value = keys
+}
+
+async function confirmEditBook(book: Book) {
+  showEditor.value = true
+  editedBook.value = book
 }
 
 async function confirmDeleteSeries(key: string) {

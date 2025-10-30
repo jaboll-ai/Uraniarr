@@ -17,23 +17,15 @@
       {{ getStatus() }}
     </div>
     <div class="book-download">
-      <button class="material-symbols-outlined" @click="showEditor = true">edit</button>
+      <button class="material-symbols-outlined" @click="emit('editBook', props.book)">edit</button>
       <button class="material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
       <button class="material-symbols-outlined" @click="emit('searchBook', props.book.key)">quick_reference_all</button>
       <button class="material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
   </div>
-  <EditModal
-      :visible="showEditor"
-      :book="book"
-      @close="showEditor = false"
-      @editBook="editBook"
-    />
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import EditModal from '@/components/EditModal.vue'
 import type { Book } from '@/main.ts'
 
 
@@ -50,11 +42,6 @@ const emit = defineEmits<{
   (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()
-const showEditor = ref(false)
-function editBook(book: Book) {
-  showEditor.value = false
-  emit('editBook', book)
-}
 
 function getStatus() {
   const acts = props.book.activities.filter((act) => act.audio === props.audio)
