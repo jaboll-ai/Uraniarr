@@ -102,6 +102,7 @@ async def scrape_all_author_data(author_id: str, cfg: ConfigManager, name: str) 
     return {"author_data": author_data, "books": books}
 
 async def scrape_book_series(book_id: str, cfg: ConfigManager):
+    print("scrape_book_series with", book_id)
     books = []
     params = {"max": 50, "page": 1}
     _data = await fetch_or_cached(base+series+book_id, params)
@@ -127,6 +128,7 @@ async def scrape_book_series(book_id: str, cfg: ConfigManager):
                 except Exception:
                     book_info["_pos"] = None
             books.append(book_info)
+    print("scraped", len(books), "books")
     return books
 
 def strip_id(url: str):

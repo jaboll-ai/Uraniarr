@@ -183,6 +183,7 @@ async def cleanup_series(series_id: str, name: str, session: Session = Depends(g
 
 @router.post("/fakeauthor")
 async def fake_author(seriesAuthor: SeriesAuthor, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+    print("fakeauthor", seriesAuthor)
     data = await scrape_book_series(seriesAuthor.entry_id, cfg)
     resp = await asyncio.to_thread(make_author_from_series, seriesAuthor.name, session, data)
     return resp

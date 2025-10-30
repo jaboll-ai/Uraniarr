@@ -43,6 +43,7 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
     return data
 
 async def fetch_or_cached(url: str, params: dict = {}, xhr: bool = True):
+    print("fetch_or_cached", url, "?"+",".join(f"{k}={v}" for k, v in params.items()))
     cfg = ConfigManager()
     key = (url, tuple(sorted(params.items())))
     now = time()
