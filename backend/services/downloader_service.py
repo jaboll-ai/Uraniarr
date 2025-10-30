@@ -1,19 +1,38 @@
 from backend.exceptions import NzbsError
-import requests
+import httpx
 from backend.config import ConfigManager
 from sqlmodel import Session
 
 def download(nzb : bytes, cfg: ConfigManager, nzbname: str):
     try:
-        resp=requests.post(cfg.downloader_url, params={"apikey": cfg.downloader_apikey}, data={"mode": "addfile", "nzbname": nzbname, "cat": cfg.downloader_category or ""}, files={"nzbfile": nzb})
+        files = {
+            "nzbfile": (f"{nzbname}.nzb", nzb, "application/x-nzb")
+        }
+        data = {
+            "mode": "addfile",
+            "nzbname": nzbname,
+            "cat": cfg.downloader_category or "",
+        }
+        params = {"apikey": cfg.downloader_apikey}
+        resp = httpx.post(cfg.downloader_url, params=params, data=data, files=files)
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not queue item for SABnzbd. Is the service running?")
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
-    return resp.json()
+    try:
+        return resp.json()
+    except Exception as e:
+        print(e, resp.text)
+        raise NzbsError(status_code=500, detail="Could not queue item for SABnzbd. Internal Error") 
 
 def get_config(cfg: ConfigManager, section: str, keyword: str = None) -> dict:
     try:
-        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"get_config","section":section,"output":"json"}, timeout=10)
+        get_cfg ={
+            "apikey": cfg.downloader_apikey,
+            "mode": "get_config",
+            "section": section,
+            "output": "json",
+        }
+        resp = httpx.get(cfg.downloader_url, params=get_cfg, timeout=10.0)
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not get config from SABnzbd. Is the service running?")
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
@@ -24,7 +43,13 @@ def get_config(cfg: ConfigManager, section: str, keyword: str = None) -> dict:
 
 def get_history(cfg: ConfigManager):
     try:
-        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"history","output":"json"})
+        get_hst = {
+            "apikey": cfg.downloader_apikey,
+            "mode":"history",
+            "output":"json"
+        }
+        print(f"httpx.get({cfg.downloader_url}, params={get_hst})")
+        resp = httpx.get(cfg.downloader_url, params=get_hst)
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not get history from SABnzbd. Is the service running?")
     data = resp.json()
@@ -32,23 +57,44 @@ def get_history(cfg: ConfigManager):
 
 def remove_from_history(cfg: ConfigManager, nzo_id: str):
     try:
-        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"history", "name":"delete", "value":",".join([nzo_id] if type(nzo_id) == str else nzo_id), "output":"json"})
+        rm_hst = {
+            "apikey": cfg.downloader_apikey,
+            "mode": "history",
+            "name": "delete",
+            "value": ",".join([nzo_id] if isinstance(nzo_id, str) else nzo_id),
+            "output": "json",
+        }
+        resp = httpx.get(cfg.downloader_url, params=rm_hst)
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not get history from SABnzbd. Is the service running?")
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
     return nzo_id
 
+
 def remove_from_queue(cfg: ConfigManager, nzo_id: str):
     try:
-        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"queue", "name":"delete", "value":",".join([nzo_id] if type(nzo_id) == str else nzo_id), "output":"json"})
+        rm_q = {
+            "apikey": cfg.downloader_apikey,
+            "mode": "queue",
+            "name": "delete",
+            "value": ",".join([nzo_id] if isinstance(nzo_id, str) else nzo_id),
+            "output": "json",
+        }
+        resp = httpx.get(cfg.downloader_url, params=rm_q)
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not queue item from SABnzbd. Is the service running?")
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)
     return nzo_id
 
+
 def get_queue(cfg: ConfigManager):
     try:
-        resp = requests.get(cfg.downloader_url, params={"apikey":cfg.downloader_apikey,"mode":"queue","output":"json"})
+        get_q = {
+            "apikey": cfg.downloader_apikey,
+            "mode": "queue",
+            "output": "json",
+        }
+        resp = httpx.get(cfg.downloader_url, params=get_q)
     except Exception as e:
         raise NzbsError(status_code=404, detail="Could not get history from SABnzbd. Is the service running?")
     if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail=resp.text)

@@ -48,6 +48,9 @@ function getStatus() {
   if (acts.some(a => a.status.includes('download'))) {
     return 'cloud_download'
   }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'error'
+  }
   if (acts.some(a => a.status === 'imported')) {
     return 'cloud_done'
   }
@@ -57,6 +60,9 @@ function getTooltip() {
   const acts = props.book.activities.filter((act) => act.audio === props.audio)
   if (acts.some(a => a.status.includes('download'))) {
     return 'Downloading'
+  }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'An error occured while importing'
   }
   if (acts.some(a => a.status === 'imported')) {
     return 'Imported'
@@ -81,10 +87,8 @@ function getTooltip() {
 }
 
 .book-name{
-  display: flex;
-  align-items: center;
   width: 30%;
-  margin: 0 20px;
+  margin: auto 20px;
   overflow: hidden; 
   text-overflow: ellipsis;
 }

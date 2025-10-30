@@ -5,7 +5,7 @@ from uuid import uuid4
 from backend.config import ConfigManager
 
 from backend.dependencies import get_session, get_cfg_manager
-from backend.services.downloader_service import download, get_config, remove_from_history, remove_from_queue, get_queue
+from backend.services.downloader_service import download, get_config, remove_from_history, remove_from_queue, get_queue, get_history
 from backend.services.indexer_service import grab_nzb, query_book, query_manual
 
 from backend.datamodels import Book, Author, Reihe, Activity, ActivityStatus
@@ -22,14 +22,14 @@ def download_book(book_id: str, audio: bool = True, session: Session = Depends(g
     if not guid:
         raise HTTPException(status_code=404, detail=f"Book {book.name} not found")
     nzb = grab_nzb(guid, cfg=cfg)
-    schedule_download(name, nzb, book=book, cfg=cfg, session=session, audio=audio)
+    schedule_download(guid, name, nzb, book=book, cfg=cfg, session=session, audio=audio)
     return book_id
 
 @router.post("/guid")
 def download_guid(data: ManualGUIDDownload, audio: bool = True, cfg: ConfigManager = Depends(get_cfg_manager), session: Session = Depends(get_session)):
     book=session.get(Book, data.book_key)
     nzb = grab_nzb(data.guid, cfg=cfg)
-    schedule_download(data.name, nzb, book=book, cfg=cfg, session=session, audio=audio)
+    schedule_download(data.guid, data.name, nzb, book=book, cfg=cfg, session=session, audio=audio)
     return data.guid
 
 @router.get("/manual/{book_id}")
@@ -55,7 +55,7 @@ def download_author(author_id: str, session: Session = Depends(get_session), cfg
             not_found.append(book.key)
             continue
         nzb = grab_nzb(guid, cfg=cfg)
-        schedule_download(name, nzb, book=book, cfg=cfg, session=session, audio=True)
+        schedule_download(guid, name, nzb, book=book, cfg=cfg, session=session, audio=True)
     for book in author.books:
         if book.b_dl_loc or book.blocked: continue
         name, guid = query_book(book, cfg=cfg, audio=False)
@@ -63,7 +63,7 @@ def download_author(author_id: str, session: Session = Depends(get_session), cfg
             not_found.append(book.key)
             continue
         nzb = grab_nzb(guid, cfg=cfg)
-        schedule_download(name, nzb, book=book, cfg=cfg, session=session, audio=False)
+        schedule_download(guid, name, nzb, book=book, cfg=cfg, session=session, audio=False)
     if not_found:
         return {"partial_success": author_id, "not_found": not_found}
     return {"success": author_id}
@@ -81,7 +81,7 @@ def download_reihe(reihe_id: str, audio: bool = True, session: Session = Depends
             not_found.append(book.key)
             continue
         nzb = grab_nzb(guid, cfg=cfg)
-        schedule_download(name, nzb, book=book, cfg=cfg, session=session, audio=audio)
+        schedule_download(guid, name, nzb, book=book, cfg=cfg, session=session, audio=audio)
     if not_found:
         return {"partial_success": reihe_id, "not_found": not_found}
     return reihe_id
@@ -97,6 +97,7 @@ def delete_book_from_history(book_id: str, cfg: ConfigManager = Depends(get_cfg_
 @router.get("/activities")
 def get_activities(session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     queue = get_queue(cfg=cfg)
+    history = get_history(cfg=cfg)
     resp = []
     for item in queue:
         activity = session.get(Activity, item["nzo_id"])
@@ -108,6 +109,17 @@ def get_activities(session: Session = Depends(get_session), cfg: ConfigManager =
             "book_key": activity.book_key,
             "book_name": activity.book.name,
             "status": item["status"]
+        })
+    for item in history:
+        activity = session.get(Activity, item["nzo_id"])
+        if not activity: continue
+        resp.append({
+            "id": item["nzo_id"],
+            "percentage": 100,
+            "filename": item["name"],
+            "book_key": activity.book_key,
+            "book_name": activity.book.name,
+            "status": "Failed to import" if activity.status == ActivityStatus.failed else item["status"]
         })
     return resp
     
@@ -121,10 +133,13 @@ def delete_activity(activity_id: str, session: Session = Depends(get_session), c
             session.commit()
     return activity_id
 
-def schedule_download(release_title: str, nzb : bytes, cfg: ConfigManager, session: Session, book: Book, audio: bool):
+def schedule_download(guid: str, release_title: str, nzb : bytes, cfg: ConfigManager, session: Session, book: Book, audio: bool):
     data = download(nzb, nzbname=release_title, cfg=cfg)
     if not data: 
         raise HTTPException(status_code=500, detail="Download failed")
-    activity = Activity(nzo_id=data["nzo_ids"][0], book=book, release_title=release_title, audio=audio)
+    try:
+        activity = Activity(nzo_id=data["nzo_ids"][0], book=book, release_title=release_title, audio=audio, guid=guid)
+    except:
+        raise HTTPException(status_code=500, detail="Could not queue item for SABnzbd. Internal Error. SAB gave the following data back: " + str(data))
     session.add(activity)
     session.commit()

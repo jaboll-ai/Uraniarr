@@ -9,7 +9,6 @@ from backend.services.scrape_service import clean_title
 def save_author_to_db(author_id: str, session: Session, scraped: dict, override: bool = False):
     author_data = scraped["author_data"]
     books_data = scraped["books"]
-    print(len(books_data))
     if (author:=session.get(Author, author_id)):
         if not override:
             raise AuthorError(detail=f"Author {author_id} already exists", status_code=403)

@@ -27,7 +27,10 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
             dst_dir = dst_dir / book.reihe.name
             if not getattr(book.reihe, var_name): setattr(book.reihe, var_name, str(dst_dir))
             if book.reihe_position is not None:
-                dst_dir = dst_dir / f"{book.reihe_position} - {book.name}" 
+                if book.reihe_position % 1 != 0:
+                    dst_dir = dst_dir / f"{str(int(book.reihe_position)).zfill(3)}{str(book.reihe_position%1)[1:]} - {book.name}" 
+                else:
+                    dst_dir = dst_dir / f"{str(int(book.reihe_position)).zfill(3)} - {book.name}"
             else:
                 dst_dir = dst_dir / book.name
         else:
@@ -112,6 +115,16 @@ def delete_audio_author(author_id: str, session: Session):
     shutil.rmtree(author.a_dl_loc)
     author.a_dl_loc = None
     session.commit()
+
+def get_files_of_book(book: Book):
+    try:
+        files = [{
+            "audio": sorted([{"path": str(p), "size": p.stat().st_size} for p in Path(book.a_dl_loc).iterdir() if p.is_file()], key=lambda x: x["path"]) if book.a_dl_loc else [],
+            "book": sorted([{"path": str(p), "size": p.stat().st_size}  for p in Path(book.b_dl_loc).iterdir() if p.is_file()], key=lambda x: x["path"]) if book.b_dl_loc else []
+        }]
+    except Exception as e:
+        raise FileError(status_code=404, detail=f"{e}: Error while getting files of book '{book.name}'")
+    return files
 
 async def poll_folder(interval: int = 60):
     """
