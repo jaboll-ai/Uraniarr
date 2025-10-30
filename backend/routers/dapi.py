@@ -137,6 +137,9 @@ def schedule_download(release_title: str, nzb : bytes, cfg: ConfigManager, sessi
     data = download(nzb, nzbname=release_title, cfg=cfg)
     if not data: 
         raise HTTPException(status_code=500, detail="Download failed")
-    activity = Activity(nzo_id=data["nzo_ids"][0], book=book, release_title=release_title, audio=audio)
+    try:
+        activity = Activity(nzo_id=data["nzo_ids"][0], book=book, release_title=release_title, audio=audio)
+    except:
+        raise HTTPException(status_code=500, detail="Could not queue item for SABnzbd. Internal Error. SAB gave the following data back: " + str(data))
     session.add(activity)
     session.commit()
