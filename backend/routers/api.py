@@ -188,6 +188,13 @@ async def fake_author(seriesAuthor: SeriesAuthor, session: Session = Depends(get
     resp = await asyncio.to_thread(make_author_from_series, seriesAuthor.name, session, data)
     return resp
 
+@router.post("/shibiidliboggy")
+async def shomibomi(seriesAuthor: SeriesAuthor, session: Session = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+    print("fakeauthor", seriesAuthor)
+    data = await scrape_book_series(seriesAuthor.entry_id, cfg)
+    resp = await asyncio.to_thread(make_author_from_series, seriesAuthor.name, session, data)
+    return resp
+
 @router.post("/misc/union/")
 async def unite_series(data: UnionSeries, session: Session = Depends(get_session)):
     resp = union_series(data.series_id, data.series_ids, session)
