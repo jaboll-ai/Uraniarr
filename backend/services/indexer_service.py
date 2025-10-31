@@ -1,6 +1,6 @@
 from backend.config import ConfigManager
 from backend.exceptions import IndexerError
-import requests
+import httpx
 from backend.services.scrape_service import fix_umlaut, has_umlaut
 from backend.datamodels import Book
 def indexer_search(q: str, cfg: ConfigManager, audio: bool):
@@ -11,7 +11,7 @@ def indexer_search(q: str, cfg: ConfigManager, audio: bool):
         "q": q,
         "apikey": cfg.indexer_apikey
     }
-    response = requests.get(cfg.indexer_url, params=search)
+    response = httpx.get(cfg.indexer_url, params=search)
     if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
     response.encoding = 'utf-8'
     if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
@@ -25,7 +25,7 @@ def grab_nzb(guid: str, cfg: ConfigManager):
         "o" : "json",
         "apikey": cfg.indexer_apikey
     }
-    response = requests.get(cfg.indexer_url, params=get)
+    response = httpx.get(cfg.indexer_url, params=get, follow_redirects=True)
     if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
     response.encoding = 'utf-8'
     if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
