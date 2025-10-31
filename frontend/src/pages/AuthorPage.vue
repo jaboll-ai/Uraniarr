@@ -109,6 +109,7 @@ const completingAuthor = ref("matter")
 const showEditor = ref(false)
 const editedBook = ref<Book>()
 
+const timer = ref<number | null>(null)
 onMounted(async () => {
   try {
     const response = await api.get<Author>(`/author/${route.params.key}`)
@@ -117,7 +118,14 @@ onMounted(async () => {
     console.error('Failed to fetch books:', error)
   }
   fetchBooks()
+  timer.value = window.setInterval(fetchBooks, 20_000)
 })
+
+
+onBeforeUnmount(() => {
+  if (timer.value) clearInterval(timer.value)
+})
+
 const tabs = [
   { name: 'BookList', label: "Books" },
   { name: 'SeriesList', label: "Series" },

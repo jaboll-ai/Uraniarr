@@ -142,7 +142,7 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None, ca
         title = re.sub(fr"\b{re.escape(series_title.replace('-', ' '))}\W", "", title)
 
     try:
-        series_pos = round(float(series_pos))
+        series_pos = int(float(series_pos))
     except Exception:
         series_pos = None
     title = re.sub(r"\(.*kürz.*\)", "", title, re.I) # remove (gekürzte Lesung) and alike

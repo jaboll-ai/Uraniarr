@@ -87,10 +87,8 @@ function getTooltip() {
 }
 
 .book-name{
-  display: flex;
-  align-items: center;
   width: 30%;
-  margin: 0 20px;
+  margin: auto 20px;
   overflow: hidden; 
   text-overflow: ellipsis;
 }

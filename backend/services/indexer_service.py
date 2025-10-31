@@ -83,11 +83,11 @@ def build_queries(book: Book): #TODO revisit
         if book.reihe_position % 1 != 0:
             base_queries.append(f"{book.reihe.name} {book.reihe_position}")
         else:
-            base_queries.append(f"{book.reihe.name} {round(book.reihe_position)}")
+            base_queries.append(f"{book.reihe.name} {int(book.reihe_position)}")
         if has_umlaut(book.reihe.name):
             if book.reihe_position % 1 != 0:
                 base_queries.append(f"{fix_umlaut(book.reihe.name)} {book.reihe_position}")
             else:
-                base_queries.append(f"{fix_umlaut(book.reihe.name)} {round(book.reihe_position)}")
+                base_queries.append(f"{fix_umlaut(book.reihe.name)} {int(book.reihe_position)}")
 
     return base_queries
