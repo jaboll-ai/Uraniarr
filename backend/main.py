@@ -16,10 +16,15 @@ from backend.config import ConfigManager
 from backend.services.filehelper import poll_folder
 from backend.services.request_service import set_scraper
 
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
     cfg = ConfigManager()
-    task = asyncio.create_task(poll_folder(cfg.import_poll_interval))
+    task = asyncio.create_task(poll_folder(cfg))
     if cfg.playwright: 
         playwright = await Stealth().use_async(async_playwright()).__aenter__()
         browser = await playwright.chromium.launch(headless=True)
@@ -44,7 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-SQLModel.metadata.create_all(engine)
 
 @app.exception_handler(BaseError)
 async def handle_scrape_error(request: Request, exc: BaseError):

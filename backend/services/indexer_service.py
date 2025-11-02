@@ -3,7 +3,17 @@ from backend.exceptions import IndexerError
 import httpx
 from backend.services.scrape_service import fix_umlaut, has_umlaut
 from backend.datamodels import Book
-def indexer_search(q: str, cfg: ConfigManager, audio: bool):
+from time import time
+import asyncio
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+last_hit = 0
+
+async def indexer_search(q: str, cfg: ConfigManager, audio: bool):
+    global last_hit
+    if (timeout:=time() - last_hit) < cfg.indexer_timeout:
+        await asyncio.sleep(cfg.indexer_timeout - timeout)
+    last_hit = time()
     search = {
         "t": "search",
         "cat":cfg.indexer_audio_category if audio else cfg.indexer_book_category,
@@ -11,29 +21,35 @@ def indexer_search(q: str, cfg: ConfigManager, audio: bool):
         "q": q,
         "apikey": cfg.indexer_apikey
     }
-    response = httpx.get(cfg.indexer_url, params=search)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(cfg.indexer_url, params=search)
     if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
     response.encoding = 'utf-8'
     if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
     data = response.json()
     return data
 
-def grab_nzb(guid: str, cfg: ConfigManager):
+async def grab_nzb(guid: str, cfg: ConfigManager):
+    global last_hit
+    if (timeout:=time() - last_hit) < cfg.indexer_timeout: 
+        await asyncio.sleep(cfg.indexer_timeout - timeout)
+    last_hit = time()
     get = {
         "t": "get",
         "id": guid,
         "o" : "json",
         "apikey": cfg.indexer_apikey
     }
-    response = httpx.get(cfg.indexer_url, params=get, follow_redirects=True)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(cfg.indexer_url, params=get, follow_redirects=True)
     if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
     response.encoding = 'utf-8'
     if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
     return response.content
 
-def query_manual(book: Book, page: int, cfg: ConfigManager, audio: bool):
-    base_queries = build_queries(book)
-    data = indexer_search(base_queries[page], cfg=cfg, audio=audio)
+async def query_manual(book: Book, page: int, cfg: ConfigManager, audio: bool):
+    base_queries = await build_queries(book)
+    data = await indexer_search(base_queries[page], cfg=cfg, audio=audio)
     query = data["channel"]
     if (total:=query["response"]["@attributes"]["total"]) == "0":
         return { "query": base_queries[page], "nzbs": [], "pages": len(base_queries)}
@@ -56,10 +72,10 @@ def query_manual(book: Book, page: int, cfg: ConfigManager, audio: bool):
     #         break
     # else: return { "query": used_term, "nzbs": [] }
 
-def query_book(book: Book, cfg: ConfigManager, audio: bool):
-    base_queries = build_queries(book)
+async def query_book(book: Book, cfg: ConfigManager, audio: bool):
+    base_queries = await build_queries(book)
     for q in base_queries: #TODO
-        data = indexer_search(q, cfg=cfg, audio=audio)
+        data = await indexer_search(q, cfg=cfg, audio=audio)
         query = data["channel"]
         if (total:=query["response"]["@attributes"]["total"]) != "0":
             break
@@ -71,7 +87,9 @@ def query_book(book: Book, cfg: ConfigManager, audio: bool):
             guid = attribute["@attributes"]["value"]
     return name, guid
 
-def build_queries(book: Book): #TODO revisit
+
+
+async def build_queries(book: Book): #TODO revisit
     base_queries = [f"{book.autor.name} {book.name}"]
     base_queries.append(book.name)
     if has_umlaut(book.autor.name) or has_umlaut(book.name):

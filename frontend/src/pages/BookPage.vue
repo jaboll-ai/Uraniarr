@@ -125,7 +125,7 @@ async function fetchInfo(){
 async function fetchFiles() {
   try {
     const { data } = await api.get(`/book/files/${route.params.key}`)
-    files.value = data[0]
+    files.value = data
   } catch (err) {
     console.error('Failed to fetch files:', err)
   }

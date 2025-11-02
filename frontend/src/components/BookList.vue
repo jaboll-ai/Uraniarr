@@ -66,6 +66,7 @@ function downloadBook(keys: string[]) {
   } else {
     emit('downloadBook', keys)
   }
+  selected.value = []
 }
 
 function onCheckboxClick(payload: { event: MouseEvent; key: string }, index: number) {

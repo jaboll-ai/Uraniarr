@@ -1,10 +1,11 @@
 import asyncio
 from pathlib import Path
 import shutil
-from sqlmodel import Session
+from sqlalchemy.orm import selectinload
+from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.db import engine
 from backend.config import ConfigManager
-from backend.services.downloader_service import get_config, remove_from_history, get_history
+from backend.services.downloader_service import remove_from_history, get_history
 from backend.datamodels import Book, Reihe, Author, Activity, ActivityStatus
 from backend.exceptions import FileError
 import os
@@ -72,68 +73,82 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
         activity.status = ActivityStatus.imported
         shutil.rmtree(src)
         setattr(book, var_name, str(dst_dir)) #TODO revisit for Books
-        remove_from_history(cfg, activity.nzo_id)
+        # remove_from_history(cfg, activity.nzo_id)
+        return activity.nzo_id
     except Exception as e:
         activity.status = ActivityStatus.failed
         print(e) #TODO LOGGGG and FIX
+        return None
 
 
-def scan_and_move_all_files():
-    cfg = ConfigManager()
-    slots = get_history(cfg)
-    with Session(engine) as session:
-        for slot in slots:
-            activity = session.get(Activity, slot["nzo_id"])
+async def scan_and_move_all_files(cfg: ConfigManager):
+    hist = await get_history(cfg)
+    async with AsyncSession(engine) as session:
+        moved = []
+        for key, slot in hist.items():
+            activity = await session.get(Activity, key, options=[
+                selectinload(Activity.book).selectinload(Book.autor), 
+                selectinload(Activity.book).selectinload(Book.reihe),
+                selectinload(Activity.book).selectinload(Book.activities)
+            ])
             if not activity: continue
             if not slot["status"] == "Completed": continue
             src = Path(slot["storage"])
             if os.getenv("DEV") == "1":
                 src = Path(".local") / str(slot["storage"])[1:] # DEV
-            move_file(activity, src, cfg)
-            session.commit()
+            moved.append(asyncio.to_thread(move_file, activity, src, cfg))
+        coros = [remove_from_history(cfg, nzo_id) for nzo_id in await asyncio.gather(*moved) if nzo_id is not None]
+        await asyncio.gather(*coros)
+        await session.commit()
 
-def delete_audio_book(book_id: str, session: Session):
-    book = session.get(Book, book_id)
+async def delete_audio_book(book_id: str, session: AsyncSession):
+    book = await session.get(Book, book_id)
     if not book or not book.a_dl_loc:
         raise FileError(status_code=404, detail=f"Book '{book_id}' not found or not downloaded")
-    shutil.rmtree(book.a_dl_loc)
+    await asyncio.to_thread(shutil.rmtree, book.a_dl_loc)
     book.a_dl_loc = None
     session.commit()
 
-def delete_audio_reihe(reihe_id: str, session: Session):
-    reihe = session.get(Reihe, reihe_id)
+async def delete_audio_reihe(reihe_id: str, session: AsyncSession):
+    reihe = await session.get(Reihe, reihe_id)
     if not reihe or not reihe.a_dl_loc:
         raise FileError(status_code=404, detail=f"Reihe '{reihe_id}' not found or not downloaded")
-    shutil.rmtree(reihe.a_dl_loc)
+    await asyncio.to_thread(shutil.rmtree, reihe.a_dl_loc)
     reihe.a_dl_loc = None
     session.commit()
 
-def delete_audio_author(author_id: str, session: Session):
-    author = session.get(Author, author_id)
+async def delete_audio_author(author_id: str, session: AsyncSession):
+    author = await session.get(Author, author_id)
     if not author or not author.a_dl_loc:
         raise FileError(status_code=404, detail=f"Author '{author_id}' not found or not downloaded")
-    shutil.rmtree(author.a_dl_loc)
+    await asyncio.to_thread(shutil.rmtree, author.a_dl_loc)
     author.a_dl_loc = None
-    session.commit()
+    await session.commit()
 
-def get_files_of_book(book: Book):
+async def get_files_of_book(book: Book):
     try:
-        files = [{
-            "audio": sorted([{"path": str(p), "size": p.stat().st_size} for p in Path(book.a_dl_loc).iterdir() if p.is_file()], key=lambda x: x["path"]) if book.a_dl_loc else [],
-            "book": sorted([{"path": str(p), "size": p.stat().st_size}  for p in Path(book.b_dl_loc).iterdir() if p.is_file()], key=lambda x: x["path"]) if book.b_dl_loc else []
-        }]
+        p_a = await asyncio.to_thread(lambda: sorted([p for p in Path(book.a_dl_loc).iterdir() if p.is_file()] if book.a_dl_loc else [], key=lambda x: str(x)))
+        p_b = await asyncio.to_thread(lambda: sorted([p for p in Path(book.b_dl_loc).iterdir() if p.is_file()] if book.b_dl_loc else [], key=lambda x: str(x)))
+        a, b = await asyncio.gather(get_file_stats(p_a), get_file_stats(p_b))
     except Exception as e:
         raise FileError(status_code=404, detail=f"{e}: Error while getting files of book '{book.name}'")
-    return files
+    return {
+        "audio": a,
+        "book": b
+    }
 
-async def poll_folder(interval: int = 60):
+async def get_file_stats(paths: list[Path]):
+    coros = [asyncio.to_thread(lambda p: {"path": str(p), "size": p.stat().st_size}, p) for p in paths]
+    return await asyncio.gather(*coros)
+
+async def poll_folder(cfg: ConfigManager):
     """
     Every `interval` seconds, offload scan_and_move_all_files() to a thread,
     log errors, and repeat indefinitely.
     """
     while True:
-        try:
-            await asyncio.to_thread(scan_and_move_all_files)
-        except Exception as e:
-            print(e) #TODO LOGGG
-        await asyncio.sleep(interval)
+        # try:
+            await scan_and_move_all_files(cfg)
+        # except Exception as e:
+            # print(e) #TODO LOGGG
+            await asyncio.sleep(cfg.import_poll_interval)

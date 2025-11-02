@@ -231,6 +231,7 @@ async function completeAuthor() {
     completingAuthor.value = "throbber"
     await api.post(`/author/complete/${route.params.key}`)
     completingAuthor.value = "matter"
+    fetchBooks()
   } catch (err) {
     console.error('Failed to download Author', err)
     completingAuthor.value = "error"

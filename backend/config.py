@@ -58,6 +58,10 @@ class ConfigManager:
                 "value": 60,
                 "input_type": "number"
             },
+            "indexer_timeout": {
+                "value": 5,
+                "input_type": "number"
+            },
             "audio_extensions_rating": {
                 "value": ".flac,.mp3,.mkv",
                 "input_type": "text"
