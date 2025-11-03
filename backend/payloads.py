@@ -12,6 +12,7 @@ class ManualGUIDDownload(BaseModel):
     book_key: str
     guid: str
     name: str
+    download: str
 
 class BookNzb(BaseModel):
   name: str

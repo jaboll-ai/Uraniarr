@@ -17,23 +17,15 @@
       {{ getStatus() }}
     </div>
     <div class="book-download">
-      <button class="material-symbols-outlined" @click="showEditor = true">edit</button>
+      <button class="material-symbols-outlined" @click="emit('editBook', props.book)">edit</button>
       <button class="material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
       <button class="material-symbols-outlined" @click="emit('searchBook', props.book.key)">quick_reference_all</button>
       <button class="material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
   </div>
-  <EditModal
-      :visible="showEditor"
-      :book="book"
-      @close="showEditor = false"
-      @editBook="editBook"
-    />
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import EditModal from '@/components/EditModal.vue'
 import type { Book } from '@/main.ts'
 
 
@@ -50,16 +42,14 @@ const emit = defineEmits<{
   (e: 'deleteBook', keys: string[]): void
   (e: 'editBook', book: Book): void
 }>()
-const showEditor = ref(false)
-function editBook(book: Book) {
-  showEditor.value = false
-  emit('editBook', book)
-}
 
 function getStatus() {
   const acts = props.book.activities.filter((act) => act.audio === props.audio)
   if (acts.some(a => a.status.includes('download'))) {
     return 'cloud_download'
+  }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'error'
   }
   if (acts.some(a => a.status === 'imported')) {
     return 'cloud_done'
@@ -70,6 +60,9 @@ function getTooltip() {
   const acts = props.book.activities.filter((act) => act.audio === props.audio)
   if (acts.some(a => a.status.includes('download'))) {
     return 'Downloading'
+  }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'An error occured while importing'
   }
   if (acts.some(a => a.status === 'imported')) {
     return 'Imported'
@@ -94,10 +87,8 @@ function getTooltip() {
 }
 
 .book-name{
-  display: flex;
-  align-items: center;
   width: 30%;
-  margin: 0 20px;
+  margin: auto 20px;
   overflow: hidden; 
   text-overflow: ellipsis;
 }

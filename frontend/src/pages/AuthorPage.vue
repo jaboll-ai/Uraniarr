@@ -6,12 +6,18 @@
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
-          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor(author?.key)">
+          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor">
             <VueSpinner v-if="downloadingAuthor=='throbber'"/>
             <span v-else>{{ downloadingAuthor }}</span>
           </button>
+          <button class="ctrl-btn material-symbols-outlined" title="Try to find missing books" @click="completeAuthor">
+            <VueSpinner v-if="completingAuthor=='throbber'"/>
+            <span v-else>{{ completingAuthor }}</span>
+          </button>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmAuthor = true">delete</button>
-          <button class="ctrl-btn material-symbols-outlined" @click="audio = !audio">{{ audio ? "headphones" : "book" }}</button>
+          <button class="ctrl-btn material-symbols-outlined" 
+          @click="animate" :title="`Toggle to ${audio ? 'book' : 'audiobooks'}`"
+          :class="{ active: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
         </div>
       </div>
       <p class="author-bio">{{ author?.bio }}</p>
@@ -30,7 +36,7 @@
       <keep-alive>
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
-          @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="editBook"
+          @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="confirmEditBook"
           @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries" @searchBook="searchBook"
           :showBox="showBox" :books="books" :seriesGroups="seriesGroups" :audio="audio"/>
       </keep-alive>
@@ -54,6 +60,12 @@
       @confirm="deleteSeries"
       @cancel="showConfirmSeries = false"
     />
+    <EditModal v-if="editedBook"
+      :visible="showEditor"
+      :book="editedBook"
+      @close="showEditor = false"
+      @editBook="editBook"
+    />
     <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey" 
     :pages="manualSearchPages" :versions="manualSearchVersions"
      @close="closeManualSearch" @select="downloadBookManual" @paginate="searchBookPaginate"/>
@@ -63,13 +75,14 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { VueSpinner } from 'vue3-spinners'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { api, dapi as dapi } from '@/main.ts'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
 import { getInitials } from '@/utils.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
+import EditModal from '@/components/EditModal.vue'
 import type { Author, BookNzb, Book, Series, InteractiveSearch } from '@/main.ts'
 
 const route = useRoute()
@@ -92,7 +105,11 @@ const query = ref("")
 const manualSearchKey = ref("")
 const manualSearchPages = ref(0)
 const downloadingAuthor = ref("download")
+const completingAuthor = ref("matter")
+const showEditor = ref(false)
+const editedBook = ref<Book>()
 
+const timer = ref<number | null>(null)
 onMounted(async () => {
   try {
     const response = await api.get<Author>(`/author/${route.params.key}`)
@@ -101,12 +118,20 @@ onMounted(async () => {
     console.error('Failed to fetch books:', error)
   }
   fetchBooks()
+  timer.value = window.setInterval(fetchBooks, 20_000)
 })
+
+
+onBeforeUnmount(() => {
+  if (timer.value) clearInterval(timer.value)
+})
+
 const tabs = [
   { name: 'BookList', label: "Books" },
   { name: 'SeriesList', label: "Series" },
 ]
 
+const isAnimating = ref(false);
 const current = ref<string>('BookList')
 const audio = ref<boolean>(true)
 const componentsMap: Record<string, any> = {
@@ -118,18 +143,16 @@ const currentComponent = computed(() => componentsMap[current.value])
 
 async function fetchBooks() {
   try {
-    var b: Book[] = []
-    const { data: seriesList } = await api.get<Series[]>(`/author/${route.params.key}/series`)
-    const groups = await Promise.all(
-      seriesList.map(async (s: Series) => {
-        const { data: books } = await api.get<Book[]>(`/series/${s.key}/books`)
-        books.sort((a: Book, b: Book) => (a.reihe_position ?? 0) - (b.reihe_position ?? 0))
-        b = b.concat(books)
-        return { series: s, books }
+    const r1 = await api.get<Book[]>(`/author/${route.params.key}/books`)
+    books.value = r1.data
+    const { data: series } = await api.get<Series[]>(`/author/${route.params.key}/series`)
+    seriesGroups.value = []
+    for (const s of series) {
+      seriesGroups.value.push({
+        series: s,
+        books: books.value.filter((b) => b.reihe_key === s.key),
       })
-    )
-    books.value = b
-    seriesGroups.value = groups
+    }
   } catch (err) {
     console.error('Failed to load series or books', err)
   }
@@ -176,7 +199,7 @@ async function downloadBook(keys: string[]) {
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, name : nzb.name}, { params: { audio : audio.value } })
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
   } catch (err) {
     console.error('Failed to download book', err)
   }
@@ -190,11 +213,10 @@ async function downloadSeries(key: string) {
   }
 }
 
-async function downloadAuthor(key:string | undefined) {
-  if (!key) return
+async function downloadAuthor() {
   try {
     downloadingAuthor.value = "throbber"
-    await dapi.post(`/author/${key}`)
+    await dapi.post(`/author/${route.params.key}`)
     downloadingAuthor.value = "download"
   } catch (err) {
     console.error('Failed to download Author', err)
@@ -203,6 +225,21 @@ async function downloadAuthor(key:string | undefined) {
     downloadingAuthor.value = "download"
   }
 }
+
+async function completeAuthor() {
+  try {
+    completingAuthor.value = "throbber"
+    await api.post(`/author/complete/${route.params.key}`)
+    completingAuthor.value = "matter"
+    fetchBooks()
+  } catch (err) {
+    console.error('Failed to download Author', err)
+    completingAuthor.value = "error"
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    completingAuthor.value = "matter"
+  }
+}
+
 
 async function completeSeries(key: string) {
   try {
@@ -227,6 +264,11 @@ async function confirmDeleteBook(keys: string[]) {
   showConfirmBook.value = true
   messageConfirmBook.value = `Are you sure you want to delete ${keys.length} book${keys.length > 1 ? 's' : ''}?`
   shouldDeleteBooks.value = keys
+}
+
+async function confirmEditBook(book: Book) {
+  showEditor.value = true
+  editedBook.value = book
 }
 
 async function confirmDeleteSeries(key: string) {
@@ -276,6 +318,22 @@ async function editBook(book: Book) {
     console.error('Failed to edit book', err)
   }
   fetchBooks()
+}
+
+onBeforeUnmount(async () => {
+  document.documentElement.style.removeProperty('--mainColor');
+})
+
+function animate() {
+  audio.value = !audio.value
+  if (audio.value) {
+    document.documentElement.style.removeProperty('--mainColor');
+  } else {
+    document.documentElement.style.setProperty('--mainColor', '#be8e8e');
+  }
+  if (!isAnimating.value) {
+    isAnimating.value = true;
+  }
 }
 </script>
 
@@ -353,8 +411,18 @@ div.author-image {
   width: 190px;
 }
 .ctrl-btn{
-  width: 50px;
+  width: 35px;
   height: 50px;
+  transition: transform 0.2s ease;
+}
+.ctrl-btn.active {
+  animation: growAndTilt 0.35s ease forwards;
+}
+
+@keyframes growAndTilt {
+  50% {
+    transform: scale(3) rotate(20deg);
+  }
 }
 @media (max-width: 600px) {
   .author-header {

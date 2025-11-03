@@ -19,7 +19,22 @@
         </div>
       </div>
     </div>
-
+    <div class="book-act-container">
+      <div class="book-activities">
+        <h3>Audio files</h3>
+        <div v-for="file in files.audio" class="file-info">
+          <div class="path">{{ file.path }}</div>
+          <div class="size">{{ formatSize(file.size) }}</div>
+        </div>
+      </div>
+      <div class="book-activities">
+        <h3>Book files</h3>
+        <div v-for="file in files.book" class="file-info">
+          <div class="path">{{ file.path }}</div>
+          <div class="size">{{ formatSize(file.size) }}</div>
+        </div>
+      </div>
+    </div>
     <div class="book-act-container">
       <div class="book-activities">
         <h3>Audio activities</h3>
@@ -64,7 +79,7 @@ import { api, dapi } from '@/main.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import EditModal from '@/components/EditModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
-import { getInitials } from '@/utils.ts'
+import { getInitials, formatSize } from '@/utils.ts'
 import { useRoute } from 'vue-router'
 import type { BookNzb, Book, InteractiveSearch } from '@/main.ts'
 
@@ -80,7 +95,10 @@ const query = ref("")
 const manualSearchKey = ref("")
 const manualSearchPages = ref(0)
 const timer = ref<number | null>(null)
-
+const files = ref<{ audio: { path: string; size: number }[]; book: { path: string; size: number }[] }>({
+  audio: [],
+  book: [],
+})
 
 async function editBook(book: Book) {
   try {
@@ -91,13 +109,27 @@ async function editBook(book: Book) {
 }
 
 onMounted(async () => {
-  await fetchBook()
-  timer.value = window.setInterval(fetchBook, 10_000)
+  await fetchInfo()
+  timer.value = window.setInterval(fetchInfo, 10_000)
 })
 
 onBeforeUnmount(() => {
   if (timer.value) clearInterval(timer.value)
 })
+
+async function fetchInfo(){
+  fetchBook()
+  fetchFiles()
+}
+
+async function fetchFiles() {
+  try {
+    const { data } = await api.get(`/book/files/${route.params.key}`)
+    files.value = data
+  } catch (err) {
+    console.error('Failed to fetch files:', err)
+  }
+}
 
 async function fetchBook() {
   try {
@@ -225,15 +257,37 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
 .book-act-container {
   display: flex;
   flex-direction: row;
-  gap: 20px;
+}
+
+.size{
+  white-space: nowrap;
+}
+.file-info{
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+  border-top: 1px solid var(--borderColor);
+}
+.path {
+  font-weight: 600;
+  font-size: 9pt;
+  font-family: monospace;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+  margin: auto 0;
 }
 
 .book-activities {
-  flex-grow: 1;
   background: var(--backgroundWhite);
   border-radius: 8px;
   padding: 10px;
+  margin: 10px;
   background-color: var(--offWhite);
+  max-width: 47%;
+  min-width: 47%;
 }
 
 .activity-item {
@@ -260,6 +314,7 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
 .activity-status .overwritten {
   color: #f39c12;
 }
+
 
 
 @media (max-width: 600px) {
