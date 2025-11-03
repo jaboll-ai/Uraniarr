@@ -11,7 +11,7 @@
 
 # Uraniarr
 
-[Uraniarr](https://de.wikipedia.org/wiki/Urania) is a FastAPI-based application for scraping book metadata from a german vendor, managing authors, series, and editions in a SQLite database via SQLModel, and integrating NZB downloading through SABnzbd. It follows a somewhat clean architecture, so if you are interested in contributing, please do so! 
+[Uraniarr](https://de.wikipedia.org/wiki/Urania) is an ebook and audiobook collection manager that aims to provide functionality to grab, sort and reorder books and audiobooks in one instance. In an effort to decentralize the metadata, because past projects have proofen this to be the most challenging task, the metadata is scraped/fetched from Vendors, with an attempt to sanitize and clean the data as much as automatically possible before using it. 
 
 ## Overview
 <img width="49%" alt="light-and-dark" src="https://github.com/user-attachments/assets/5472fd32-d5ae-486c-a5d1-0fb581656b7b" />
@@ -20,16 +20,14 @@
 
 ## Features
 
-- **Web Scraping**  
-  Fetch book editions, author information, and search results using BeautifulSoup and playwright yourself. Because german metadata for books sucks.
-- **RESTful API**  
-  Routes organized into `tapi`, `api`, and `nzbapi` for scraping, middleware imports, database access, and NZB handling.
-- **Database Integration**  
-  SQLite database powered by SQLModel, with automatic table creation and session management.
-- **NZB Downloading**  
-  Indexer and downloader services integrated with SABnzbd's API to search and queue downloads. If you want other downloaders, write the bridge yourself :)
-- **File Management**  
+- **Downloading**  
+  Uraniarr currently supports SABnzbd as a downloader.
+- **File Management**
   Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. Currently no custimization options
+- **TODO**
+  1. RSS Feed automation
+  2. Scan for existing files and sort them into DB
+  3. Refining of visuals
 
 ## Getting Started
 1. **Docker Compose**  
@@ -50,7 +48,7 @@
         #   - <on-host-config>:/config #e.g. /etc/uraniarr
         #   - <on-host-data>:/data #internal must match data_path in your config
 
-**ALTERNATIVE: Run the application locally (please don't)**
+**ALTERNATIVE: Run the application bare-bones (please don't)**
 
 1. **Build the frontend assets**
 
@@ -70,4 +68,4 @@
 4. Run Vue with `cd fronted && npm run dev --host`
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
