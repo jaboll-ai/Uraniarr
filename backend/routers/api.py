@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Depends, APIRouter
+from fastapi import HTTPException, Depends, APIRouter, Request
 from backend.dependencies import get_session, get_cfg_manager
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -7,9 +7,11 @@ from backend.datamodels import *
 from backend.payloads import *
 from backend.config import ConfigManager
 from backend.services.scrape_service import scrape_all_author_data, scrape_book_series, clean_title
+from backend.services.request_service import reload_scraper
 from backend.services.author_service import save_author_to_db, complete_series_in_db, add_books_to_author, make_author_from_series, union_series
 from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author, get_files_of_book
-import asyncio
+from backend.services.indexer import *
+from backend.services.downloader import *
 
 router = APIRouter(prefix="/api", tags=["database"])
 
@@ -73,6 +75,13 @@ async def get_book_files(book_id: str, session: AsyncSession = Depends(get_sessi
     book = await session.get(Book, book_id)
     if not book: raise HTTPException(status_code=404, detail="Book not found")
     data = await get_files_of_book(book)
+    if data["audio"] is None:
+        book.a_dl_loc = None
+        data["audio"] = []
+    if data["book"] is None:
+        book.b_dl_loc = None
+        data["book"] = []
+    await session.commit()
     return data
 
 @router.get("/settings")
@@ -136,10 +145,23 @@ async def update_book(book_id: str, data: dict, session: AsyncSession = Depends(
     return book
 
 @router.patch("/settings")
-async def update_settings(settings: dict, cfg: ConfigManager = Depends(get_cfg_manager)):
+async def update_settings(settings: dict, request: Request):
+    state = request.app.state
+    cfg = state.cfg_manager
     for key in settings:
         setattr(cfg, key, settings[key])
-    return cfg.get()
+        if key == "playwright":
+            await reload_scraper(state)
+        if key == "indexer_prowlarr":
+            state.indexer = ProwlarrService() if settings[key] else NewznabService()   
+        if key == "downloader_type":
+            if cfg.downloader_type == "sab":
+                state.downloader = SABDownloader()
+            else:
+                cfg.downloader_type = "sab" #TODO other downloaders
+                state.downloader = SABDownloader()
+                raise HTTPException(status_code=500, detail="Only SABDownloader supported currently")
+    return state.cfg_manager.get()
 
 @router.delete("/author/{author_id}")
 async def delete_author(author_id: str, session: AsyncSession = Depends(get_session), files: bool = False):

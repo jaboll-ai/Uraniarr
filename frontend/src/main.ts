@@ -55,6 +55,7 @@ export interface BookNzb {
   name: string
   guid: string
   size: string | number
+  download: string
 }
 
 export interface Author {

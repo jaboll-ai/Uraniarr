@@ -73,6 +73,7 @@ class ActivityStatus(str, Enum):
     canceled = "canceled"
     failed = "failed"
     overwritten = "overwritten"
+    deleted = "deleted"
 
 class Activity(SQLModel, table=True):
     nzo_id: str = Field(primary_key=True)

@@ -199,7 +199,7 @@ async function downloadBook(keys: string[]) {
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, name : nzb.name}, { params: { audio : audio.value } })
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
   } catch (err) {
     console.error('Failed to download book', err)
   }

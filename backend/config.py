@@ -26,6 +26,10 @@ class ConfigManager:
                 "value": "",
                 "input_type": "password",
             },
+            "indexer_prowlarr": {
+                "value": False,
+                "input_type": "checkbox",
+            },
             "indexer_audio_category": {
                 "value": "3000",
                 "input_type": "text",
@@ -42,6 +46,10 @@ class ConfigManager:
                 "value": "",
                 "input_type": "password",
             },
+            "downloader_type": {
+                "value": "sab",
+                "input_type": "text",
+            },
             "downloader_category": {
                 "value": "",
                 "input_type": "text",
@@ -56,6 +64,10 @@ class ConfigManager:
             },
             "import_poll_interval": {
                 "value": 60,
+                "input_type": "number"
+            },
+            "rescan_interval": {
+                "value": 3600,
                 "input_type": "number"
             },
             "indexer_timeout": {
@@ -92,7 +104,7 @@ class ConfigManager:
             #     ],
             # },
         }
-        data = {**default_data, **user_data}
+        data = default_data | user_data
         object.__setattr__(self, "_data", data)
 
     def _save(self) -> None:

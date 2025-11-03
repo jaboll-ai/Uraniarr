@@ -26,13 +26,17 @@ interface ConfigEntry {
 const settings = ref<Record<string, ConfigEntry>>({})
 
 onMounted(async () => {
+  getSettings()
+})
+
+async function getSettings() {
   try {
     const { data } = await api.get<Record<string, ConfigEntry>>('/settings')
     settings.value = data
   } catch (err) {
     console.error('Failed to load settings', err)
   }
-})
+}
 
 async function saveSettings() {
   try {
@@ -40,9 +44,9 @@ async function saveSettings() {
       Object.entries(settings.value).map(([key, cfg]) => [key, cfg.value])
     ) )
     alert('Settings saved!')
-  } catch (err) {
-    console.error('Failed to save settings', err)
-    alert('Could not save settings')
+  } catch (err: any) {
+    alert('Could not save settings:\n' + err.response?.data?.detail || '')
+    getSettings()
   }
 }
 </script>

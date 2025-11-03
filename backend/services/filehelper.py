@@ -1,13 +1,14 @@
 import asyncio
 from pathlib import Path
 import shutil
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.db import engine
 from backend.config import ConfigManager
-from backend.services.downloader_service import remove_from_history, get_history
 from backend.datamodels import Book, Reihe, Author, Activity, ActivityStatus
 from backend.exceptions import FileError
+from backend.services.downloader import BaseDownloader
 import os
 
 def move_file(activity: Activity, src: Path, cfg: ConfigManager):
@@ -81,8 +82,10 @@ def move_file(activity: Activity, src: Path, cfg: ConfigManager):
         return None
 
 
-async def scan_and_move_all_files(cfg: ConfigManager):
-    hist = await get_history(cfg)
+async def scan_and_move_all_files(state):
+    cfg = state.cfg_manager
+    downloader: BaseDownloader = state.downloader
+    hist = await downloader.get_history(cfg)
     async with AsyncSession(engine) as session:
         moved = []
         for key, slot in hist.items():
@@ -97,7 +100,7 @@ async def scan_and_move_all_files(cfg: ConfigManager):
             if os.getenv("DEV") == "1":
                 src = Path(".local") / str(slot["storage"])[1:] # DEV
             moved.append(asyncio.to_thread(move_file, activity, src, cfg))
-        coros = [remove_from_history(cfg, nzo_id) for nzo_id in await asyncio.gather(*moved) if nzo_id is not None]
+        coros = [downloader.remove_from_history(cfg, nzo_id) for nzo_id in await asyncio.gather(*moved) if nzo_id is not None]
         await asyncio.gather(*coros)
         await session.commit()
 
@@ -126,9 +129,9 @@ async def delete_audio_author(author_id: str, session: AsyncSession):
     await session.commit()
 
 async def get_files_of_book(book: Book):
+    p_a = await asyncio.to_thread(get_files_from_disk, book.a_dl_loc)
+    p_b = await asyncio.to_thread(get_files_from_disk, book.b_dl_loc)
     try:
-        p_a = await asyncio.to_thread(lambda: sorted([p for p in Path(book.a_dl_loc).iterdir() if p.is_file()] if book.a_dl_loc else [], key=lambda x: str(x)))
-        p_b = await asyncio.to_thread(lambda: sorted([p for p in Path(book.b_dl_loc).iterdir() if p.is_file()] if book.b_dl_loc else [], key=lambda x: str(x)))
         a, b = await asyncio.gather(get_file_stats(p_a), get_file_stats(p_b))
     except Exception as e:
         raise FileError(status_code=404, detail=f"{e}: Error while getting files of book '{book.name}'")
@@ -137,18 +140,71 @@ async def get_files_of_book(book: Book):
         "book": b
     }
 
-async def get_file_stats(paths: list[Path]):
+def get_files_from_disk(path: str | None):
+    if path is None: return []
+    path = Path(path)
+    try: 
+        return sorted([p for p in path.iterdir() if p.is_file()], key=lambda x: str(x))
+    except Exception as e:
+        return None
+
+async def get_file_stats(paths: list[Path] | None):
+    if paths is None: return
     coros = [asyncio.to_thread(lambda p: {"path": str(p), "size": p.stat().st_size}, p) for p in paths]
     return await asyncio.gather(*coros)
 
-async def poll_folder(cfg: ConfigManager):
+def check_missing_paths(model_instance, fields: list[str]):
+    missing = []
+    for field in fields:
+        path_str = getattr(model_instance, field, None)
+        if not path_str:
+            continue
+        try:
+            if not Path(path_str).exists():
+                missing.append(field)
+        except Exception:
+            missing.append(field)
+    return missing
+
+async def poll_folder(state):
     """
     Every `interval` seconds, offload scan_and_move_all_files() to a thread,
     log errors, and repeat indefinitely.
     """
     while True:
-        # try:
-            await scan_and_move_all_files(cfg)
-        # except Exception as e:
-            # print(e) #TODO LOGGG
-            await asyncio.sleep(cfg.import_poll_interval)
+        try:
+            await scan_and_move_all_files(state)
+        except Exception as e:
+            print("Polling Error", e) #TODO LOGGG
+            await asyncio.sleep(state.cfg_manager.import_poll_interval)
+
+async def rescan_files(state):
+    """Background task to clear missing file paths in Book entries."""
+    while True:
+        async with AsyncSession(engine) as session:
+            targets = [
+                (Book, ["a_dl_loc", "b_dl_loc"]),
+                (Author, ["a_dl_loc", "b_dl_loc"]),
+                (Reihe, ["a_dl_loc", "b_dl_loc"]),
+            ]
+            for model, fields in targets:
+                result = await session.exec(select(model))
+                instances = result.scalars().all()
+                coros = [asyncio.to_thread(check_missing_paths, instance, fields) for instance in instances]
+                missing_results = await asyncio.gather(*coros)
+
+                for instance, missing_fields in zip(instances, missing_results):
+                    if missing_fields:
+                        for f in missing_fields:
+                            setattr(instance, f, None)
+                        if type(instance) == Book:
+                            query = await session.exec(select(Activity).where(Activity.book_key == instance.key))
+                            for a in query.scalars().all():
+                                if a.status == ActivityStatus.imported:
+                                    a.status = ActivityStatus.deleted
+                                    break
+                        # session.add(instance)
+            await session.commit()
+        await asyncio.sleep(state.cfg_manager.rescan_interval)
+            
+
