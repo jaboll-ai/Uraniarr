@@ -1,10 +1,14 @@
 from pickle import dump, load
 from time import time
+import os
 from urllib.parse import urlencode
 from backend.config import ConfigManager
 import asyncio
 from backend.exceptions import ScrapeError
-
+from contextlib import suppress
+from playwright.async_api import async_playwright
+from playwright_stealth import Stealth
+from cloudscraper import create_scraper
 
 cache_dir = ConfigManager.config_dir / "cache"
 scraper = None
@@ -13,10 +17,23 @@ try: _cache = load(cache_dir.open("rb"))
 except FileNotFoundError: _cache = {}
 
 
-def set_scraper(s):
+async def reload_scraper(state):
     global scraper
-    scraper = s
+    with suppress(Exception):
+        await state.browser.close()
+    with suppress(Exception):
+        await state.playwright.stop()
+    if state.cfg_manager.playwright:
+        if os.name == "nt":
+            state.cfg_manager.playwright = False
+            raise ScrapeError(status_code=500, detail="Playwright is not supported on Windows")
+        state.playwright = await Stealth().use_async(async_playwright()).__aenter__()
+        state.browser = await state.playwright.chromium.launch(headless=True)
+    else:
+        state.browser = create_scraper()
+    scraper = state.browser
 
+    
 async def fetch(url: str, params: dict, xhr: bool) -> dict:
     cfg = ConfigManager()
     target = f"{url}?{urlencode(params)}" if params else url

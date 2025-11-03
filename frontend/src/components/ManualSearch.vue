@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { BookNzb } from '@/main.ts'
+import { formatSize } from '@/utils.ts'
 
 const props = defineProps<{
   versions: BookNzb[]
@@ -70,15 +71,6 @@ function close() {
 
 function choose(file: BookNzb) {
   emit('select', props.book, file)
-}
-
-function formatSize(size: string | number) {
-  const num = Number(size)
-  if (isNaN(num)) return size
-  if (num < 1024) return `${num} B`
-  if (num < 1024 ** 2) return `${(num / 1024).toFixed(1)} KB`
-  if (num < 1024 ** 3) return `${(num / 1024 ** 2).toFixed(1)} MB`
-  return `${(num / 1024 ** 3).toFixed(1)} GB`
 }
 
 async function paginate(p: number) {

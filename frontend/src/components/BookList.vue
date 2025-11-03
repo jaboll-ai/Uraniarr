@@ -2,7 +2,7 @@
   <!-- <button title="Select" class="ctrl-btn material-symbols-outlined" @click="showBox = !showBox">check_box</button> -->
   <div class="group">
     <div class="header">
-      <div class="spacer1"></div>
+      <div class="spacer1">{{selected.length > 0 ? `Selected (${selected.length})` : "" }}</div>
       <div class="name">Name</div>
       <div class="info">Key</div>
       <div class="info">Position</div>
@@ -66,6 +66,7 @@ function downloadBook(keys: string[]) {
   } else {
     emit('downloadBook', keys)
   }
+  selected.value = []
 }
 
 function onCheckboxClick(payload: { event: MouseEvent; key: string }, index: number) {
@@ -124,8 +125,11 @@ onBeforeUnmount(() => {
 }
 
 .spacer1{
-  width: 100px;
-  min-width: 100px;
+  width: 120px;
+  min-width: 120px;
+  color: var(--borderColor);
+  font-size: 12pt;
+  font-weight: 700;
 }
 .spacer2{
   width: 116px;
@@ -135,7 +139,6 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   width: 30%;
-  margin: 0 20px;
 }
 .header{
   display: flex;
