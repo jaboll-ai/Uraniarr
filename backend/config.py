@@ -113,6 +113,7 @@ class ConfigManager:
             # },
         }
         data = default_data | user_data
+        data = {k: user_data[k] if k in user_data else v for k, v in default_data.items()}
         object.__setattr__(self, "_data", data)
 
     def _save(self) -> None:
@@ -142,7 +143,13 @@ class ConfigManager:
             self._save()
 
     def get(self):
-        return self._data
+        r = { 
+            k : {
+                "value": v["value"] if v["input_type"] != "password" else "*"*len(v["value"]),
+                "input_type": v["input_type"]
+            } for k, v in self._data.items()
+        }
+        return r
 
     def __repr__(self) -> str:
-        return f"<ConfigManager {self._data}>"
+        return f"<ConfigManager {self.get()}>"

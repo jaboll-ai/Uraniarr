@@ -26,3 +26,8 @@ class BaseDownloader(ABC):
     @abstractmethod
     async def get_cat_dir(self, cfg: ConfigManager):
         pass
+
+    def normalize(self, url: str) -> str:
+        url=url.rstrip("/")
+        url=url.rstrip("/api") + "/api"
+        return url

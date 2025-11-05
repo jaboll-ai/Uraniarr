@@ -4,6 +4,7 @@ import os
 from urllib.parse import urlencode
 from backend.config import ConfigManager
 import asyncio
+from backend.dependencies import get_logger
 from backend.exceptions import ScrapeError
 from contextlib import suppress
 from playwright.async_api import async_playwright
@@ -15,10 +16,12 @@ scraper = None
 
 try: _cache = load(cache_dir.open("rb"))
 except FileNotFoundError: _cache = {}
+except Exception as e: get_logger().error(f"Failed to load cache: {e}")
 
 
 async def reload_scraper(state):
     global scraper
+    get_logger().debug("Reloading scraper...")
     with suppress(Exception):
         await state.browser.close()
     with suppress(Exception):
@@ -40,6 +43,7 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
     if cfg.playwright:
         page = await scraper.new_page()
         if xhr:
+            get_logger().debug(f"Using playwright#expect_response to GET {target}")
             async with page.expect_response(target) as response_info:
                 await page.goto(target)
             response = await response_info.value
@@ -47,10 +51,12 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
                 raise ScrapeError(status_code=response.status, detail=response.text)
             data = await response.body()
         else:
+            get_logger().debug(f"Using playwright#goto to GET {target}")
             await page.goto(target)
             data = await page.content()
         await page.close()
     else:
+        get_logger().debug(f"Using cloudscraper to GET {target}")
         response = await asyncio.to_thread(scraper.get, target)
         if response.status_code != 200:
                 raise ScrapeError(status_code=response.status_code, detail=response.text)
@@ -64,6 +70,7 @@ async def fetch_or_cached(url: str, params: dict = {}, xhr: bool = True):
     key = (url, tuple(sorted(params.items())))
     now = time()
     if not cfg.skip_cache and key in _cache and now - _cache[key]["time"] < 5*24*3600:
+        get_logger().debug(f"Using cache for {url}")
         data = _cache[key]["data"]
     else:
         data = await fetch(url, params, xhr)

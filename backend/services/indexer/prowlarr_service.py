@@ -13,7 +13,7 @@ class ProwlarrService(BaseIndexer):
             "offset": 0
         }
         async with httpx.AsyncClient() as client:
-            response = await client.get(cfg.indexer_url.rstrip("/")+"/v1/search", params=params)
+            response = await client.get(self.normalize(cfg.indexer_url).rstrip("/")+"/v1/search", params=params)
         if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
         response.encoding = 'utf-8'
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)

@@ -4,6 +4,11 @@ import httpx
 from time import time
 import asyncio
 
+def normalize(url: str) -> str:
+    url=url.rstrip("/")
+    url=url.rstrip("/api") + "/api"
+    return url
+
 class NewznabService(BaseIndexer):
     async def search(self, q, cfg, audio):
         if (timeout:=time() - self.last_hit) < cfg.indexer_timeout:
@@ -17,7 +22,7 @@ class NewznabService(BaseIndexer):
             "apikey": cfg.indexer_apikey
         }
         async with httpx.AsyncClient() as client:
-            response = await client.get(cfg.indexer_url, params=search)
+            response = await client.get(normalize(cfg.indexer_url), params=search)
         if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
         response.encoding = 'utf-8'
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
@@ -35,7 +40,7 @@ class NewznabService(BaseIndexer):
             "apikey": cfg.indexer_apikey
         }
         async with httpx.AsyncClient() as client:
-            response = await client.get(cfg.indexer_url, params=get, follow_redirects=True)
+            response = await client.get(normalize(cfg.indexer_url), params=get, follow_redirects=True)
         if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
         response.encoding = 'utf-8'
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)

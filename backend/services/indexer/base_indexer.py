@@ -47,3 +47,8 @@ class BaseIndexer(ABC):
                     base_queries.append(f"{fix_umlaut(book.reihe.name)} {int(book.reihe_position)}")
 
         return base_queries
+    
+    def normalize(self, url: str) -> str:
+        url=url.rstrip("/")
+        url=url.rstrip("/api") + "/api"
+        return url

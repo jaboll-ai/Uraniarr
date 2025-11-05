@@ -1,75 +1,113 @@
 <template>
   <div class="book-page">
     <div class="book-header">
-      <img v-if="book?.bild" :src="book.bild" :alt="book.name" class="book-image" />
-      <div v-else class="book-placeholder">{{ getInitials(book?.name || '') }}</div>
+      <div class="book-cover">
+        <img
+          v-if="book?.bild"
+          :src="book.bild"
+          :alt="book.name"
+          class="cover-image"
+        />
+        <div v-else class="cover-placeholder">
+          {{ getInitials(book?.name || '') }}
+        </div>
+      </div>
 
-      <div class="book-info">
-        <h2 class="book-name">{{ book?.name }}</h2>
-        <p class="book-meta">
-          <span><strong>Author:</strong> {{ authorName || 'Unknown' }}</span><br />
-          <span><strong>Series Position:</strong> {{ book?.reihe_position ?? '-' }}</span>
-        </p>
+      <div class="book-details">
+        <h2 class="book-title">{{ book?.name }}</h2>
+        <div class="book-meta">
+          <p><strong>Author:</strong> {{ authorName || 'Unknown' }}</p>
+          <p><strong>Series Position:</strong> {{ book?.reihe_position ?? '-' }}</p>
+        </div>
 
-        <div class="actions">
-        <button class="material-symbols-outlined" @click="showEditor = true">edit</button>
-          <button class="ctrl-btn material-symbols-outlined" @click="downloadBook(book?.key)">download</button>
+        <div class="book-actions" v-if ="book">
+          <button class="ctrl-btn material-symbols-outlined" @click="showEditor = true">edit</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="downloadBook([book.key])">download</button>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmDelete = true">delete</button>
           <button class="ctrl-btn material-symbols-outlined" @click="searchBook(book?.key || '')">quick_reference_all</button>
+          <button class="ctrl-btn material-symbols-outlined" 
+          @click="animate" :title="`Toggle to ${audio ? 'book' : 'audiobooks'}`"
+          :class="{ anim: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
         </div>
       </div>
     </div>
-    <div class="book-act-container">
-      <div class="book-activities">
-        <h3>Audio files</h3>
-        <div v-for="file in files.audio" class="file-info">
-          <div class="path">{{ file.path }}</div>
-          <div class="size">{{ formatSize(file.size) }}</div>
+    <div class="book-section">
+      <div class="file-group">
+        <h3>Audio Files</h3>
+        <div v-for="file in files.audio" :key="file.path" class="file-row">
+          <span class="file-path">{{ file.path }}</span>
+          <span class="file-size">{{ formatSize(file.size) }}</span>
         </div>
       </div>
-      <div class="book-activities">
-        <h3>Book files</h3>
-        <div v-for="file in files.book" class="file-info">
-          <div class="path">{{ file.path }}</div>
-          <div class="size">{{ formatSize(file.size) }}</div>
+
+      <div class="file-group">
+        <h3>Book Files</h3>
+        <div v-for="file in files.book" :key="file.path" class="file-row">
+          <span class="file-path">{{ file.path }}</span>
+          <span class="file-size">{{ formatSize(file.size) }}</span>
         </div>
       </div>
     </div>
-    <div class="book-act-container">
-      <div class="book-activities">
-        <h3>Audio activities</h3>
-        <div v-for="act in book?.activities?.filter(a => a.audio)" :key="act.nzo_id" class="activity-item">
-          <div class="activity-title">{{ act.release_title }}</div>
-          <div class="activity-status">
-            Status: <span :class="act.status">{{ act.status }}</span>
+    <div class="book-section">
+      <div class="activity-group">
+        <h3>Audio Activities</h3>
+        <div
+          v-for="act in book?.activities?.filter(a => a.audio)"
+          :key="act.nzo_id"
+          class="activity-row"
+        >
+          <div class="activity-info">
+            <div class="activity-title">{{ act.release_title }}</div>
+            <div class="activity-status">
+              Status: <span :class="['status', act.status]">{{ act.status }}</span>
+            </div>
           </div>
         </div>
       </div>
-      <div class="book-activities">
-        <h3>Book activities</h3>
-        <div v-for="act in book?.activities?.filter(a => !a.audio)" :key="act.nzo_id" class="activity-item">
-          <div class="activity-title">{{ act.release_title }}</div>
-          <div class="activity-status">
-            Status: <span :class="act.status">{{ act.status }}</span>
+
+      <div class="activity-group">
+        <h3>Book Activities</h3>
+        <div
+          v-for="act in book?.activities?.filter(a => !a.audio)"
+          :key="act.nzo_id"
+          class="activity-row"
+        >
+          <div class="activity-info">
+            <div class="activity-title">{{ act.release_title }}</div>
+            <div class="activity-status">
+              Status: <span :class="['status', act.status]">{{ act.status }}</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- MODALS -->
     <ConfirmModal
       :visible="showConfirmDelete"
       message="Are you sure you want to delete this book?"
       @confirm="deleteBook"
       @cancel="showConfirmDelete = false"
     />
-    <EditModal v-if="book"
+
+    <EditModal
+      v-if="book"
       :visible="showEditor"
       :book="book"
       @close="showEditor = false"
       @editBook="editBook"
     />
-    <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey" 
-    :pages="manualSearchPages" :versions="manualSearchVersions"
-     @close="closeManualSearch" @select="downloadBookManual" @paginate="searchBookPaginate"/>
+
+    <ManualSearch
+      :query="query"
+      :visible="interactiveSearch"
+      :book="manualSearchKey"
+      :pages="manualSearchPages"
+      :versions="manualSearchVersions"
+      @close="closeManualSearch"
+      @select="downloadBookManual"
+      @paginate="searchBookPaginate"
+    />
   </div>
 </template>
 
@@ -99,6 +137,8 @@ const files = ref<{ audio: { path: string; size: number }[]; book: { path: strin
   audio: [],
   book: [],
 })
+const audio = ref(true)
+const isAnimating = ref(false);
 
 async function editBook(book: Book) {
   try {
@@ -144,12 +184,21 @@ async function fetchBook() {
   }
 }
 
-async function downloadBook(key?: string) {
-  if (!key) return
+async function downloadBook(keys: string[]) {
   try {
-    await dapi.post(`/book/${key}`)
+    for (const key of keys) {
+      await dapi.post(`/book/${key}`, null, { params: { audio : audio.value } })
+    }
   } catch (err) {
-    console.error('Failed to download book:', err)
+    console.error('Failed to download book', err)
+  }
+}
+
+async function downloadBookManual(key: string, nzb: BookNzb) {
+  try {
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
+  } catch (err) {
+    console.error('Failed to download book', err)
   }
 }
 
@@ -166,11 +215,10 @@ async function deleteBook() {
 async function searchBook(key: string) {
   await searchBookPaginate(key, 0)
 }
-
 async function searchBookPaginate(key: string, page: number) {
   try {
     interactiveSearch.value = true
-    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`, { params: { page: page } })
+    const response = await dapi.get<InteractiveSearch>(`/manual/${key}`, { params: { page: page, audio: audio.value } })
     manualSearchVersions.value = response.data.nzbs
     query.value = response.data.query
     manualSearchPages.value = response.data.pages
@@ -188,150 +236,182 @@ async function closeManualSearch() {
     manualSearchKey.value = ""
 }
 
-async function downloadBookManual(key: string, nzb: BookNzb) {
-  try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, name : nzb.name})
-  } catch (err) {
-    console.error('Failed to download book', err)
+async function animate() {
+  audio.value = !audio.value
+  if (audio.value) {
+    document.documentElement.style.removeProperty('--mainColor');
+  } else {
+    document.documentElement.style.setProperty('--mainColor', '#be8e8e');
+  }
+  if (!isAnimating.value) {
+    isAnimating.value = true;
   }
 }
 </script>
 
 <style scoped>
+/* Layout Containers */
 .book-page {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 1rem;
+  padding: 0.5rem;
   flex: 1;
 }
 
+/* Header */
 .book-header {
   display: flex;
-  gap: 16px;
-  padding: 10px;
-  background-color: var(--offWhite);
-  border-radius: 10px;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  background: var(--offWhite);
+  border-radius: 12px;
+  padding: 1rem;
+  align-items: flex-start;
 }
 
-.book-image {
-  width: 190px;
+.book-cover {
+  flex-shrink: 0;
+}
+
+.cover-image,
+.cover-placeholder {
+  width: 180px;
+  height: 180px;
   border-radius: 8px;
-  aspect-ratio: 1/1;
   object-fit: cover;
-}
-
-.book-placeholder {
-  width: 190px;
-  height: 190px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ccc;
-  color: #fff;
   font-weight: bold;
-  border-radius: 8px;
+  background: #ccc;
+  color: white;
 }
 
-.book-info {
+/* Details */
+.book-details {
   flex: 1;
+  min-width: 250px;
 }
 
-.book-name {
+.book-title {
   margin: 0;
   font-size: 1.6rem;
+  line-height: 1.3;
+  word-wrap: break-word;
 }
 
 .book-meta {
+  margin: 0.5rem 0;
   color: var(--fontColor);
-  margin: 0.4rem 0;
 }
 
-.actions {
-  margin-top: 0.5rem;
+.book-meta p {
+  margin: 0.2rem 0;
 }
 
-.ctrl-btn {
-  padding: 0px 8px;
-  margin: 10px 2px;
+.icon-btn:hover {
+  background: var(--mainColorHover, #ddd);
 }
 
-.book-act-container {
+/* Sections */
+.book-section {
   display: flex;
-  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.size{
-  white-space: nowrap;
+.file-group,
+.activity-group {
+  flex: 1 1 45%;
+  background: var(--offWhite);
+  border-radius: 10px;
+  padding: 0.8rem;
+  min-width: 280px;
 }
-.file-info{
+
+/* Files */
+.file-row {
   display: flex;
-  flex-direction: row;
-  gap: 30px;
+  justify-content: space-between;
+  align-items: center;
   border-top: 1px solid var(--borderColor);
+  padding: 0.4rem 0;
+  gap: 0.5rem;
 }
-.path {
-  font-weight: 600;
-  font-size: 9pt;
+
+.file-path {
+  flex: 1;
   font-family: monospace;
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
   direction: rtl;
   text-align: left;
-  margin: auto 0;
 }
 
-.book-activities {
-  background: var(--backgroundWhite);
-  border-radius: 8px;
-  padding: 10px;
-  margin: 10px;
-  background-color: var(--offWhite);
-  max-width: 47%;
-  min-width: 47%;
+.file-size {
+  white-space: nowrap;
+  font-size: 0.9rem;
 }
 
-.activity-item {
+/* Activities */
+.activity-row {
   border-top: 1px solid var(--borderColor);
-  padding: 6px 0;
+  padding: 0.5rem 0;
 }
 
 .activity-title {
   font-weight: 600;
+  word-wrap: break-word;
 }
 
-.activity-status .download {
+.status.download {
   color: #27ae60;
 }
-.activity-status .imported {
-  color: var(--mainColor); 
+.status.imported {
+  color: var(--mainColor);
 }
-.activity-status .canceled {
+.status.canceled {
   color: #7f8c8d;
 }
-.activity-status .failed {
+.status.failed {
   color: #e74c3c;
 }
-.activity-status .overwritten {
+.status.overwritten {
   color: #f39c12;
 }
+.ctrl-btn{
+  width: 35px;
+  height: 50px;
+  transition: transform 0.2s ease;
+}
+.ctrl-btn.anim {
+  animation: growAndTilt 0.35s ease forwards;
+}
 
-
-
-@media (max-width: 600px) {
-  .book-header {
+/* Responsive */
+@media (max-width: 700px) {
+  .book-section {
     flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: nowrap;
+    /* max-width: 500px; */
   }
-  .book-image,
-  .book-placeholder {
+
+  /* .book-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .book-details {
+    width: 100%;
+  }
+
+  .cover-image,
+  .cover-placeholder {
     width: 100%;
     max-width: 250px;
-  }
-
-  .book-act-container {
-    flex-direction: column;
-  }
+  } */
 }
 </style>

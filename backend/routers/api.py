@@ -71,8 +71,8 @@ async def get_alternative_titles(book_id: str, session: AsyncSession = Depends(g
     return [ed.titel for ed in book.editions]
 
 @router.get("/book/files/{book_id}")
-async def get_book_files(book_id: str, session: AsyncSession = Depends(get_session)):
-    book = await session.get(Book, book_id)
+async def get_book_files(book_id: str, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+    book = await session.get(Book, book_id, options=[selectinload(Book.autor)])
     if not book: raise HTTPException(status_code=404, detail="Book not found")
     data = await get_files_of_book(book)
     if data["audio"] is None:
@@ -82,7 +82,12 @@ async def get_book_files(book_id: str, session: AsyncSession = Depends(get_sessi
         book.b_dl_loc = None
         data["book"] = []
     await session.commit()
-    return data
+    a = [{ "path": i["path"].relative_to(cfg.audio_path), "size": i["size"]} for i in data["audio"]]
+    b = [{ "path": i["path"].relative_to(cfg.book_path), "size": i["size"]} for i in data["book"]]
+    return {
+        "audio": a,
+        "book": b
+    }
 
 @router.get("/settings")
 async def get_settings(cfg: ConfigManager = Depends(get_cfg_manager)):

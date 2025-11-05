@@ -325,7 +325,7 @@ onBeforeUnmount(async () => {
   document.documentElement.style.removeProperty('--mainColor');
 })
 
-function animate() {
+async function animate() {
   audio.value = !audio.value
   if (audio.value) {
     document.documentElement.style.removeProperty('--mainColor');
@@ -420,11 +420,6 @@ div.author-image {
   animation: growAndTilt 0.35s ease forwards;
 }
 
-@keyframes growAndTilt {
-  50% {
-    transform: scale(3) rotate(20deg);
-  }
-}
 @media (max-width: 600px) {
   .author-header {
     flex-direction: column;

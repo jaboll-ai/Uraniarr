@@ -1,7 +1,6 @@
 import asyncio
 from pathlib import Path
 import shutil
-import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -11,6 +10,7 @@ from backend.datamodels import Book, Reihe, Author, Activity, ActivityStatus
 from backend.exceptions import FileError
 from backend.services.downloader import BaseDownloader
 from backend.services.scrape_service import strip_pos
+from backend.dependencies import get_logger
 import os
 from rapidfuzz import process
 
@@ -24,7 +24,7 @@ def ensure_backup(dst_dir: Path) -> Optional[Path]:
     if bak_dir.exists():
         shutil.rmtree(bak_dir)
     shutil.move(dst_dir, bak_dir)
-    print(f"Directory {dst_dir} already exists. Will replace.")
+    get_logger().info(f"Directory {dst_dir} already exists. Will replace.")
     return bak_dir
 
 
@@ -91,13 +91,12 @@ def move_files(src: Path, dst_dir: Path, audio: bool, cfg):
 
 def cleanup_source(src: Path, cat_dir: Path, safe_delete: bool, cfg):
     if src.resolve() == cat_dir.resolve():
-        print(f"The source directory is the same as the category directory. Will not delete. "
-              f"This cannot be overwritten by ignore_safe_delete.\n{src}")
+        get_logger().info(f"The source directory is the same as the category directory. Will not delete. This cannot be overwritten by ignore_safe_delete. {src}")
         return
 
     if safe_delete or cfg.ignore_safe_delete:
         if not safe_delete:
-            print(f"Cannot safely delete source directory, but ignore_safe_delete is set by user. Deleting {src} ...")
+            get_logger().info(f"Cannot safely delete source directory, but ignore_safe_delete is set by user. Deleting {src} ...")
         shutil.rmtree(src)
 
 
@@ -110,7 +109,7 @@ def restore_backup(bak_dir: Optional[Path], dst_dir: Optional[Path], overwritten
         if overwritten_act:
             overwritten_act.status = ActivityStatus.imported
     except Exception as e:
-        print(f"Tried restoring {dst_dir} but failed with:", e)
+        get_logger().error(f"Tried restoring {dst_dir} but failed with: {e}")
 
 
 def cleanup_backup(bak_dir: Optional[Path], dst_dir: Optional[Path]):
@@ -119,7 +118,7 @@ def cleanup_backup(bak_dir: Optional[Path], dst_dir: Optional[Path]):
             if dst_dir.exists() and bak_dir.exists():
                 shutil.rmtree(bak_dir)
     except Exception as e:
-        print(f"Final cleanup of {bak_dir} failed with:", e)
+        get_logger().error(f"Final cleanup of {bak_dir} failed with: {e}")
 
 
 def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: bool, src: Path, cat_dir: Path, cfg: ConfigManager):
@@ -132,7 +131,7 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
     overwritten_act = None
     try:
         if not book:
-            print(f"No book for {src.name} found")
+            get_logger().info(f"No book for {src.name} found")
             return
         autor_dir, series_dir, dst_dir = get_destination_dir(book, audio, cfg)
         if src.resolve() == dst_dir.resolve():
@@ -155,9 +154,10 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
             book.b_dl_loc = str(dst_dir)
         return activity.nzo_id if activity else "retag"
     except Exception as e:
+        get_logger().error(f"Error importing {src} to {dst_dir}: {e}")
         if activity is not None:
             activity.status = ActivityStatus.failed
-        print("inside blocking move_file", e)
+        get_logger().error("inside blocking move_file {e}")
         restore_backup(bak_dir, dst_dir, overwritten_act)
         return None
     finally:
@@ -221,13 +221,13 @@ def get_files_from_disk(path: str | None):
     if path is None: return []
     path = Path(path)
     try: 
-        return sorted([p for p in path.iterdir() if p.is_file()], key=lambda x: str(x))
+        return sorted([p for p in path.iterdir() if p.is_file()])
     except Exception as e:
         return None
 
 async def get_file_stats(paths: list[Path] | None):
     if paths is None: return
-    coros = [asyncio.to_thread(lambda p: {"path": str(p), "size": p.stat().st_size}, p) for p in paths]
+    coros = [asyncio.to_thread(lambda p: {"path": p, "size": p.stat().st_size}, p) for p in paths]
     return await asyncio.gather(*coros)
 
 def check_missing_paths(model_instance, fields: list[str]):
@@ -254,12 +254,13 @@ def get_dirs_of_ext(base_paths, exts):
                 audio_dirs.add(Path(root))
     return audio_dirs
 
-async def periodic_task(interval_attr: str, task_coro, state):
+async def periodic_task(interval_attr: str, task_coro, state, name: Optional[str]):
     while True:
         try:
+            get_logger().debug(f"Running {name or task_coro.__name__} ...")
             await task_coro(state)
         except Exception as e:
-            print(f"{task_coro.__name__} failed:", e)
+            get_logger().error(f"{name or task_coro.__name__} failed: {e}")
         await asyncio.sleep(getattr(state.cfg_manager, interval_attr, 300))
 
 async def scan_and_move_all_files(state):
@@ -344,7 +345,7 @@ async def reimport_files(state):
         # moved = []
         for p, idx in a_idx:
             if Path(books[idx].a_dl_loc or "").resolve() == p.resolve(): continue
-            print(f"Found {books[idx].name} at {p}")
+            get_logger().info(f"Found {books[idx].name} at {p}")
             mark_overwritten_activity(books[idx], True)
             activity = Activity(release_title=f"_local_unknown_{books[idx].name}", book=books[idx], audio=True, status=ActivityStatus.imported)
             session.add(activity)
@@ -352,7 +353,7 @@ async def reimport_files(state):
             books[idx].a_dl_loc = str(p)
         for p, idx in b_idx:
             if Path(books[idx].b_dl_loc or "").resolve() == p.resolve(): continue
-            print(f"Found {books[idx].name} at {p}")
+            get_logger().info(f"Found {books[idx].name} at {p}")
             mark_overwritten_activity(books[idx], False)
             activity = Activity(release_title=f"_local_unknown_{books[idx].name}", book=books[idx], audio=False, status=ActivityStatus.imported)
             session.add(activity)

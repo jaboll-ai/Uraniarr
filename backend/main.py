@@ -14,6 +14,7 @@ from backend.services.filehelper import periodic_task, scan_and_move_all_files, 
 from backend.services.request_service import reload_scraper
 from backend.services.indexer import *
 from backend.services.downloader import *
+from backend.dependencies import get_logger
 
 async def init_db():
     async with engine.begin() as conn:
@@ -31,13 +32,14 @@ async def lifespan(app: FastAPI):
         cfg.downloader_type = "sab" #TODO other downloaders
         app.state.downloader = SABDownloader()
     tasks = {
-        "import": asyncio.create_task(periodic_task("import_interval", scan_and_move_all_files, app.state)),
-        "check_deleted": asyncio.create_task(periodic_task("rescan_interval", rescan_files, app.state)),
-        "reimport": asyncio.create_task(periodic_task("reimport_interval", reimport_files, app.state)),
+        "import": asyncio.create_task(periodic_task("import_poll_interval", scan_and_move_all_files, app.state, "ImportJob")),
+        "check_deleted": asyncio.create_task(periodic_task("rescan_interval", rescan_files, app.state, "CheckFileAvailabilityJob")),
+        "reimport": asyncio.create_task(periodic_task("reimport_interval", reimport_files, app.state, "ImportForeignJob")),
     }
     try:
         await reload_scraper(app.state)
-    except BaseError:
+    except BaseError as e:
+        get_logger().error(f"Failed to initialize scraper, falling back to cloudscraper. Further information: {e.detail}")
         app.state.cfg_manager.playwright = False
         await reload_scraper(app.state)
     try:
@@ -67,7 +69,7 @@ app.add_middleware(
 
 @app.exception_handler(BaseError)
 async def handle_scrape_error(request: Request, exc: BaseError):
-    print(exc.detail)
+    get_logger().error(exc.detail)
     return JSONResponse(status_code=exc.status_code or 404, content={"detail": exc.detail or "", "type": exc.type}) 
 
 
