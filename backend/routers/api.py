@@ -9,7 +9,7 @@ from backend.config import ConfigManager
 from backend.services.scrape_service import scrape_all_author_data, scrape_book_series, clean_title
 from backend.services.request_service import reload_scraper
 from backend.services.author_service import save_author_to_db, complete_series_in_db, add_books_to_author, make_author_from_series, union_series
-from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author, get_files_of_book
+from backend.services.filehelper import delete_audio_reihe, delete_audio_book, delete_audio_author, get_files_of_book, retag_book
 from backend.services.indexer import *
 from backend.services.downloader import *
 
@@ -66,9 +66,9 @@ async def get_book(book_id: str, session: AsyncSession = Depends(get_session)):
 
 @router.get("/book/titles/{book_id}")
 async def get_alternative_titles(book_id: str, session: AsyncSession = Depends(get_session)):
-    book = await session.get(Book, book_id, options=[selectinload(Book.editions), selectinload(Book.reihe)])
+    book = await session.get(Book, book_id, options=[selectinload(Book.editions)])
     if not book: raise HTTPException(status_code=404, detail="Book not found")
-    return [clean_title(ed.titel, book.reihe.name if book.reihe_key else None, book.reihe_position) for ed in book.editions]
+    return [ed.titel for ed in book.editions]
 
 @router.get("/book/files/{book_id}")
 async def get_book_files(book_id: str, session: AsyncSession = Depends(get_session)):
@@ -136,13 +136,36 @@ async def unite_series(data: UnionSeries, session: AsyncSession = Depends(get_se
     return resp
 
 @router.patch("/book/{book_id}")
-async def update_book(book_id: str, data: dict, session: AsyncSession = Depends(get_session)):
-    book = await session.get(Book, book_id)
+async def update_book(book_id: str, data: dict, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+    book = await session.get(Book, book_id, options=[
+        selectinload(Book.autor), 
+        selectinload(Book.reihe).selectinload(Reihe.books),
+        selectinload(Book.activities)
+    ])
+    errors = []
     for field, value in data.items():
-        if hasattr(book, field):
-            setattr(book, field, value)
+        if field in ["autor", "reihe", "editions", "activities", "a_dl_loc", "b_dl_loc", "key"]:
+            errors.append(field)
+        elif hasattr(book, field):
+            setattr(book, field, value if value != "" else None)
     await session.commit()
-    return book
+    if errors:
+        raise HTTPException(status_code=403, detail=f"Tried to update immutable fields: {', '.join(errors)}")
+    return book_id
+
+@router.post("/retag/book/{book_id}")
+async def retag_books(book_id: str, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
+    book = await session.get(Book, book_id, options=[
+        selectinload(Book.autor), 
+        selectinload(Book.reihe).selectinload(Reihe.books),
+        selectinload(Book.activities)
+    ])
+    audio, book = await retag_book(book, cfg)
+    await session.commit()
+    return {"retagged": {
+        "audio": audio is not None,
+        "book": book is not None
+    }}
 
 @router.patch("/settings")
 async def update_settings(settings: dict, request: Request):
@@ -152,9 +175,9 @@ async def update_settings(settings: dict, request: Request):
         setattr(cfg, key, settings[key])
         if key == "playwright":
             await reload_scraper(state)
-        if key == "indexer_prowlarr":
+        elif key == "indexer_prowlarr":
             state.indexer = ProwlarrService() if settings[key] else NewznabService()   
-        if key == "downloader_type":
+        elif key == "downloader_type":
             if cfg.downloader_type == "sab":
                 state.downloader = SABDownloader()
             else:

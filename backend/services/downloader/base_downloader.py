@@ -12,7 +12,7 @@ class BaseDownloader(ABC):
         pass
 
     @abstractmethod
-    async def remove_from_history(self, cfg: ConfigManager, nzo_id: str):
+    async def remove_from_history(self, cfg: ConfigManager, nzo_id: str|list[str]):
         pass
 
     @abstractmethod
@@ -21,4 +21,8 @@ class BaseDownloader(ABC):
 
     @abstractmethod
     async def get_queue(self, cfg: ConfigManager):
+        pass
+
+    @abstractmethod
+    async def get_cat_dir(self, cfg: ConfigManager):
         pass

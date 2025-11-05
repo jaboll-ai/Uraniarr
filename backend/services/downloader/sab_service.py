@@ -1,6 +1,8 @@
+import asyncio
 from backend.exceptions import NzbsError
 import httpx
 from backend.services.downloader.base_downloader import BaseDownloader
+from pathlib import Path
 
 class SABDownloader(BaseDownloader):
     async def download(self, nzb, cfg, nzbname):
@@ -11,7 +13,7 @@ class SABDownloader(BaseDownloader):
             data = {
                 "mode": "addfile",
                 "nzbname": nzbname,
-                "cat": cfg.downloader_category or "",
+                "cat": cfg.downloader_category or "*",
             }
             params = {"apikey": cfg.downloader_apikey}
             async with httpx.AsyncClient() as client:
@@ -96,4 +98,27 @@ class SABDownloader(BaseDownloader):
             "status": item["status"]
         } for item in data["queue"]["slots"]}
         return r
+
+    async def get_cat_dir(self, cfg):
+        p = {
+            "apikey": cfg.downloader_apikey,
+            "mode": "get_config",
+        }
+        async with httpx.AsyncClient() as client:
+            coros = [client.get(cfg.downloader_url, params={**p, "section": s}) for s in ["misc", "categories"]]
+            misc, categories = await asyncio.gather(*coros)
+        if misc.status_code != 200: raise NzbsError(status_code=misc.status_code, detail=misc.text)
+        if categories.status_code != 200: raise NzbsError(status_code=categories.status_code, detail=categories.text)
+        cat_folder = None
+        base_folder = None
+        try:
+            for c in categories.json()["config"]["categories"]:
+                if c["name"] == cfg.downloader_category:
+                    cat_folder = c["dir"]
+            base_folder = Path(misc.json()["config"]["misc"]["complete_dir"])
+        except Exception as e:
+            raise NzbsError(status_code=500, detail="Could not get SABnzbd category directory")
+        if base_folder is None or cat_folder is None: raise NzbsError(status_code=500, detail="Could not get SABnzbd category directory")
+        return str(base_folder / cat_folder)
+
 

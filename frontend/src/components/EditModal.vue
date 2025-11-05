@@ -2,7 +2,7 @@
   <div v-if="visible" class="overlay">
     <div class="modal">
       <h2>Edit: {{ form.name || 'Untitled Book' }}</h2>
-      <form @submit.prevent="$emit('editBook', form)">
+      <form @submit.prevent="$emit('editBook', getChangedFields())">
         <label>
           Name:
           <div>
@@ -32,17 +32,6 @@
           Bild URL:
           <input v-model="form.bild" />
         </label>
-
-        <label>
-          A DL Location:
-          <input v-model="form.a_dl_loc" />
-        </label>
-
-        <label>
-          B DL Location:
-          <input v-model="form.b_dl_loc" />
-        </label>
-
         <div class="actions">
           <button class="btns material-symbols-outlined" type="submit">save</button>
           <button class="btns material-symbols-outlined" type="button" @click="$emit('close')">cancel</button>
@@ -53,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, toRaw, watch } from 'vue'
 import { api } from '@/main';
 import type { Book } from '@/main.ts'
 
@@ -63,7 +52,14 @@ const props = defineProps<{
   book: Book
 }>()
 
-const form = reactive<Book>({ ...props.book})
+const form = reactive({
+  key: props.book.key,
+  name: props.book.name,
+  bild: props.book.bild,
+  reihe_position: props.book.reihe_position,
+  autor_key: props.book.autor_key,
+  reihe_key: props.book.reihe_key,
+})
 const titles = ref<string[]>([])
 
 // Reinitialize when new book prop comes in
@@ -73,6 +69,17 @@ watch(() => props.book, (newBook) => {
 }, 
 { immediate: true })
 
+function getChangedFields() {
+  const patch: Record<string, unknown> = {}
+  patch.key = props.book.key
+  const original = toRaw(props.book)
+  for (const [key, value] of Object.entries(toRaw(form))) {
+    if (value !== (original as any)[key]) {
+      patch[key] = value
+    }
+  }
+  return patch
+}
 
 async function getTitles() {
   const resp = await api.get<string[]>(`/book/titles/${props.book.key}`)

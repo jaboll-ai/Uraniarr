@@ -102,10 +102,12 @@ const files = ref<{ audio: { path: string; size: number }[]; book: { path: strin
 
 async function editBook(book: Book) {
   try {
-    await api.patch(`/book/${book.key}`, book)
+    const { key, ...data } = book
+    await api.patch(`/book/${key}`, data)
   } catch (err) {
     console.error('Failed to edit book', err)
   }
+  fetchInfo()
 }
 
 onMounted(async () => {

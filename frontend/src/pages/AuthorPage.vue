@@ -313,7 +313,8 @@ async function deleteAuthor(key: string | undefined) {
 
 async function editBook(book: Book) {
   try {
-    await api.patch(`/book/${book.key}`, book)
+    const { key, ...data } = book
+    await api.patch(`/book/${key}`, data)
   } catch (err) {
     console.error('Failed to edit book', err)
   }

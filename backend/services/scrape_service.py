@@ -36,6 +36,10 @@ async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
     data = json.load(BytesIO(data))[0]
     editions = []
     series_name = None
+    for k in data["kategoriePfade"]:
+        for j in k:
+            if j["text"] == "Bundles":
+                return editions, series_name
     for werk in data.get("werkArtikel", [data]):
         if werk["shop"]["identNr"] == 54: continue
         ed_info = {}
@@ -136,10 +140,12 @@ def strip_id_from_slug(url: str):
 
 def clean_title(title: str, series_title: str = None, series_pos: int = None, can_be_empty: bool = False):
     bak = title
+
+    title = fix_diaeresis(title)
     if series_title:
-        title = re.sub(fr"\b{re.escape(series_title)}\W", "", title)
+        title = re.sub(fr"\b(?:(?:der)|(?:die)|(?:das)|)\W*{re.escape(series_title)}\W", "", title, flags=re.UNICODE | re.I)
     if series_title and title == bak:
-        title = re.sub(fr"\b{re.escape(series_title.replace('-', ' '))}\W", "", title)
+        title = re.sub(fr"\b(?:(?:der)|(?:die)|(?:das)|)\W*{re.escape(series_title.replace('-', ' '))}\W", "", title, flags=re.UNICODE | re.I)
 
     try:
         series_pos = int(float(series_pos))
@@ -147,8 +153,8 @@ def clean_title(title: str, series_title: str = None, series_pos: int = None, ca
         series_pos = None
     title = re.sub(r"\(.*kürz.*\)", "", title, re.I) # remove (gekürzte Lesung) and alike
     title = strip_non_word(title)
-    title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*0*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
-    title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|)\W*0*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
+    title = re.sub(fr"^(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|(?:buch)|)\W*0*{series_pos}", "", title, flags=re.UNICODE | re.I)# remove leading position
+    title = re.sub(fr"(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|(?:buch)|)\W*0*{series_pos}$", "", title, flags=re.UNICODE | re.I)# remove traling position
     #### Known patterns ####
     title = title.replace(" - , Teil", "")
     ########################
@@ -163,6 +169,7 @@ def clean_series_title(title: str):
     #### Known patterns ####
     title = title.replace("Weitere Bände von ", "")
     ########################
+    title = fix_diaeresis(title)
     title = strip_non_word(title)
     title = re.sub(r"^Die", "", title, flags=re.UNICODE | re.M)
     title = re.sub(r"-*Reihe$", "", title, flags=re.UNICODE | re.M)
@@ -184,9 +191,21 @@ def reconstruct_parentheses(title: str):
         title += stack.pop()
     return title
 
+def fix_diaeresis(title: str):
+    title = title.replace("a¨", "ä")
+    title = title.replace("o¨", "ö")
+    title = title.replace("u¨", "ü")
+    title = title.replace("A¨", "Ä")
+    title = title.replace("O¨", "Ö")
+    title = title.replace("U¨", "Ü")
+    return title
+
 def strip_non_word(text: str):
     text = re.sub(r"^[\W]*", "", text, flags=re.UNICODE | re.M)
     return re.sub(r"[\W]*$", "", text, flags=re.UNICODE | re.M)
+
+def strip_pos(text: str):
+    return re.sub(r"(?:(?:b(?:(?:an)|)d)|(?:teil)|(?:folge)|(?:buch)|)\W*\d+\W*-*\W*", "", text, flags=re.UNICODE | re.I)
 
 def fix_umlaut(text: str) -> str:
     text = re.sub(r"ä", "ae", text, flags=re.IGNORECASE)

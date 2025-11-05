@@ -25,6 +25,7 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
     result = await session.exec(select(Edition.key))
     in_db = set(result.scalars().all())
     for eds, series_title in books_data:
+        if not eds or not series_title: continue
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
         if any([ed["key"] in in_db for ed in eds]): continue
         book = Book(autor_key=author.key)

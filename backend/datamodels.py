@@ -49,6 +49,7 @@ class Book(SQLModel, table=True):
     b_dl_loc: Optional[str] = None
     blocked: bool = False
     
+    # Change in api.py lin 143
     autor: "Author" = Relationship(back_populates="books")
     reihe: Optional["Reihe"] = Relationship(back_populates="books")
     editions: List["Edition"] = Relationship(back_populates="book", sa_relationship_kwargs={"order_by": case(medium_priority, value=Edition.medium, else_=10), "cascade": "all, delete-orphan"})
@@ -76,13 +77,13 @@ class ActivityStatus(str, Enum):
     deleted = "deleted"
 
 class Activity(SQLModel, table=True):
-    nzo_id: str = Field(primary_key=True)
+    nzo_id: str = Field(primary_key=True, default_factory=id_generator)
     created: float = Field(default_factory=time)
     release_title: str
     book_key: str = Field(foreign_key="book.key")
     status: ActivityStatus = ActivityStatus.download
-    audio: bool
-    guid: str
+    audio: bool 
+    guid: Optional[str] = None
 
     book: "Book" = Relationship(back_populates="activities")
 

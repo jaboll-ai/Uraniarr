@@ -10,7 +10,7 @@ from backend.db import engine
 from backend.routers import dapi, tapi, api
 from backend.exceptions import BaseError
 from backend.config import ConfigManager
-from backend.services.filehelper import poll_folder, rescan_files
+from backend.services.filehelper import periodic_task, scan_and_move_all_files, rescan_files, reimport_files
 from backend.services.request_service import reload_scraper
 from backend.services.indexer import *
 from backend.services.downloader import *
@@ -30,8 +30,11 @@ async def lifespan(app: FastAPI):
     else:
         cfg.downloader_type = "sab" #TODO other downloaders
         app.state.downloader = SABDownloader()
-    task_poll_folder = asyncio.create_task(poll_folder(app.state))
-    task_rescan_files = asyncio.create_task(rescan_files(app.state))
+    tasks = {
+        "import": asyncio.create_task(periodic_task("import_interval", scan_and_move_all_files, app.state)),
+        "check_deleted": asyncio.create_task(periodic_task("rescan_interval", rescan_files, app.state)),
+        "reimport": asyncio.create_task(periodic_task("reimport_interval", reimport_files, app.state)),
+    }
     try:
         await reload_scraper(app.state)
     except BaseError:
@@ -42,13 +45,10 @@ async def lifespan(app: FastAPI):
     finally:
         try:
             with suppress(Exception):
-                task_poll_folder.cancel()
+                for t in tasks.values():
+                    t.cancel()
             with suppress(asyncio.CancelledError):
-                await task_poll_folder
-            with suppress(Exception):
-                task_rescan_files.cancel()
-            with suppress(asyncio.CancelledError):
-                await task_rescan_files
+                await asyncio.gather(*tasks.values())
             with suppress(Exception):
                 await app.state.browser.close()
             with suppress(Exception):

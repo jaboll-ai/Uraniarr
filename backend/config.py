@@ -70,6 +70,10 @@ class ConfigManager:
                 "value": 3600,
                 "input_type": "number"
             },
+            "reimport_interval": {
+                "value": 3600,
+                "input_type": "number"
+            },
             "indexer_timeout": {
                 "value": 5,
                 "input_type": "number"
@@ -87,6 +91,10 @@ class ConfigManager:
                 "input_type": "checkbox"
             },
             "skip_cache": {
+                "value": False,
+                "input_type": "checkbox"
+            },
+            "ignore_safe_delete": {
                 "value": False,
                 "input_type": "checkbox"
             },
