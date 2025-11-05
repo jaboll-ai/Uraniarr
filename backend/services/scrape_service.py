@@ -1,5 +1,6 @@
 import re
 import asyncio
+from backend.dependencies import get_logger
 from backend.services.request_service import fetch_or_cached
 from bs4 import BeautifulSoup
 from io import BytesIO
@@ -18,7 +19,7 @@ async def scrape_search(q: str, cfg: ConfigManager, page: int = 1):
         "suchbegriff": q,
         "artikelProSeite": "5",
         "seite": page,
-        "filterSPRACHE": "3"
+        "filterSPRACHE": get_language(cfg),
     }
     data = await fetch_or_cached(base+suche, params=params)
     data = json.load(BytesIO(data))
@@ -27,7 +28,7 @@ async def scrape_search(q: str, cfg: ConfigManager, page: int = 1):
         for personen in artikel.get("personen", []):
             if personen["typ"] == "Autor":
                 author_datas.add((str(personen["identNr"]), personen.get("name")))
-    coros = [scrape_author_data(identNr, name, metadata_only=True) for identNr, name in author_datas] # TODO LOGGGG
+    coros = [scrape_author_data(identNr, cfg, name, metadata_only=True) for identNr, name in author_datas] # TODO LOGGGG
     ids = await asyncio.gather(*coros)
     return [id_ for id_ in ids if id_ is not None]
 
@@ -59,9 +60,10 @@ async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
             if not series_name:
                 series_name = clean_series_title(data["serie"].get("name"))
         editions.append(ed_info)
+    get_logger().log(5, f"Found {len(editions)} editions for {book_id}")
     return editions, series_name
 
-async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool = False):
+async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
     data = await fetch_or_cached(base+author+author_id, xhr=False)
@@ -84,7 +86,7 @@ async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool 
         "suchbegriff": author_data["name"],
         "artikelProSeite": "30",
         "seite": 1,
-        "filterSPRACHE": "3",
+        "filterSPRACHE": get_language(cfg),
         "sortierung": "Erscheinungsdatum_asc"
     }
     _data = await fetch_or_cached(base+suche+"/mehr-von-autor", params)
@@ -97,10 +99,11 @@ async def scrape_author_data(author_id: str, name:str=None, metadata_only: bool 
         data = json.load(BytesIO(data))
         for artikel in data["artikelliste"]:
             author_data["_books"].add(artikel["identifier"]["matnr"])
+    get_logger().log(5, f"Found {len(author_data['_books'])} books for {author_data['name']}")
     return author_data
 
 async def scrape_all_author_data(author_id: str, cfg: ConfigManager, name: str) -> dict:
-    author_data = await scrape_author_data(author_id, name=name)
+    author_data = await scrape_author_data(author_id, cfg, name=name)
     coros = [scrape_book_editions(book_edition_id, cfg) for book_edition_id in author_data.get("_books", set())]
     books = await asyncio.gather(*coros)
     return {"author_data": author_data, "books": books}
@@ -132,6 +135,32 @@ async def scrape_book_series(book_id: str, cfg: ConfigManager):
                     book_info["_pos"] = None
             books.append(book_info)
     return books
+
+def get_language(cfg: ConfigManager):
+    mapping = lang_map = {
+        "en": 1, "eng": 1,
+        "de": 3, "deu": 3, "ger": 3,
+        "fr": 2, "fra": 2, "fre": 2,
+        "es": 84, "spa": 84,
+        "it": 88, "ita": 88,
+        "tr": 975, "tur": 975,
+        "pt": 981, "por": 981,
+        "fi": 985, "fin": 985,
+        "nl": 90, "nld": 90, "dut": 90,
+        "pl": 83, "pol": 83,
+        "ru": 5, "rus": 5,
+        "ar": 982, "ara": 982,
+        "hu": 987, "hun": 987,
+        "ca": 984, "cat": 984,
+        "sv": 91, "swe": 91,
+        "hr": 1021, "hrv": 1021,
+        "hi": 81, "hin": 81,
+        "el": 980, "ell": 980, "gre": 980,
+        "uk": 1016, "ukr": 1016,
+        "vi": 976, "vie": 976,
+        "zh": 7, "zho": 7, "chi": 7
+    }
+    return mapping.get(cfg.language, 3)
 
 def strip_id(url: str):
     return url.strip("/").split("/")[-1].split("?")[0]

@@ -157,7 +157,6 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
         get_logger().error(f"Error importing {src} to {dst_dir}: {e}")
         if activity is not None:
             activity.status = ActivityStatus.failed
-        get_logger().error("inside blocking move_file {e}")
         restore_backup(bak_dir, dst_dir, overwritten_act)
         return None
     finally:
@@ -256,12 +255,15 @@ def get_dirs_of_ext(base_paths, exts):
 
 async def periodic_task(interval_attr: str, task_coro, state, name: Optional[str]):
     while True:
+        if getattr(state.cfg_manager, interval_attr) <= 0:
+            get_logger().info((f"Disabling {name or task_coro.__name__}"))
+            break
         try:
             get_logger().debug(f"Running {name or task_coro.__name__} ...")
             await task_coro(state)
         except Exception as e:
             get_logger().error(f"{name or task_coro.__name__} failed: {e}")
-        await asyncio.sleep(getattr(state.cfg_manager, interval_attr, 300))
+        await asyncio.sleep(getattr(state.cfg_manager, interval_attr))
 
 async def scan_and_move_all_files(state):
     cfg = state.cfg_manager

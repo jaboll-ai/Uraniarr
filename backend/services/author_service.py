@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.datamodels import *
+from backend.dependencies import get_logger
 from backend.exceptions import AuthorError
 from backend.services.scrape_service import clean_title
 
@@ -25,9 +26,12 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
     result = await session.exec(select(Edition.key))
     in_db = set(result.scalars().all())
     for eds, series_title in books_data:
-        if not eds or not series_title: continue
+        if not eds: 
+            get_logger().debug(f"Skipping book because it has no editions")
+            continue
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
-        if any([ed["key"] in in_db for ed in eds]): continue
+        if any([ed["key"] in in_db for ed in eds]): 
+            get_logger().warning(f"Skipping {eds[0]['key']} because it already exists")
         book = Book(autor_key=author.key)
         book.name, book.bild, book.reihe_position = clean_title(eds[0].get("titel")), eds[0].get("bild"), eds[0].get("_pos")
         if series_title:
@@ -58,7 +62,7 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
 
 async def auto_union_series(reihen: list[Reihe], session: AsyncSession):
     for r1, r2 in combinations(reihen, 2):
-        if len(r1.name) > 5 and fuzz.token_set_ratio(r1.name.replace("-", " "), r2.name.replace("-", " ")) > 80:
+        if fuzz.WRatio(r1.name.replace("-", " "), r2.name.replace("-", " ")) > 80:
             if len(r1.name) > len(r2.name): r1, r2 = r2, r1
             for book in r2.books:
                 book.name = clean_title(book.name, r1.name, book.reihe_position)

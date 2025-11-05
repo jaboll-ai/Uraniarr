@@ -56,6 +56,7 @@ async function add(author: string, name: string) {
 
 async function search() {
   try {
+    authors.value = []
     loading.value = true
     errorMsg.value = ''
     const response = await tapi.get<Author[]>("/search", { params: { q: route.query.q } })

@@ -86,6 +86,10 @@ class ConfigManager:
                 "value": ".epub,.mobi,.cbr,.azw,.azw3",
                 "input_type": "text"
             },
+            "language": {
+                "value": "ger",
+                "input_type": "text"
+            },
             "playwright": {
                 "value": True,
                 "input_type": "checkbox"

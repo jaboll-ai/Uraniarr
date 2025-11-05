@@ -75,6 +75,7 @@ const settingNames: Record<string, string> = {
   indexer_timeout: 'Indexer Timeout (seconds)',
   audio_extensions_rating: 'Allowed Audio Extensions',
   book_extensions: 'Allowed Book Extensions',
+  language: 'Language',
   playwright: 'Enable Playwright Scraping',
   skip_cache: 'Skip Cache',
   ignore_safe_delete: 'Ignore Safe Delete',
@@ -93,12 +94,13 @@ const tooltips: Record<string, string> = {
   downloader_category: 'Category name in your downloader for this app.',
   audio_path: 'Folder path where audio files will be stored.',
   book_path: 'Folder path where book files will be stored.',
-  import_poll_interval: 'Interval in seconds between import checks.',
-  rescan_interval: 'Interval in seconds between library rescans.',
-  reimport_interval: 'Interval in seconds between reimport checks.',
+  import_poll_interval: 'Interval in seconds between import checks for downloaded files. (0 to disable imports)',
+  rescan_interval: 'Interval in seconds between library rescans. Check if the books in the database still exist in filesystem. (0 to disable availability checks)',
+  reimport_interval: 'Interval in seconds between reimport checks. The files in downloader or library folder are tried to be matched against books in database (0 to disable reimporting)',
   indexer_timeout: 'Timeout in seconds for indexer API calls.',
   audio_extensions_rating: 'Audio file extensions to consider (comma-separated).',
   book_extensions: 'Book file extensions to consider (comma-separated).',
+  language: 'Desired Language of Uraniarr, only one supported at a time currently. (ISO 639-1 or -2 e.g. "eng")',
   playwright: 'Use playwright instead of cloudscraper. (Only toggle if necessary)',
   skip_cache: 'Force skip of local cache (useful for debugging).',
   ignore_safe_delete: 'ONLY enable if Uraniarr is importing from a custom category.',
@@ -175,13 +177,13 @@ async function saveSettings() {
 .setting-item {
   display: flex;
   flex-direction: column;
-  background: var(--offWhite, #fafafa);
+  background: var(--offWhite);
   border-radius: 10px;
   padding: 1rem;
 }
 
 .setting-item:hover {
-  background: #f3f3f3;
+  background: color-mix(in srgb, var(--mainColor) 20%, var(--offWhite) 90%)
 }
 
 .setting-label-row {
