@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import re
 import shutil
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.config import ConfigManager
@@ -11,7 +11,7 @@ from backend.datamodels import Book, Series, Author, Activity, ActivityStatus
 from backend.exceptions import FileError
 from backend.services.downloader import BaseDownloader
 from backend.services.scrape import strip_pos
-from backend.dependencies import get_error_logger, get_logger
+from backend.dependencies import get_error_logger, get_logger, get_scorer
 import os
 from rapidfuzz import process
 
@@ -411,7 +411,7 @@ async def reimport_files(state):
             selectinload(Book.author), 
             selectinload(Book.series).selectinload(Series.books),
             selectinload(Book.activities)
-        ))
+        ).order_by(func.length(Book.name).desc()))
         books: list[Book] = query.scalars().all()
         if len(books) == 0: return
         try:
@@ -429,8 +429,8 @@ async def reimport_files(state):
 
         book_names = [b.name for b in books]
         a_idx, b_idx = [], []
-        a_fuzz_coros = [asyncio.to_thread(process.extractOne, p.name, book_names) for p in a_paths]
-        b_fuzz_coros = [asyncio.to_thread(process.extractOne, p.name, book_names) for p in b_paths]
+        a_fuzz_coros = [asyncio.to_thread(process.extractOne, p.name, book_names, scorer=get_scorer()) for p in a_paths]
+        b_fuzz_coros = [asyncio.to_thread(process.extractOne, p.name, book_names, scorer=get_scorer()) for p in b_paths]
         a_results, b_results = await asyncio.gather(
             asyncio.gather(*a_fuzz_coros),
             asyncio.gather(*b_fuzz_coros)

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.datamodels import *
-from backend.dependencies import get_logger
+from backend.dependencies import get_logger, get_scorer
 from backend.exceptions import AuthorError
 from backend.services.scrape import clean_title
 
@@ -62,7 +62,7 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
 
 async def auto_union_series(series: list[Series], session: AsyncSession):
     for r1, r2 in combinations(series, 2):
-        if fuzz.WRatio(r1.name, r2.name) > 80:
+        if get_scorer()(r1.name, r2.name) > 80:
             if len(r1.name) > len(r2.name): r1, r2 = r2, r1
             for book in r2.books:
                 book.name = clean_title(book.name, r1.name, book.position)
@@ -75,7 +75,7 @@ async def clean_series_duplicates(series: Series, session: AsyncSession):
         if float(book.position) == float(book2.position) and ( 
             (_b1:=clean_title(book.name, series.name, book.position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
             clean_title(book2.name, series.name, book2.position, can_be_empty=True)=="" or
-            fuzz.WRatio(book.name, book2.name) > 80): # we basically have the same book twice
+            get_scorer()(book.name, book2.name) > 80): # we basically have the same book twice
             if _b1: book, book2 = book2, book
             book.editions.extend(book2.editions)
             await session.delete(book2)
