@@ -67,8 +67,8 @@ class NewznabService(BaseIndexer):
         except KeyError as e:
             raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab\n Further info: {e}")
         return { "query": base_queries[page], "nzbs": response , "pages": len(base_queries) }
-        # for autor, name in base_queries:
-        #     used_term = f"{autor} {name}"
+        # for author, name in base_queries:
+        #     used_term = f"{author} {name}"
         #     data = indexer_search(used_term, cfg=cfg)
         #     query = data["channel"]
         #     if (total:=query["response"]["@attributes"]["total"]) != "0":

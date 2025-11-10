@@ -6,7 +6,7 @@
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
-          <button class="ctrl-btn material-symbols-outlined" @click="downloadAuthor">
+          <button class="ctrl-btn material-symbols-outlined" title="Download every book and audiobook" @click="downloadAuthor">
             <VueSpinner v-if="downloadingAuthor=='throbber'"/>
             <span v-else>{{ downloadingAuthor }}</span>
           </button>
@@ -14,7 +14,8 @@
             <VueSpinner v-if="completingAuthor=='throbber'"/>
             <span v-else>{{ completingAuthor }}</span>
           </button>
-          <button class="ctrl-btn material-symbols-outlined" @click="showConfirmAuthor = true">delete</button>
+          <button class="ctrl-btn material-symbols-outlined" title="Delete the author from DB" @click="showConfirmAuthor = true">delete</button>
+          <button class="ctrl-btn material-symbols-outlined" title="Retag all Books of author" @click="previewRetagAuthor">graph_1</button>
           <button class="ctrl-btn material-symbols-outlined" 
           @click="animate" :title="`Toggle to ${audio ? 'book' : 'audiobooks'}`"
           :class="{ active: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
@@ -69,6 +70,12 @@
     <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey" 
     :pages="manualSearchPages" :versions="manualSearchVersions"
      @close="closeManualSearch" @select="downloadBookManual" @paginate="searchBookPaginate"/>
+    <RetagAuthorModal v-if="prv"
+      :visible="showRetag"
+      :author="prv"
+      @cancel="showRetag = false"
+      @retagBooks="retagBooks"
+    />
   </div>
 </template>
 
@@ -83,7 +90,8 @@ import { getInitials } from '@/utils.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
 import EditModal from '@/components/EditModal.vue'
-import type { Author, BookNzb, Book, Series, InteractiveSearch } from '@/main.ts'
+import RetagAuthorModal from '@/components/RetagAuthorModal.vue'
+import type { Author, BookNzb, Book, Series, InteractiveSearch, RetagAuthor } from '@/main.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -97,6 +105,8 @@ const showConfirmBook = ref(false)
 const messageConfirmBook = ref("")
 const shouldDeleteBooks = ref<string[]>([])
 const showConfirmSeries = ref(false)
+const showRetag = ref(false)
+const prv = ref<RetagAuthor>()
 const messageConfirmSeries = ref("")
 const shouldDeleteSeries = ref("")
 const seriesGroups = ref<Array<{ series: Series; books: Book[] }>>([])
@@ -150,12 +160,33 @@ async function fetchBooks() {
     for (const s of series) {
       seriesGroups.value.push({
         series: s,
-        books: books.value.filter((b) => b.reihe_key === s.key),
+        books: books.value.filter((b) => b.series_key === s.key),
       })
     }
   } catch (err) {
     console.error('Failed to load series or books', err)
   }
+}
+
+
+async function previewRetagAuthor() {
+  try {
+    showRetag.value = true
+    const response = await api.get<RetagAuthor>(`/retag/author/${route.params.key}`)
+    prv.value = response.data
+  } catch(err){
+    console.log(err)
+  }
+}
+
+async function retagBooks(keys: string[]) {
+  showRetag.value = false
+  try {
+    await api.post(`/retag/books`, keys)
+  } catch (err) {
+    console.error('Failed to retag author', err)
+  }
+  fetchBooks()
 }
 
 async function searchBook(key: string) {

@@ -1,17 +1,23 @@
+import logging
+from pathlib import Path
 from pickle import dump, load
 from time import time
 import os
 from urllib.parse import urlencode
 from backend.config import ConfigManager
 import asyncio
-from backend.dependencies import get_logger
+from backend.dependencies import get_error_logger, get_logger
 from backend.exceptions import ScrapeError
 from contextlib import suppress
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 from cloudscraper import create_scraper
 
-cache_dir = ConfigManager.config_dir / "cache"
+try:
+    cache_dir = Path(os.getenv("CONFIG_DIR", "./config")) / "cache"
+except Exception as exc:
+    get_logger().error(f"Failed to get cache directory")
+    get_error_logger().exception(exc)
 scraper = None
 
 try: _cache = load(cache_dir.open("rb"))
@@ -37,8 +43,7 @@ async def reload_scraper(state):
     scraper = state.browser
 
     
-async def fetch(url: str, params: dict, xhr: bool) -> dict:
-    cfg = ConfigManager()
+async def fetch(cfg: ConfigManager, url: str, params: dict, xhr: bool) -> dict:
     target = f"{url}?{urlencode(params)}" if params else url
     if cfg.playwright:
         page = await scraper.new_page()
@@ -65,15 +70,14 @@ async def fetch(url: str, params: dict, xhr: bool) -> dict:
         raise ScrapeError(status_code=response.status_code, detail=response.text)
     return data
 
-async def fetch_or_cached(url: str, params: dict = {}, xhr: bool = True):
-    cfg = ConfigManager()
+async def fetch_or_cached(cfg: ConfigManager, url: str, params: dict = {}, xhr: bool = True):
     key = (url, tuple(sorted(params.items())))
     now = time()
     if not cfg.skip_cache and key in _cache and now - _cache[key]["time"] < 5*24*3600:
         get_logger().log(5, f"Using cache for {url}")
         data = _cache[key]["data"]
     else:
-        data = await fetch(url, params, xhr)
+        data = await fetch(cfg, url, params, xhr)
         _cache[key] = {"time": now, "data": data}
         dump(_cache, cache_dir.open("wb"))
     return data

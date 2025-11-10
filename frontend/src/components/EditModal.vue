@@ -19,13 +19,13 @@
         </label>
 
         <label>
-          Series (Reihe) Key:
-          <input v-model="form.reihe_key" />
+          Series (Series) Key:
+          <input v-model="form.series_key" />
         </label>
 
         <label>
           Series Position:
-          <input type="number" step="0.1" v-model.number="form.reihe_position" />
+          <input type="number" step="0.1" v-model.number="form.position" />
         </label>
 
         <label>
@@ -56,9 +56,9 @@ const form = reactive({
   key: props.book.key,
   name: props.book.name,
   bild: props.book.bild,
-  reihe_position: props.book.reihe_position,
+  position: props.book.position,
   autor_key: props.book.autor_key,
-  reihe_key: props.book.reihe_key,
+  series_key: props.book.series_key,
 })
 const titles = ref<string[]>([])
 
@@ -88,16 +88,6 @@ async function getTitles() {
 </script>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
 .modal {
   background-color: var(--backgroundWhite);
   padding: 20px;

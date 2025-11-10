@@ -9,7 +9,7 @@ from backend.config import ConfigManager
 from backend.dependencies import get_session, get_cfg_manager
 from backend.services.indexer import BaseIndexer
 from backend.services.downloader import BaseDownloader
-from backend.datamodels import Book, Author, Reihe, Activity, ActivityStatus
+from backend.datamodels import Book, Author, Series, Activity, ActivityStatus
 from backend.payloads import ManualGUIDDownload
 router = APIRouter(prefix="/dapi", tags=["NZB"])
 
@@ -19,7 +19,7 @@ async def download_book(request: Request, book_id: str,  audio: bool = True, ses
     cfg = request.app.state.cfg_manager
     indexer: BaseIndexer = request.app.state.indexer
     downloader: BaseDownloader = request.app.state.downloader
-    book = await session.get(Book, book_id, options=[selectinload(Book.reihe), selectinload(Book.autor)])
+    book = await session.get(Book, book_id, options=[selectinload(Book.series), selectinload(Book.author)])
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     name, guid, download = await indexer.query_book(book, cfg=cfg, audio=audio)
@@ -43,7 +43,7 @@ async def download_guid(request: Request, data: ManualGUIDDownload, audio: bool 
 async def search_manual(request: Request, book_id: str, page:int = 0, audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
     indexer: BaseIndexer = request.app.state.indexer
-    book = await session.get(Book, book_id, options=[selectinload(Book.reihe), selectinload(Book.autor)])
+    book = await session.get(Book, book_id, options=[selectinload(Book.series), selectinload(Book.author)])
     data = await indexer.query_manual(book, page, cfg=cfg, audio=audio)
     if not data:
         raise HTTPException(status_code=404, detail=f"Book {book_id} not found")
@@ -78,16 +78,16 @@ async def download_author(request: Request, author_id: str, session: AsyncSessio
         return {"partial_success": author_id, "not_found": not_found}
     return {"success": author_id}
 
-@router.post("/series/{reihe_id}")
-async def download_reihe(request: Request, reihe_id: str, audio: bool = True, session: AsyncSession = Depends(get_session)):
+@router.post("/series/{series_id}")
+async def download_series(request: Request, series_id: str, audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
     indexer: BaseIndexer = request.app.state.indexer
     downloader: BaseDownloader = request.app.state.downloader
-    reihe = await session.get(Reihe, reihe_id)
-    if not reihe:
+    series = await session.get(Series, series_id)
+    if not series:
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
-    for book in reihe.books:
+    for book in series.books:
         if (audio and book.a_dl_loc) or (not audio and book.b_dl_loc) or book.blocked: continue
         name, guid, download = await indexer.query_book(book, cfg=cfg, audio=audio)
         if not guid:
@@ -96,8 +96,8 @@ async def download_reihe(request: Request, reihe_id: str, audio: bool = True, se
         nzb = await indexer.grab(download, cfg=cfg)
         await schedule_download(guid, name, nzb, book=book, downloader=downloader, cfg=cfg, session=session, audio=audio)
     if not_found:
-        return {"partial_success": reihe_id, "not_found": not_found}
-    return reihe_id
+        return {"partial_success": series_id, "not_found": not_found}
+    return series_id
 
 @router.delete("/book/{book_id}")
 async def delete_book_from_history(request: Request, book_id: str):

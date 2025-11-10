@@ -17,14 +17,15 @@
         <h2 class="book-title">{{ book?.name }}</h2>
         <div class="book-meta">
           <p><strong>Author:</strong> {{ authorName || 'Unknown' }}</p>
-          <p><strong>Series Position:</strong> {{ book?.reihe_position ?? '-' }}</p>
+          <p><strong>Series Position:</strong> {{ book?.position ?? '-' }}</p>
         </div>
 
         <div class="book-actions" v-if ="book">
           <button class="ctrl-btn material-symbols-outlined" @click="showEditor = true">edit</button>
           <button class="ctrl-btn material-symbols-outlined" @click="downloadBook([book.key])">download</button>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmDelete = true">delete</button>
-          <button class="ctrl-btn material-symbols-outlined" @click="searchBook(book?.key || '')">quick_reference_all</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="searchBook(book.key)">quick_reference_all</button>
+          <button class="ctrl-btn material-symbols-outlined" @click="previewRetagBook(book.key)">graph_1</button>
           <button class="ctrl-btn material-symbols-outlined" 
           @click="animate" :title="`Toggle to ${audio ? 'book' : 'audiobooks'}`"
           :class="{ anim: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
@@ -98,6 +99,13 @@
       @editBook="editBook"
     />
 
+    <RetagModal v-if="prv"
+      :visible="showRetag"
+      :prv="prv"
+      @retagBook="retagBooks"
+      @cancel="showRetag = false"
+    />
+
     <ManualSearch
       :query="query"
       :visible="interactiveSearch"
@@ -119,7 +127,8 @@ import EditModal from '@/components/EditModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
 import { getInitials, formatSize } from '@/utils.ts'
 import { useRoute } from 'vue-router'
-import type { BookNzb, Book, InteractiveSearch } from '@/main.ts'
+import type { BookNzb, Book, InteractiveSearch, PreviewRetag } from '@/main.ts'
+import RetagModal from '@/components/RetagBookModal.vue'
 
 
 const route = useRoute()
@@ -127,6 +136,7 @@ const book = ref<Book>()
 const authorName = ref('')
 const showConfirmDelete = ref(false)
 const showEditor = ref(false)
+const showRetag = ref(false)
 const interactiveSearch = ref(false)
 const manualSearchVersions = ref<BookNzb[]>([])
 const query = ref("")
@@ -139,6 +149,7 @@ const files = ref<{ audio: { path: string; size: number }[]; book: { path: strin
 })
 const audio = ref(true)
 const isAnimating = ref(false);
+const prv = ref<PreviewRetag>()
 
 async function editBook(book: Book) {
   try {
@@ -210,6 +221,27 @@ async function deleteBook() {
   } catch (err) {
     console.error('Failed to delete book:', err)
   }
+}
+
+async function previewRetagBook(key: string) {
+  try {
+    showRetag.value = true
+    const response = await api.get<PreviewRetag>(`/retag/book/${key}`)
+    prv.value = response.data
+  } catch(err){
+    console.log(err)
+  }
+}
+
+async function retagBooks(keys: string[]) {
+  console.log(keys)
+  showRetag.value = false
+  try {
+    await api.post(`/retag/books`, keys)
+  } catch (err) {
+    console.error('Failed to retag author', err)
+  }
+  fetchBook()
 }
 
 async function searchBook(key: string) {

@@ -1,7 +1,7 @@
 import re
 import asyncio
 from backend.dependencies import get_logger
-from backend.services.request_service import fetch_or_cached
+from backend.services.request import fetch_or_cached
 from bs4 import BeautifulSoup
 from io import BytesIO
 import json
@@ -21,7 +21,7 @@ async def scrape_search(q: str, cfg: ConfigManager, page: int = 1):
         "seite": page,
         "filterSPRACHE": get_language(cfg),
     }
-    data = await fetch_or_cached(base+suche, params=params)
+    data = await fetch_or_cached(cfg, base+suche, params=params)
     data = json.load(BytesIO(data))
     author_datas = set()
     for artikel in data["artikelliste"]:
@@ -33,7 +33,7 @@ async def scrape_search(q: str, cfg: ConfigManager, page: int = 1):
     return [id_ for id_ in ids if id_ is not None]
 
 async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
-    data = await fetch_or_cached(base+book+book_id)
+    data = await fetch_or_cached(cfg, base+book+book_id)
     data = json.load(BytesIO(data))[0]
     editions = []
     series_name = None
@@ -66,7 +66,7 @@ async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
 async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, metadata_only: bool = False):
     author_data={}
     author_data["key"] = author_id
-    data = await fetch_or_cached(base+author+author_id, xhr=False)
+    data = await fetch_or_cached(cfg, base+author+author_id, xhr=False)
     soup = await asyncio.to_thread(BeautifulSoup, data, "html.parser")
     if (avatar:=soup.find(class_="autor-avatar")) and (img:=avatar.find("img")):
         author_data["bild"] = img.get("src")
@@ -89,11 +89,11 @@ async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, 
         "filterSPRACHE": get_language(cfg),
         "sortierung": "Erscheinungsdatum_asc"
     }
-    _data = await fetch_or_cached(base+suche+"/mehr-von-autor", params)
+    _data = await fetch_or_cached(cfg, base+suche+"/mehr-von-autor", params)
     data = json.load(BytesIO(_data))
     coros = []
     for i in range(2, data["paginierung"]["anzahlSeiten"]+1):
-        coros.append(fetch_or_cached(base+suche+"/mehr-von-autor", {**params, "seite": i}))
+        coros.append(fetch_or_cached(cfg, base+suche+"/mehr-von-autor", {**params, "seite": i}))
     datas = [_data] + await asyncio.gather(*coros)
     for data in datas:
         data = json.load(BytesIO(data))
@@ -111,11 +111,11 @@ async def scrape_all_author_data(author_id: str, cfg: ConfigManager, name: str) 
 async def scrape_book_series(book_id: str, cfg: ConfigManager):
     books = []
     params = {"max": 50, "page": 1}
-    _data = await fetch_or_cached(base+series+book_id, params)
+    _data = await fetch_or_cached(cfg, base+series+book_id, params)
     data = json.load(BytesIO(_data))
     coros = []
     for i in range(2, data["totalPages"]+1):
-        coros.append(fetch_or_cached(base+series+book_id, {**params, "page": i}))
+        coros.append(fetch_or_cached(cfg, base+series+book_id, {**params, "page": i}))
     datas = [_data] + await asyncio.gather(*coros)
     for d in datas:
         d = json.load(BytesIO(d))

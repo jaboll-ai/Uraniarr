@@ -4,20 +4,20 @@ from time import time
 from enum import Enum
 from uuid import uuid4
 
-def id_generator():
-    return uuid4().hex[:12].upper()
+def id_generator(prefix: str = ""):
+    return prefix + uuid4().hex[:11].upper()
 
 medium_priority = {20: 0, 42: 1, 18: 2, 1: 3}
 
-class Reihe(SQLModel, table=True):
-    key: str = Field(primary_key=True, default_factory=id_generator)
+class Series(SQLModel, table=True):
+    key: str = Field(primary_key=True, default_factory=lambda: id_generator("S"))
     name: str
     autor_key: str = Field(foreign_key="author.key")
     a_dl_loc: Optional[str] = None
     b_dl_loc: Optional[str] = None
 
-    autor: "Author" = Relationship(back_populates="reihen")
-    books: List["Book"] = Relationship(back_populates="reihe", sa_relationship_kwargs={"order_by": "Book.reihe_position", "cascade": "all, delete-orphan"})
+    author: "Author" = Relationship(back_populates="series")
+    books: List["Book"] = Relationship(back_populates="series", sa_relationship_kwargs={"order_by": "Book.position", "cascade": "all, delete-orphan"})
 
 class Edition(SQLModel, table=True):
     key: str = Field(primary_key=True)
@@ -39,19 +39,20 @@ class Edition(SQLModel, table=True):
     book: "Book" = Relationship(back_populates="editions")
  
 class Book(SQLModel, table=True):
-    key: str = Field(primary_key=True, default_factory=id_generator)
+    key: str = Field(primary_key=True, default_factory=lambda: id_generator("B"))
     name: str
     autor_key: str = Field(foreign_key="author.key")
     bild: Optional[str] = None
-    reihe_key: Optional[str] = Field(default=None, foreign_key="reihe.key")
-    reihe_position: Optional[float] = None
+    series_key: Optional[str] = Field(default=None, foreign_key="series.key")
+    position: Optional[float] = None
     a_dl_loc: Optional[str] = None
     b_dl_loc: Optional[str] = None
     blocked: bool = False
+    foreign: bool = False
     
     # Change in api.py lin 143
-    autor: "Author" = Relationship(back_populates="books")
-    reihe: Optional["Reihe"] = Relationship(back_populates="books")
+    author: "Author" = Relationship(back_populates="books")
+    series: Optional["Series"] = Relationship(back_populates="books")
     editions: List["Edition"] = Relationship(back_populates="book", sa_relationship_kwargs={"order_by": case(medium_priority, value=Edition.medium, else_=10), "cascade": "all, delete-orphan"})
     activities: Optional[List["Activity"]] = Relationship(back_populates="book", sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "-Activity.created"})
     
@@ -65,8 +66,8 @@ class Author(SQLModel, table=True):
     b_dl_loc: Optional[str] = None
     is_series: bool = False
     
-    books: List["Book"] = Relationship(back_populates="autor", sa_relationship_kwargs={"order_by": (Book.reihe_key, Book.reihe_position), "cascade": "all, delete-orphan"})
-    reihen: List["Reihe"] = Relationship(back_populates="autor", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    books: List["Book"] = Relationship(back_populates="author", sa_relationship_kwargs={"order_by": (Book.series_key, Book.position), "cascade": "all, delete-orphan"})
+    series: List["Series"] = Relationship(back_populates="author", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     
 class ActivityStatus(str, Enum):
     imported = "imported"
@@ -77,7 +78,7 @@ class ActivityStatus(str, Enum):
     deleted = "deleted"
 
 class Activity(SQLModel, table=True):
-    nzo_id: str = Field(primary_key=True, default_factory=id_generator)
+    nzo_id: str = Field(primary_key=True, default_factory=lambda: id_generator("A"))
     created: float = Field(default_factory=time)
     release_title: str
     book_key: str = Field(foreign_key="book.key")

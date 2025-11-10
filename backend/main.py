@@ -7,24 +7,21 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel
 
-from backend.db import engine
+from backend.db import init_db
 from backend.routers import dapi, tapi, api
 from backend.exceptions import BaseError
 from backend.config import ConfigManager
-from backend.services.filehelper import periodic_task, scan_and_move_all_files, rescan_files, reimport_files
-from backend.services.request_service import reload_scraper
+from backend.services.jobs import init_jobs, stop_jobs
+from backend.services.request import reload_scraper
 from backend.services.indexer import *
 from backend.services.downloader import *
-from backend.dependencies import get_logger
+from backend.dependencies import get_error_logger, get_logger
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+
 
 def init_err_log(cfg: ConfigManager):
-    uraniarr_err = logging.getLogger("uraniarr.err")
+    uraniarr_err = get_error_logger()
     uraniarr_err.propagate = False
     uraniarr_err.setLevel(logging.ERROR)
     file_handler = logging.FileHandler(f"{cfg.config_dir}/errors.log")
@@ -39,9 +36,9 @@ def init_err_log(cfg: ConfigManager):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cfg = ConfigManager()
-    await init_db()
+    cfg = ConfigManager(os.getenv("CONFIG_DIR", "./config"))
     init_err_log(cfg)
+    app.state.engine = await init_db(cfg)
     app.state.cfg_manager = cfg
     app.state.indexer = ProwlarrService() if cfg.indexer_prowlarr else NewznabService()
     if cfg.downloader_type == "sab":
@@ -49,11 +46,7 @@ async def lifespan(app: FastAPI):
     else:
         cfg.downloader_type = "sab" #TODO other downloaders
         app.state.downloader = SABDownloader()
-    tasks = {
-        "import": asyncio.create_task(periodic_task("import_poll_interval", scan_and_move_all_files, app.state, "ImportJob")),
-        "check_deleted": asyncio.create_task(periodic_task("rescan_interval", rescan_files, app.state, "CheckFileAvailabilityJob")),
-        "reimport": asyncio.create_task(periodic_task("reimport_interval", reimport_files, app.state, "ImportForeignJob")),
-    }
+    init_jobs(app.state)
     try:
         await reload_scraper(app.state)
     except BaseError as e:
@@ -64,11 +57,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         try:
-            with suppress(Exception):
-                for t in tasks.values():
-                    t.cancel()
-            with suppress(asyncio.CancelledError):
-                await asyncio.gather(*tasks.values())
+            await stop_jobs(app.state)
             with suppress(Exception):
                 await app.state.browser.close()
             with suppress(Exception):
@@ -92,7 +81,7 @@ async def handle_scrape_error(request: Request, exc: BaseError):
 
 @app.exception_handler(Exception)
 async def handle_all_error(request: Request, exc: Exception):
-    logging.getLogger("uraniarr.err").exception(exc)
+    get_error_logger().exception(exc)
     return JSONResponse(status_code=500, content={"detail": "UnexpectedError", "type": "UnexpectedError"})
 
 app.include_router(tapi.router)

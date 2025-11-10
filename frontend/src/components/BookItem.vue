@@ -11,7 +11,7 @@
       {{ book.key }}
     </div>
     <div class="info">
-      {{ book.reihe_position?? "" }}
+      {{ book.position?? "" }}
     </div>
     <div class="info material-symbols-outlined" :title="getTooltip()">
       {{ getStatus() }}

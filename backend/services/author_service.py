@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.datamodels import *
 from backend.dependencies import get_logger
 from backend.exceptions import AuthorError
-from backend.services.scrape_service import clean_title
+from backend.services.scrape import clean_title
 
 async def save_author_to_db(author_id: str, session: AsyncSession, scraped: dict, override: bool = False):
     author_data = scraped["author_data"]
@@ -21,7 +21,7 @@ async def save_author_to_db(author_id: str, session: AsyncSession, scraped: dict
     return resp
 
 async def add_books_to_author(author: Author, session: AsyncSession, books_data: list):
-    reihen: dict[str, Reihe] = {}
+    found_series: dict[str, Series] = {}
     sanity_dedub = set() # see A1040945738 for funky shit
     result = await session.exec(select(Edition.key))
     in_db = set(result.scalars().all())
@@ -33,15 +33,15 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
         if any([ed["key"] in in_db for ed in eds]): 
             get_logger().warning(f"Skipping {eds[0]['key']} because it already exists")
         book = Book(autor_key=author.key)
-        book.name, book.bild, book.reihe_position = clean_title(eds[0].get("titel")), eds[0].get("bild"), eds[0].get("_pos")
+        book.name, book.bild, book.position = clean_title(eds[0].get("titel")), eds[0].get("bild"), eds[0].get("_pos")
         if series_title:
             ctitles = [clean_title(ed.get("titel"), series_title, ed.get("_pos")) for ed in eds]
             book.name = sorted(ctitles, key=lambda x: len(x))[0]
-            reihe = reihen.setdefault(series_title, Reihe(name=series_title, autor_key=author.key))
-            reihe.books.append(book)
-            # if book.reihe_position and (bs:=[b for b in reihe.books if b.reihe_position and int(b.reihe_position) == int(book.reihe_position)]):
+            series = found_series.setdefault(series_title, Series(name=series_title, autor_key=author.key))
+            series.books.append(book)
+            # if book.position and (bs:=[b for b in series.books if b.position and int(b.position) == int(book.position)]):
             #     for idx, b in enumerate(bs):
-            #         b.reihe_position = round(0.1*idx + int(book.reihe_position), 1) # maybe check date before??
+            #         b.position = round(0.1*idx + int(book.position), 1) # maybe check date before??
         editions = []
         for i in eds:
             if i["key"] in sanity_dedub or i["key"] in in_db:
@@ -52,77 +52,77 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
         author.books.append(book)
     session.add(author)
     await session.flush()
-    await session.refresh(author, attribute_names=["reihen"])
-    await auto_union_series(author.reihen, session)
-    coros = [clean_series_duplicates(reihe, session) for reihe in author.reihen]
+    await session.refresh(author, attribute_names=["series"])
+    await auto_union_series(author.series, session)
+    coros = [clean_series_duplicates(series, session) for series in author.series]
     await asyncio.gather(*coros)
     resp = author.key
     await session.commit()
     return resp
 
-async def auto_union_series(reihen: list[Reihe], session: AsyncSession):
-    for r1, r2 in combinations(reihen, 2):
-        if fuzz.WRatio(r1.name.replace("-", " "), r2.name.replace("-", " ")) > 80:
+async def auto_union_series(series: list[Series], session: AsyncSession):
+    for r1, r2 in combinations(series, 2):
+        if fuzz.WRatio(r1.name, r2.name) > 80:
             if len(r1.name) > len(r2.name): r1, r2 = r2, r1
             for book in r2.books:
-                book.name = clean_title(book.name, r1.name, book.reihe_position)
+                book.name = clean_title(book.name, r1.name, book.position)
             r1.books.extend(r2.books)
             await session.delete(r2)
 
-async def clean_series_duplicates(reihe: Reihe, session: AsyncSession):
-    for book, book2 in combinations(reihe.books, 2):
-        if not book.reihe_position or not book2.reihe_position: continue
-        if float(book.reihe_position) == float(book2.reihe_position) and ( 
-            (_b1:=clean_title(book.name, reihe.name, book.reihe_position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
-            clean_title(book2.name, reihe.name, book2.reihe_position, can_be_empty=True)=="" or
-            fuzz.ratio(book.name, book2.name) > 80): # we basically have the same book twice
+async def clean_series_duplicates(series: Series, session: AsyncSession):
+    for book, book2 in combinations(series.books, 2):
+        if not book.position or not book2.position: continue
+        if float(book.position) == float(book2.position) and ( 
+            (_b1:=clean_title(book.name, series.name, book.position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
+            clean_title(book2.name, series.name, book2.position, can_be_empty=True)=="" or
+            fuzz.WRatio(book.name, book2.name) > 80): # we basically have the same book twice
             if _b1: book, book2 = book2, book
             book.editions.extend(book2.editions)
             await session.delete(book2)
 
 async def complete_series_in_db(series_id: str, session: AsyncSession, scraped: dict):
-    reihe = await session.get(Reihe, series_id)
-    if not reihe:
+    series = await session.get(Series, series_id)
+    if not series:
         raise AuthorError(status_code=404, detail="Series not found")
     for book_data in scraped:
         if await session.get(Edition, book_data.get("key")): continue
-        book = Book(autor_key=reihe.autor_key, name=book_data.get("titel"), bild=book_data.get("bild"), reihe_position=book_data.get("_pos"))
+        book = Book(autor_key=series.autor_key, name=book_data.get("titel"), bild=book_data.get("bild"), position=book_data.get("_pos"))
         book.editions.append(Edition(**book_data))
-        reihe.books.append(book)
+        series.books.append(book)
     await session.commit()
     resp = [b["key"] for b in scraped]
     return resp
 
 async def make_author_from_series(name:str, session: AsyncSession, scraped: dict):
     author = Author(key=id_generator(), name=name, is_series=True)
-    reihe = Reihe(name=name)
+    series = Series(name=name)
     result = await session.exec(select(Edition.key))
     in_db = set(result.scalars().all())
     for book_data in scraped:
         if book_data.get("key") in in_db: 
             raise AuthorError(status_code=409, detail="Book already exists for diffrent author")
-        book = Book(autor_key=author.key, name=book_data.get("titel"), bild=book_data.get("bild"), reihe_position=book_data.get("_pos"))
+        book = Book(autor_key=author.key, name=book_data.get("titel"), bild=book_data.get("bild"), position=book_data.get("_pos"))
         book.editions.append(Edition(**book_data))
-        reihe.books.append(book)
-    author.reihen = [reihe]
+        series.books.append(book)
+    author.series = [series]
     session.add(author)
     resp = author.key
     await session.commit()
     return resp
 
 async def union_series(series_id: str, series_ids: list[str], session: AsyncSession):
-    reihe = await session.get(Reihe, series_id, options=[selectinload(Reihe.books)])
-    if not reihe:
+    series = await session.get(Series, series_id, options=[selectinload(Series.books)])
+    if not series:
         raise AuthorError(status_code=404, detail="Series not found")
-    r2s = await session.exec(select(Reihe).where(Reihe.key.in_(series_ids)).options(selectinload(Reihe.books)))
-    reihen = r2s.scalars().all()
+    r2s = await session.exec(select(Series).where(Series.key.in_(series_ids)).options(selectinload(Series.books)))
+    series = r2s.scalars().all()
     # if len(r2s) != len(series_ids):
     #     raise AuthorError(status_code=404, detail="Series not found")
-    for reihe2 in reihen:
-        for book in reihe2.books:
-            book.name = clean_title(book.name, reihe.name, book.reihe_position)
-        reihe.books.extend(reihe2.books)
-        await session.delete(reihe2)
-    await clean_series_duplicates(reihe, session)
+    for series2 in series:
+        for book in series2.books:
+            book.name = clean_title(book.name, series.name, book.position)
+        series.books.extend(series2.books)
+        await session.delete(series2)
+    await clean_series_duplicates(series, session)
     await session.commit()
     return series_ids

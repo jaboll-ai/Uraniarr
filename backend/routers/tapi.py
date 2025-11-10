@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from backend.datamodels import Edition
 from backend.dependencies import get_cfg_manager
-from backend.services.scrape_service import (
+from backend.services.scrape import (
     scrape_book_editions,
     scrape_author_data,
     scrape_search,

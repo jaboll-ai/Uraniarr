@@ -58,6 +58,8 @@ const originalSettings = ref<Record<string, ConfigEntry>>({})
 const settings = ref<Record<string, ConfigEntry>>({})
 
 const settingNames: Record<string, string> = {
+  book_template: 'Book Template',
+  audiobook_template: 'Audiobook Template',
   indexer_url: 'Indexer URL',
   indexer_apikey: 'Indexer API Key',
   indexer_prowlarr: 'Use Prowlarr Integration',
@@ -83,6 +85,8 @@ const settingNames: Record<string, string> = {
 }
 
 const tooltips: Record<string, string> = {
+  book_template: 'Replaces placeholders like {{attr}} with values from the selected object. Supports simple formatting inside braces like {{book.position} - }',
+  audiobook_template: 'Replaces placeholders like {{attr}} with values from the selected object. Supports simple formatting inside braces like {{book.position} - }',
   indexer_url: 'Base URL of your indexer (e.g. Prowlarr or Newznab).',
   indexer_apikey: 'API key used to authenticate with your indexer.',
   indexer_prowlarr: 'Toggle if your indexer runs via Prowlarr integration.',
