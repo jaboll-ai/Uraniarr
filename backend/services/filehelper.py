@@ -77,8 +77,8 @@ def compute_template(book: Book, template: str):
 def get_destination_dir(book: Book, audio: bool, cfg) -> tuple[str, Optional[str], Path]:
     template = cfg.audiobook_template if audio else cfg.book_template
     dst_base = Path(cfg.audio_path if audio else cfg.book_path)
+    author_dir, series_dir, book_dst = None, None, None
     if template:
-        author_dir, series_dir, book_dst = None, None, None
         book_dst, attrs = compute_template(book, template)
         if attrs.get("author"):
             author_dir = str(dst_base/attrs.get("author"))

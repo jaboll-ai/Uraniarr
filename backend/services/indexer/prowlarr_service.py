@@ -19,7 +19,7 @@ class ProwlarrService(BaseIndexer):
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
         data = response.json()
         return data
-    
+
     async def grab(self, download, cfg):
         async with httpx.AsyncClient() as client:
             response = await client.get(download, follow_redirects=True)
@@ -27,7 +27,7 @@ class ProwlarrService(BaseIndexer):
         response.encoding = 'utf-8'
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
         return response.content
-    
+
 
     async def query_manual(self, book, page, cfg, audio):
         base_queries = self.build_queries(book)
@@ -50,7 +50,7 @@ class ProwlarrService(BaseIndexer):
             for q in base_queries: #TODO
                 data = await self.search(q, cfg=cfg, audio=audio)
                 if len(data) != 0: break
-            else: return None, None
+            else: return None, None, None
             item = data[0]
             name = item["title"]
             guid = item["guid"]

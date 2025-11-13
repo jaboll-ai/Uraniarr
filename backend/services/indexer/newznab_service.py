@@ -28,9 +28,9 @@ class NewznabService(BaseIndexer):
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
         data = response.json()
         return data
-    
+
     async def grab(self, download, cfg):
-        if (timeout:=time() - self.last_hit) < cfg.indexer_timeout: 
+        if (timeout:=time() - self.last_hit) < cfg.indexer_timeout:
             await asyncio.sleep(cfg.indexer_timeout - timeout)
         self.last_hit = time()
         get = {
@@ -83,7 +83,7 @@ class NewznabService(BaseIndexer):
                 query = data["channel"]
                 if (total:=query["response"]["@attributes"]["total"]) != "0":
                     break
-            else: return None, None
+            else: return None, None, None
             item = query["item"] if total == "1" else query["item"][0]
             name = item["title"]
             for attribute in item["attr"]:

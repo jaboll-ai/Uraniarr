@@ -36,7 +36,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue'
 import { diffDisplay } from '@/utils.ts'
 import type { PreviewRetag } from '@/main.ts'
 
