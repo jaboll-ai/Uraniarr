@@ -5,7 +5,7 @@
       :key="group.series.key"
       class="series-group"
       :style="{ maxHeight: collapseMap[group.series.key] ? '100%' : '40px' }"
-    > 
+    >
       <div style="display: flex;">
         <button title="Collapse series" class="collapse-btn material-symbols-outlined" @click="collapseMap[group.series.key] = !collapseMap[group.series.key]">
           {{ collapseMap[group.series.key] ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
@@ -24,10 +24,10 @@
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
         <button title="Delete entire series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
-      <BookList 
-      @downloadBook="$emit('downloadBook', $event)" 
-      @deleteBook="$emit('deleteBook', $event)" 
-      @editBook="$emit('editBook', $event)" 
+      <BookList
+      @downloadBook="$emit('downloadBook', $event)"
+      @deleteBook="$emit('deleteBook', $event)"
+      @editBook="$emit('editBook', $event)"
       @searchBook="$emit('searchBook', $event)"
       :showBox="showBox" :books="group.books" :seriesGroups="[]"
       :audio="audio"/>

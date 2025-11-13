@@ -25,13 +25,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{ 
-  visible: boolean 
+defineProps<{
+  visible: boolean
   adding: boolean
 }>()
-const emit = defineEmits<{ 
-  (e: 'submit', data: {name: string, entry_id: string}): void; 
-  (e: 'cancel'): void 
+const emit = defineEmits<{
+  (e: 'submit', data: {name: string, entry_id: string}): void;
+  (e: 'cancel'): void
 }>()
 
 const book = ref('')

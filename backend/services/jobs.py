@@ -31,7 +31,7 @@ def get_job_by_interval(key: str):
     for k, v in mapping.items():
         if v["interval_attr"] == key:
             return k
-    
+
 
 def get_job_args(key: str):
     if key not in mapping:

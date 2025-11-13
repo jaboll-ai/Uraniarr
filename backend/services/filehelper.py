@@ -86,7 +86,7 @@ def get_destination_dir(book: Book, audio: bool, cfg) -> tuple[str, Optional[str
             series_dir = str(dst_base/attrs.get("series"))
         if book_dst:
             return author_dir, series_dir, dst_base/book_dst
-            
+
     dst_dir = dst_base / book.author.name
     author_dir = str(dst_dir)
 
@@ -202,7 +202,7 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
         if activity is not None:
             activity.status = ActivityStatus.imported
         if audio:
-            book.a_dl_loc = str(dst_dir) 
+            book.a_dl_loc = str(dst_dir)
             if not overwrite:
                 return activity.nzo_id if activity else "retag"
             book.author.a_dl_loc = autor_dir
@@ -243,7 +243,7 @@ def preview_retag(book: Book, cfg: ConfigManager):
         get_logger().log(5, f"{old} == {new}: {old == new}")
         if old == new:
             get_logger().debug(f"RETAG Nothing to do for {book.name}")
-        else: 
+        else:
             prv["retag"]["new_audio"] = book_dir
     if book.b_dl_loc:
         prv["retag"]["old_book"] = book.b_dl_loc
@@ -254,7 +254,7 @@ def preview_retag(book: Book, cfg: ConfigManager):
         get_logger().log(5, f"{old} == {new}: {old == new}")
         if old == new:
             get_logger().debug(f"RETAG Nothing to do for {book.name}")
-        else: 
+        else:
             prv["retag"]["new_book"] = book_dir
     return prv
 
@@ -269,7 +269,7 @@ async def retag_book(book: Book, cfg: ConfigManager, overwrite: bool = False):
         moved.append(asyncio.to_thread(import_book_from_acitivity, None, book, False, Path(book.b_dl_loc), cat_dir=b.parent, cfg=cfg, overwrite=overwrite))
     r = await asyncio.gather(*moved)
     if len(r) == 0: return None, None
-    if len(r) == 1: 
+    if len(r) == 1:
         if book.a_dl_loc:
             return r[0], None
         if book.b_dl_loc:
@@ -315,7 +315,7 @@ async def get_files_of_book(book: Book):
 def get_files_from_disk(path: str | None):
     if path is None: return []
     path = Path(path)
-    try: 
+    try:
         return sorted([p for p in path.iterdir() if p.is_file()])
     except Exception as e:
         return None
@@ -362,7 +362,7 @@ async def scan_and_move_all_files(state):
         moved = []
         for key, slot in hist.items():
             activity = await session.get(Activity, key, options=[
-                selectinload(Activity.book).selectinload(Book.author), 
+                selectinload(Activity.book).selectinload(Book.author),
                 selectinload(Activity.book).selectinload(Book.series).selectinload(Series.books),
                 selectinload(Activity.book).selectinload(Book.activities)
             ])
@@ -408,7 +408,7 @@ async def reimport_files(state):
     downloader: BaseDownloader = state.downloader
     async with AsyncSession(state.engine) as session:
         query = await session.exec(select(Book).options(
-            selectinload(Book.author), 
+            selectinload(Book.author),
             selectinload(Book.series).selectinload(Series.books),
             selectinload(Book.activities)
         ).order_by(func.length(Book.name).desc()))
@@ -457,8 +457,8 @@ async def reimport_files(state):
         # await asyncio.gather(*moved) #TODO log
         await session.commit()
 
-            
 
 
-            
+
+
 

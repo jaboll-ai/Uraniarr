@@ -57,7 +57,7 @@ async def get_books_of_series(series_id: str, session: AsyncSession = Depends(ge
             resp["activities"] = book.activities
             books.append(resp)
         return books
-    raise HTTPException(status_code=404, detail="Series not found") 
+    raise HTTPException(status_code=404, detail="Series not found")
 
 @router.get("/book/{book_id}")
 async def get_book(book_id: str, session: AsyncSession = Depends(get_session)):
@@ -147,7 +147,7 @@ async def unite_series(data: UnionSeries, session: AsyncSession = Depends(get_se
 @router.patch("/book/{book_id}")
 async def update_book(book_id: str, data: dict, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     book = await session.get(Book, book_id, options=[
-        selectinload(Book.author), 
+        selectinload(Book.author),
         selectinload(Book.series).selectinload(Series.books),
         selectinload(Book.activities)
     ])
@@ -166,7 +166,7 @@ async def update_book(book_id: str, data: dict, session: AsyncSession = Depends(
 @router.get("/retag/author/{author_id}")
 async def get_preview_retag_author(author_id: str, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     author = await session.get(Author, author_id, options=[
-        selectinload(Author.books).selectinload(Book.author), 
+        selectinload(Author.books).selectinload(Book.author),
         selectinload(Author.books).selectinload(Book.series).selectinload(Series.books),
         selectinload(Author.books).selectinload(Book.activities)
     ])
@@ -182,7 +182,7 @@ async def get_preview_retag_author(author_id: str, session: AsyncSession = Depen
 @router.get("/retag/book/{book_id}")
 async def get_preview_retag(book_id: str, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     book = await session.get(Book, book_id, options=[
-        selectinload(Book.author), 
+        selectinload(Book.author),
         selectinload(Book.series).selectinload(Series.books),
         selectinload(Book.activities)
     ])
@@ -194,7 +194,7 @@ async def get_preview_retag(book_id: str, session: AsyncSession = Depends(get_se
 @router.post("/retag/books")
 async def do_retag_books(data: list[str], session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
     query = await session.exec(select(Book).where(Book.key.in_(data)).options(
-        selectinload(Book.author), 
+        selectinload(Book.author),
         selectinload(Book.series).selectinload(Series.books),
         selectinload(Book.activities)
     ))
@@ -231,7 +231,7 @@ async def update_settings(settings: dict[str, Any], request: Request):
         if key == "playwright":
             await reload_scraper(state)
         elif key == "indexer_prowlarr":
-            state.indexer = ProwlarrService() if settings[key] else NewznabService()   
+            state.indexer = ProwlarrService() if settings[key] else NewznabService()
         elif key == "downloader_type":
             if cfg.downloader_type == "sab":
                 state.downloader = SABDownloader()

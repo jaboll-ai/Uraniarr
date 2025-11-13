@@ -42,7 +42,7 @@ async def reload_scraper(state):
         state.browser = create_scraper()
     scraper = state.browser
 
-    
+
 async def fetch(cfg: ConfigManager, url: str, params: dict, xhr: bool) -> dict:
     target = f"{url}?{urlencode(params)}" if params else url
     if cfg.playwright:

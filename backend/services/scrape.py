@@ -77,7 +77,7 @@ async def scrape_author_data(author_id: str, cfg: ConfigManager, name:str=None, 
     if (bio_container := soup.find(class_="autor-portrait")):
         if (bio_div := bio_container.find("div", class_="toggle-text-content")):
             author_data["bio"] = bio_div.get_text().strip()
-    if metadata_only: 
+    if metadata_only:
         if author_data.get("name") is None:
             return
         return author_data

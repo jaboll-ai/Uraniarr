@@ -66,7 +66,7 @@ const titles = ref<string[]>([])
 watch(() => props.book, (newBook) => {
   Object.assign(form, newBook);
   getTitles()
-}, 
+},
 { immediate: true })
 
 function getChangedFields() {

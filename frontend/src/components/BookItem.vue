@@ -89,7 +89,7 @@ function getTooltip() {
 .book-name{
   width: 30%;
   margin: auto 20px;
-  overflow: hidden; 
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 .info{

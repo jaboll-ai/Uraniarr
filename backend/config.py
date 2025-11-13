@@ -8,7 +8,7 @@ class ConfigManager:
     """
 
     _SPECIAL_ATTRS = {"config_dir", "config_file", "_data", "_save"}
-    
+
 
     def __init__(self, config_dir = None):
         # Set up paths without triggering __setattr__ for config data
@@ -156,7 +156,7 @@ class ConfigManager:
             self._save()
 
     def get(self):
-        r = { 
+        r = {
             k : {
                 "value": v["value"] if v["input_type"] != "password" else "*"*len(v["value"]),
                 "input_type": v["input_type"]

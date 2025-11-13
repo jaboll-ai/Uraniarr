@@ -26,7 +26,7 @@
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmDelete = true">delete</button>
           <button class="ctrl-btn material-symbols-outlined" @click="searchBook(book.key)">quick_reference_all</button>
           <button class="ctrl-btn material-symbols-outlined" @click="previewRetagBook(book.key)">graph_1</button>
-          <button class="ctrl-btn material-symbols-outlined" 
+          <button class="ctrl-btn material-symbols-outlined"
           @click="animate" :title="`Toggle to ${audio ? 'book' : 'audiobooks'}`"
           :class="{ anim: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
         </div>

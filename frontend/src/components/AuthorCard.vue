@@ -4,7 +4,7 @@
       <h2 class="author-name">{{ author.name }}</h2>
       <img v-if="author.bild" :src="author.bild" :alt="author.name" class="author-image" />
       <div v-else class="author-image">{{ getInitials(author.name) }}</div>
-    </div> 
+    </div>
   </router-link>
 </template>
 
@@ -21,7 +21,7 @@ const { author } = defineProps<{
 <style scoped>
 
 .author-card-link {
-  display: block; 
+  display: block;
   width: 100%;
   height: 100%;
   text-decoration: none;

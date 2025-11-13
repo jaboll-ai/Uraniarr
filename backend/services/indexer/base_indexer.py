@@ -26,7 +26,7 @@ class BaseIndexer(ABC):
     @abstractmethod
     async def grab(self, download: str, cfg: ConfigManager):
         pass
-    
+
     def build_queries(self, book: Book): #TODO revisit
         base_queries = [f"{book.author.name} {book.name}"]
         base_queries.append(book.name)
@@ -47,7 +47,7 @@ class BaseIndexer(ABC):
                     base_queries.append(f"{fix_umlaut(book.series.name)} {int(book.position)}")
 
         return base_queries
-    
+
     def normalize(self, url: str) -> str:
         url=url.rstrip("/")
         url=url.rstrip("/api") + "/api"

@@ -1,7 +1,7 @@
 <template>
   <div class="placeholder" v-if="authors.length === 0"><span class="symbol material-symbols-outlined">book_2</span></div>
   <div class="authors" v-if="authors.length > 0">
-    <AuthorCard 
+    <AuthorCard
       v-for="author in authors"
       :key="author.key"
       :author="author"

@@ -17,9 +17,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 defineProps<{ visible: boolean; message?: string, blocking?: boolean }>()
-defineEmits<{ 
+defineEmits<{
   (e: 'confirm', blocking?: boolean ): void
-  (e: 'cancel'): void 
+  (e: 'cancel'): void
 }>()
 const checked = ref(false)
 </script>

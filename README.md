@@ -4,14 +4,14 @@
 </p>
 
 > [!WARNING]
-> Doesn't work behind a VPN... yet.. maybe soon(tm). The scraping sometimes, repeatedly fails... just try again until it works. 
+> Doesn't work behind a VPN... yet.. maybe soon(tm). The scraping sometimes, repeatedly fails... just try again until it works.
 
 > [!CAUTION]
 > This project is really experimental and might not work/break something on your system. There will be dragons!
 
 # Uraniarr
 
-[Uraniarr](https://de.wikipedia.org/wiki/Urania) is an ebook and audiobook collection manager that aims to provide functionality to grab, sort and reorder books and audiobooks in one instance. In an effort to decentralize the metadata, because past projects have proofen this to be the most challenging task, the metadata is scraped/fetched from Vendors, with an attempt to sanitize and clean the data as much as automatically possible before using it. 
+[Uraniarr](https://de.wikipedia.org/wiki/Urania) is an ebook and audiobook collection manager that aims to provide functionality to grab, sort and reorder books and audiobooks in one instance. In an effort to decentralize the metadata, because past projects have proofen this to be the most challenging task, the metadata is scraped/fetched from Vendors, with an attempt to sanitize and clean the data as much as automatically possible before using it.
 
 ## Overview
 <img width="49%" alt="light-and-dark" src="https://github.com/user-attachments/assets/5472fd32-d5ae-486c-a5d1-0fb581656b7b" />
@@ -20,7 +20,7 @@
 
 ## Features
 
-- **Downloading**  
+- **Downloading**
   Uraniarr currently supports SABnzbd as a downloader.
 - **File Management**
   Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. Currently no custimization options
@@ -30,7 +30,7 @@
   3. Refining of visuals
 
 ## Getting Started
-1. **Docker Compose**  
+1. **Docker Compose**
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
    ```yaml
     services:
@@ -43,7 +43,7 @@
         environment:
           - CONFIG_DIR=/config
           # Necessary! change to the book vendor named after the greek muse
-          - VENDOR=https://www.t****.de 
+          - VENDOR=https://www.t****.de
         # volumes: #make sure the folder exists on host
         #   - <on-host-config>:/config #e.g. /etc/uraniarr
         #   - <on-host-data>:/data #internal must match data_path in your config

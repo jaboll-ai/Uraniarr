@@ -16,7 +16,7 @@
           </button>
           <button class="ctrl-btn material-symbols-outlined" title="Delete the author from DB" @click="showConfirmAuthor = true">delete</button>
           <button class="ctrl-btn material-symbols-outlined" title="Retag all Books of author" @click="previewRetagAuthor">graph_1</button>
-          <button class="ctrl-btn material-symbols-outlined" 
+          <button class="ctrl-btn material-symbols-outlined"
           @click="animate" :title="`Toggle to ${audio ? 'book' : 'audiobooks'}`"
           :class="{ active: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
         </div>
@@ -67,7 +67,7 @@
       @close="showEditor = false"
       @editBook="editBook"
     />
-    <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey" 
+    <ManualSearch :query="query" :visible="interactiveSearch" :book="manualSearchKey"
     :pages="manualSearchPages" :versions="manualSearchVersions"
      @close="closeManualSearch" @select="downloadBookManual" @paginate="searchBookPaginate"/>
     <RetagAuthorModal v-if="prv"
@@ -412,7 +412,7 @@ async function animate() {
   aspect-ratio: 1/1;
   object-fit: cover;
   box-sizing: border-box;
-  
+
 }
 .author-bio {
   border: 1px solid var(--borderColor);

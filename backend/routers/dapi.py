@@ -122,7 +122,7 @@ async def get_activities(request: Request, session: AsyncSession = Depends(get_s
         "status": "Failed to import" if activity.status == ActivityStatus.failed else result[activity.nzo_id]["status"]
     } for activity in nzbs]
     return sorted(resp, key=lambda x: int(x["percentage"]), reverse=True)
-    
+
 @router.delete("/activity/{activity_id}")
 async def delete_activity(request: Request, activity_id: str, session: AsyncSession = Depends(get_session)):
     downloader: BaseDownloader = request.app.state.downloader
@@ -137,7 +137,7 @@ async def delete_activity(request: Request, activity_id: str, session: AsyncSess
 
 async def schedule_download(guid: str, release_title: str, nzb : bytes, downloader: BaseDownloader, cfg: ConfigManager, session: AsyncSession, book: Book, audio: bool):
     data = await downloader.download(nzb, nzbname=release_title, cfg=cfg)
-    if not data: 
+    if not data:
         raise HTTPException(status_code=500, detail="Download failed")
     try:
         activity = Activity(nzo_id=data[0], book=book, release_title=release_title, audio=audio, guid=guid)

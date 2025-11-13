@@ -98,7 +98,7 @@ button:disabled{
     --borderColor: #252525;
     --offWhite: #454545;
 
-  } 
+  }
 }
 
 @keyframes spin {

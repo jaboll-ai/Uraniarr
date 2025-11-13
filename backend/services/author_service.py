@@ -26,11 +26,11 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
     result = await session.exec(select(Edition.key))
     in_db = set(result.scalars().all())
     for eds, series_title in books_data:
-        if not eds: 
+        if not eds:
             get_logger().debug(f"Skipping book because it has no editions")
             continue
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
-        if any([ed["key"] in in_db for ed in eds]): 
+        if any([ed["key"] in in_db for ed in eds]):
             get_logger().warning(f"Skipping {eds[0]['key']} because it already exists")
         book = Book(autor_key=author.key)
         book.name, book.bild, book.position = clean_title(eds[0].get("titel")), eds[0].get("bild"), eds[0].get("_pos")
@@ -72,7 +72,7 @@ async def auto_union_series(series: list[Series], session: AsyncSession):
 async def clean_series_duplicates(series: Series, session: AsyncSession):
     for book, book2 in combinations(series.books, 2):
         if not book.position or not book2.position: continue
-        if float(book.position) == float(book2.position) and ( 
+        if float(book.position) == float(book2.position) and (
             (_b1:=clean_title(book.name, series.name, book.position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
             clean_title(book2.name, series.name, book2.position, can_be_empty=True)=="" or
             get_scorer()(book.name, book2.name) > 80): # we basically have the same book twice
@@ -99,7 +99,7 @@ async def make_author_from_series(name:str, session: AsyncSession, scraped: dict
     result = await session.exec(select(Edition.key))
     in_db = set(result.scalars().all())
     for book_data in scraped:
-        if book_data.get("key") in in_db: 
+        if book_data.get("key") in in_db:
             raise AuthorError(status_code=409, detail="Book already exists for diffrent author")
         book = Book(autor_key=author.key, name=book_data.get("titel"), bild=book_data.get("bild"), position=book_data.get("_pos"))
         book.editions.append(Edition(**book_data))

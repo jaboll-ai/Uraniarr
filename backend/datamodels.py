@@ -28,16 +28,16 @@ class Edition(SQLModel, table=True):
     altersempfehlung: Optional[str] = None
     erscheinungsdatum: Optional[str] = None
     herausgeber: Optional[str] = None
-    verlag: Optional[str] = None 
+    verlag: Optional[str] = None
     auflage: Optional[str] = None
     übersetzt_von: Optional[str] = None
     sprache: Optional[str] = None
     isbn: Optional[str] = None
     ean: Optional[str] = None
     medium: Optional[int] = None
-    
+
     book: "Book" = Relationship(back_populates="editions")
- 
+
 class Book(SQLModel, table=True):
     key: str = Field(primary_key=True, default_factory=lambda: id_generator("B"))
     name: str
@@ -49,13 +49,13 @@ class Book(SQLModel, table=True):
     b_dl_loc: Optional[str] = None
     blocked: bool = False
     foreign: bool = False
-    
+
     # Change in api.py lin 143
     author: "Author" = Relationship(back_populates="books")
     series: Optional["Series"] = Relationship(back_populates="books")
     editions: List["Edition"] = Relationship(back_populates="book", sa_relationship_kwargs={"order_by": case(medium_priority, value=Edition.medium, else_=10), "cascade": "all, delete-orphan"})
     activities: Optional[List["Activity"]] = Relationship(back_populates="book", sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "-Activity.created"})
-    
+
 
 class Author(SQLModel, table=True):
     key: str = Field(primary_key=True)
@@ -65,10 +65,10 @@ class Author(SQLModel, table=True):
     a_dl_loc: Optional[str] = None
     b_dl_loc: Optional[str] = None
     is_series: bool = False
-    
+
     books: List["Book"] = Relationship(back_populates="author", sa_relationship_kwargs={"order_by": (Book.series_key, Book.position), "cascade": "all, delete-orphan"})
     series: List["Series"] = Relationship(back_populates="author", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
-    
+
 class ActivityStatus(str, Enum):
     imported = "imported"
     download = "download"
@@ -83,7 +83,7 @@ class Activity(SQLModel, table=True):
     release_title: str
     book_key: str = Field(foreign_key="book.key")
     status: ActivityStatus = ActivityStatus.download
-    audio: bool 
+    audio: bool
     guid: Optional[str] = None
 
     book: "Book" = Relationship(back_populates="activities")
