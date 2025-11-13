@@ -5,12 +5,15 @@
       :key="group.series.key"
       class="series-group"
       :style="{ maxHeight: collapseMap[group.series.key] ? '100%' : '40px' }"
-    > 
+    >
       <div style="display: flex;">
         <button title="Collapse series" class="collapse-btn material-symbols-outlined" @click="collapseMap[group.series.key] = !collapseMap[group.series.key]">
           {{ collapseMap[group.series.key] ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
         </button>
-        <h3 class="series-name">{{ group.series.name }}</h3>
+        <div class="series-name">
+            <span>{{ group.series.name }}</span>
+            <span class="series-id">({{ group.series.key }})</span>
+          </div>
         <button v-if="!showCleanup[group.series.key]" title="Attempt to clean Book titles of remnants from series" class="ctrl-btn material-symbols-outlined" @click="showCleanup[group.series.key] = true">cleaning_services</button>
         <div v-else style="display: flex;">
           <input class="series-clean" @keyup.enter="$emit('cleanupSeries', group.series.key, ($event.target as HTMLInputElement).value)" type="text" placeholder="alternative Series title" :key="group.series.key"/>
@@ -21,10 +24,10 @@
         <button title="Download every book of series" class="ctrl-btn material-symbols-outlined" @click="$emit('downloadSeries', group.series.key)">download</button>
         <button title="Delete entire series from database" class="ctrl-btn material-symbols-outlined" @click="$emit('deleteSeries', group.series.key)">delete</button>
       </div>
-      <BookList 
-      @downloadBook="$emit('downloadBook', $event)" 
-      @deleteBook="$emit('deleteBook', $event)" 
-      @editBook="$emit('editBook', $event)" 
+      <BookList
+      @downloadBook="$emit('downloadBook', $event)"
+      @deleteBook="$emit('deleteBook', $event)"
+      @editBook="$emit('editBook', $event)"
       @searchBook="$emit('searchBook', $event)"
       :showBox="showBox" :books="group.books" :seriesGroups="[]"
       :audio="audio"/>
@@ -129,10 +132,18 @@ function openSelector(id: string) {
 }
 
 .series-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 1.2rem;
   font-weight: 600;
-  margin: 10px 0;
+  margin: 10px 10px;
   flex-grow: 1;
+}
+
+.series-id{
+  font-size: 0.85rem;
+  color: gray;
 }
 
 .group{
@@ -145,7 +156,6 @@ function openSelector(id: string) {
 .collapse-btn{
   color: var(--lightGray);
   background-color: transparent;
-  margin-right: 10px;
-  margin-bottom: 5px;
+  margin: 10px 0;
 }
 </style>

@@ -11,7 +11,7 @@
       {{ book.key }}
     </div>
     <div class="info">
-      {{ book.reihe_position?? "" }}
+      {{ book.position?? "" }}
     </div>
     <div class="info material-symbols-outlined" :title="getTooltip()">
       {{ getStatus() }}
@@ -48,11 +48,11 @@ function getStatus() {
   if (acts.some(a => a.status.includes('download'))) {
     return 'cloud_download'
   }
-  if (acts.some(a => a.status === 'failed')) {
-    return 'error'
-  }
   if (acts.some(a => a.status === 'imported')) {
     return 'cloud_done'
+  }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'error'
   }
   return 'cloud_off'
 }
@@ -61,11 +61,11 @@ function getTooltip() {
   if (acts.some(a => a.status.includes('download'))) {
     return 'Downloading'
   }
-  if (acts.some(a => a.status === 'failed')) {
-    return 'An error occured while importing'
-  }
   if (acts.some(a => a.status === 'imported')) {
     return 'Imported'
+  }
+  if (acts.some(a => a.status === 'failed')) {
+    return 'An error occured while importing'
   }
   return 'Not downloaded'
 }
@@ -89,7 +89,7 @@ function getTooltip() {
 .book-name{
   width: 30%;
   margin: auto 20px;
-  overflow: hidden; 
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 .info{

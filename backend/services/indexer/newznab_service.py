@@ -4,6 +4,11 @@ import httpx
 from time import time
 import asyncio
 
+def normalize(url: str) -> str:
+    url=url.rstrip("/")
+    url=url.rstrip("/api") + "/api"
+    return url
+
 class NewznabService(BaseIndexer):
     async def search(self, q, cfg, audio):
         if (timeout:=time() - self.last_hit) < cfg.indexer_timeout:
@@ -17,15 +22,15 @@ class NewznabService(BaseIndexer):
             "apikey": cfg.indexer_apikey
         }
         async with httpx.AsyncClient() as client:
-            response = await client.get(cfg.indexer_url, params=search)
+            response = await client.get(normalize(cfg.indexer_url), params=search)
         if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
         response.encoding = 'utf-8'
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
         data = response.json()
         return data
-    
+
     async def grab(self, download, cfg):
-        if (timeout:=time() - self.last_hit) < cfg.indexer_timeout: 
+        if (timeout:=time() - self.last_hit) < cfg.indexer_timeout:
             await asyncio.sleep(cfg.indexer_timeout - timeout)
         self.last_hit = time()
         get = {
@@ -35,7 +40,7 @@ class NewznabService(BaseIndexer):
             "apikey": cfg.indexer_apikey
         }
         async with httpx.AsyncClient() as client:
-            response = await client.get(cfg.indexer_url, params=get, follow_redirects=True)
+            response = await client.get(normalize(cfg.indexer_url), params=get, follow_redirects=True)
         if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
         response.encoding = 'utf-8'
         if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
@@ -62,8 +67,8 @@ class NewznabService(BaseIndexer):
         except KeyError as e:
             raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab\n Further info: {e}")
         return { "query": base_queries[page], "nzbs": response , "pages": len(base_queries) }
-        # for autor, name in base_queries:
-        #     used_term = f"{autor} {name}"
+        # for author, name in base_queries:
+        #     used_term = f"{author} {name}"
         #     data = indexer_search(used_term, cfg=cfg)
         #     query = data["channel"]
         #     if (total:=query["response"]["@attributes"]["total"]) != "0":
@@ -78,7 +83,7 @@ class NewznabService(BaseIndexer):
                 query = data["channel"]
                 if (total:=query["response"]["@attributes"]["total"]) != "0":
                     break
-            else: return None, None
+            else: return None, None, None
             item = query["item"] if total == "1" else query["item"][0]
             name = item["title"]
             for attribute in item["attr"]:

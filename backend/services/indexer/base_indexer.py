@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from backend.config import ConfigManager
 from backend.datamodels import Book
-from backend.services.scrape_service import fix_umlaut, has_umlaut
+from backend.services.scrape import fix_umlaut, has_umlaut
 from backend.exceptions import IndexerError
 import httpx
 import asyncio
@@ -26,24 +26,29 @@ class BaseIndexer(ABC):
     @abstractmethod
     async def grab(self, download: str, cfg: ConfigManager):
         pass
-    
+
     def build_queries(self, book: Book): #TODO revisit
-        base_queries = [f"{book.autor.name} {book.name}"]
+        base_queries = [f"{book.author.name} {book.name}"]
         base_queries.append(book.name)
-        if has_umlaut(book.autor.name) or has_umlaut(book.name):
-            base_queries.append(f"{fix_umlaut(book.autor.name)} {fix_umlaut(book.name)}")
+        if has_umlaut(book.author.name) or has_umlaut(book.name):
+            base_queries.append(f"{fix_umlaut(book.author.name)} {fix_umlaut(book.name)}")
         if has_umlaut(book.name):
             base_queries.append(f"{fix_umlaut(book.name)}")
 
-        if book.reihe_key and book.reihe_position:
-            if book.reihe_position % 1 != 0:
-                base_queries.append(f"{book.reihe.name} {book.reihe_position}")
+        if book.series_key and book.position:
+            if book.position % 1 != 0:
+                base_queries.append(f"{book.series.name} {book.position}")
             else:
-                base_queries.append(f"{book.reihe.name} {int(book.reihe_position)}")
-            if has_umlaut(book.reihe.name):
-                if book.reihe_position % 1 != 0:
-                    base_queries.append(f"{fix_umlaut(book.reihe.name)} {book.reihe_position}")
+                base_queries.append(f"{book.series.name} {int(book.position)}")
+            if has_umlaut(book.series.name):
+                if book.position % 1 != 0:
+                    base_queries.append(f"{fix_umlaut(book.series.name)} {book.position}")
                 else:
-                    base_queries.append(f"{fix_umlaut(book.reihe.name)} {int(book.reihe_position)}")
+                    base_queries.append(f"{fix_umlaut(book.series.name)} {int(book.position)}")
 
         return base_queries
+
+    def normalize(self, url: str) -> str:
+        url=url.rstrip("/")
+        url=url.rstrip("/api") + "/api"
+        return url

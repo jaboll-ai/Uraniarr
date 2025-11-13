@@ -20,7 +20,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(), 
+  history: createWebHistory(),
   routes,
 })
 
@@ -39,14 +39,31 @@ export interface InteractiveSearch{
   pages: number
 }
 
+export interface PreviewRetag{
+  book: string
+  name: string
+  retag: {
+    old_audio: string
+    old_book: string
+    new_audio: string | null
+    new_book: string | null
+  }
+}
+
+export interface RetagAuthor {
+  name: string
+  key: string
+  retags: PreviewRetag[]
+}
+
 export interface Book {
   key: string
   name: string
   bild?: string
-  reihe_position?: number
+  position?: number
   b_dl_loc?: string | null
   autor_key: string
-  reihe_key?: string
+  series_key?: string
   a_dl_loc?: string | null
   activities: Activity[]
 }

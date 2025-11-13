@@ -2,7 +2,7 @@
   <div v-if="visible" class="overlay">
     <div class="modal">
       <h2>Edit: {{ form.name || 'Untitled Book' }}</h2>
-      <form @submit.prevent="$emit('editBook', form)">
+      <form @submit.prevent="$emit('editBook', getChangedFields())">
         <label>
           Name:
           <div>
@@ -19,30 +19,19 @@
         </label>
 
         <label>
-          Series (Reihe) Key:
-          <input v-model="form.reihe_key" />
+          Series (Series) Key:
+          <input v-model="form.series_key" />
         </label>
 
         <label>
           Series Position:
-          <input type="number" step="0.1" v-model.number="form.reihe_position" />
+          <input type="number" step="0.1" v-model.number="form.position" />
         </label>
 
         <label>
           Bild URL:
           <input v-model="form.bild" />
         </label>
-
-        <label>
-          A DL Location:
-          <input v-model="form.a_dl_loc" />
-        </label>
-
-        <label>
-          B DL Location:
-          <input v-model="form.b_dl_loc" />
-        </label>
-
         <div class="actions">
           <button class="btns material-symbols-outlined" type="submit">save</button>
           <button class="btns material-symbols-outlined" type="button" @click="$emit('close')">cancel</button>
@@ -53,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, toRaw, watch } from 'vue'
 import { api } from '@/main';
 import type { Book } from '@/main.ts'
 
@@ -63,16 +52,34 @@ const props = defineProps<{
   book: Book
 }>()
 
-const form = reactive<Book>({ ...props.book})
+const form = reactive({
+  key: props.book.key,
+  name: props.book.name,
+  bild: props.book.bild,
+  position: props.book.position,
+  autor_key: props.book.autor_key,
+  series_key: props.book.series_key,
+})
 const titles = ref<string[]>([])
 
 // Reinitialize when new book prop comes in
 watch(() => props.book, (newBook) => {
   Object.assign(form, newBook);
   getTitles()
-}, 
+},
 { immediate: true })
 
+function getChangedFields() {
+  const patch: Record<string, unknown> = {}
+  patch.key = props.book.key
+  const original = toRaw(props.book)
+  for (const [key, value] of Object.entries(toRaw(form))) {
+    if (value !== (original as any)[key]) {
+      patch[key] = value
+    }
+  }
+  return patch
+}
 
 async function getTitles() {
   const resp = await api.get<string[]>(`/book/titles/${props.book.key}`)
@@ -81,16 +88,6 @@ async function getTitles() {
 </script>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
 .modal {
   background-color: var(--backgroundWhite);
   padding: 20px;

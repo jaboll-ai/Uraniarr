@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import os
 
 class ConfigManager:
     """
@@ -9,15 +8,25 @@ class ConfigManager:
     """
 
     _SPECIAL_ATTRS = {"config_dir", "config_file", "_data", "_save"}
-    config_dir = Path(os.getenv("CONFIG_DIR", "./config"))
-    config_dir.mkdir(parents=True, exist_ok=True)
 
-    def __init__(self):
+
+    def __init__(self, config_dir = None):
         # Set up paths without triggering __setattr__ for config data
+        config_dir = Path(config_dir if config_dir else "./config")
+        config_dir.mkdir(parents=True, exist_ok=True)
+        object.__setattr__(self, "config_dir", config_dir)
         object.__setattr__(self, "config_file", self.config_dir / "config.json")
         # Load or initialize data
         user_data = json.loads(self.config_file.read_text(encoding="utf-8")) if self.config_file.exists() else {}
         default_data = {
+            "book_template": {
+                "value": "",
+                "input_type": "text",
+            },
+            "audiobook_template": {
+                "value": "",
+                "input_type": "text",
+            },
             "indexer_url": {
                 "value": "",
                 "input_type": "text",
@@ -70,6 +79,10 @@ class ConfigManager:
                 "value": 3600,
                 "input_type": "number"
             },
+            "reimport_interval": {
+                "value": 3600,
+                "input_type": "number"
+            },
             "indexer_timeout": {
                 "value": 5,
                 "input_type": "number"
@@ -82,11 +95,19 @@ class ConfigManager:
                 "value": ".epub,.mobi,.cbr,.azw,.azw3",
                 "input_type": "text"
             },
+            "language": {
+                "value": "ger",
+                "input_type": "text"
+            },
             "playwright": {
                 "value": True,
                 "input_type": "checkbox"
             },
             "skip_cache": {
+                "value": False,
+                "input_type": "checkbox"
+            },
+            "ignore_safe_delete": {
                 "value": False,
                 "input_type": "checkbox"
             },
@@ -105,6 +126,7 @@ class ConfigManager:
             # },
         }
         data = default_data | user_data
+        data = {k: user_data[k] if k in user_data else v for k, v in default_data.items()}
         object.__setattr__(self, "_data", data)
 
     def _save(self) -> None:
@@ -134,7 +156,13 @@ class ConfigManager:
             self._save()
 
     def get(self):
-        return self._data
+        r = {
+            k : {
+                "value": v["value"] if v["input_type"] != "password" else "*"*len(v["value"]),
+                "input_type": v["input_type"]
+            } for k, v in self._data.items()
+        }
+        return r
 
     def __repr__(self) -> str:
-        return f"<ConfigManager {self._data}>"
+        return f"<ConfigManager {self.get()}>"

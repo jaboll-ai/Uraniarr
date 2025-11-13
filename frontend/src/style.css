@@ -46,7 +46,7 @@ h1 {
   line-height: 1.1;
 }
 
-.no-select {
+.material-symbols-outlined {
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -73,12 +73,17 @@ button:disabled{
   cursor: not-allowed;
 }
 
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
 #app {
-  /* max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-  */
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -93,7 +98,7 @@ button:disabled{
     --borderColor: #252525;
     --offWhite: #454545;
 
-  } 
+  }
 }
 
 @keyframes spin {
@@ -102,5 +107,11 @@ button:disabled{
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes growAndTilt {
+  50% {
+    transform: scale(3) rotate(20deg);
   }
 }

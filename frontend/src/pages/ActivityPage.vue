@@ -1,5 +1,5 @@
 <template>
-  <div class="placeholder" v-if="downloads.length === 0"><span class="symbol material-symbols-outlined no-select">history_toggle_off</span></div>
+  <div class="placeholder" v-if="downloads.length === 0"><span class="symbol material-symbols-outlined">history_toggle_off</span></div>
   <div class="download-list" v-if="downloads.length > 0">
     <div v-for="item in downloads" class="download-item">
       <div class="header">

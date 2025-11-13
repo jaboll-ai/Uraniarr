@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="modal-overlay">
+  <div v-if="visible" class="overlay">
     <div class="modal">
       <h3>Select Items</h3>
 
@@ -47,15 +47,6 @@ const loading = ref(false)
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .modal {
   background: var(--backgroundWhite);
   padding: 1.5rem;
