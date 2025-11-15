@@ -1,0 +1,70 @@
+name: Bug Report
+description: File a bug report to help us improve.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue!
+        Please fill out the information below as completely as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Issue
+      description: A short, concise description of what the bug is.
+      placeholder: Describe what went wrong...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: List each step required to reproduce the issue.
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen instead.
+      placeholder: Describe what should have happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: errors.log
+      description: |
+        Please paste the relevant contents of **errors.log** from your config folder.
+        You may redact sensitive information.
+      render: text
+      placeholder: Paste your errors.log here…
+    validations:
+      required: true
+
+  - type: textarea
+    id: json_response
+    attributes:
+      label: JSON Response (Optional)
+      description: If this issue is related to an HTTP request failure, please include the JSON response. From the network tab of your browsers dev tools.
+      render: json
+      placeholder: Paste the JSON here…
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: App/Plugin Version
+      description: What version are you using?
+      placeholder: e.g., 1.4.2
+    validations:
+      required: true
