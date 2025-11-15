@@ -148,12 +148,20 @@ function getChangedFields() {
 async function saveSettings() {
   const patch = getChangedFields()
   if (Object.keys(patch).length === 0) {
-    alert('Nothing changed')
+    notify({
+      title: 'No changes detected',
+      text: 'Nothing to do.',
+      type: 'warn'
+    })
     return
   }
   try {
     await api.patch('/settings', patch)
-    alert('Settings saved!')
+    notify({
+      title: 'Success',
+      text: 'Settings saved.',
+      type: 'success'
+    })
     await getSettings()
   } catch (error: any) {
     console.log(error)
