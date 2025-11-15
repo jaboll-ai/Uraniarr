@@ -30,6 +30,7 @@ import { tapi, api } from '@/main.ts'
 import { getInitials } from '@/utils.ts'
 import type { Author } from '@/main.ts'
 import { VueSpinner } from 'vue3-spinners'
+import { notify } from '@kyvg/vue3-notification'
 
 const route = useRoute()
 
@@ -45,7 +46,6 @@ const isDisabled = computed(() => (author: string) => {
 
 async function add(author: string, name: string) {
   authorStatus[author].adding = true
-  console.log("added pressed")
   try {
     await api.post(`/author/${author}`, {}, { params: { name: name } })
     authorStatus[author].added = true
@@ -71,11 +71,14 @@ async function search() {
       }
     }
   } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
     loading.value = false
-    console.error('Failed to fetch books:', error)
     errorMsg.value = error.message
   }
-  console.log(authorStatus)
 }
 
 onMounted(async () => {

@@ -77,7 +77,7 @@ app.add_middleware(
 @app.exception_handler(BaseError)
 async def handle_scrape_error(request: Request, exc: BaseError):
     get_logger().error(exc.detail)
-    return JSONResponse(status_code=exc.status_code or 404, content={"detail": exc.detail or "", "type": exc.type})
+    return JSONResponse(status_code=exc.status_code or 404, content={"detail": exc.detail or "", "type": exc.type, "exception": str(exc.exception)})
 
 @app.exception_handler(Exception)
 async def handle_all_error(request: Request, exc: Exception):

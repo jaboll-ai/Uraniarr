@@ -18,7 +18,7 @@
     </div>
     <div class="book-download">
       <button class="material-symbols-outlined" @click="emit('editBook', props.book)">edit</button>
-      <button class="material-symbols-outlined" @click="emit('downloadBook', [props.book.key])">download</button>
+      <LoadingButton :loading="loading?.download === 'loading'" :text="loading?.download ?? 'download'" @click="emit('downloadBook', [props.book.key])"/>
       <button class="material-symbols-outlined" @click="emit('searchBook', props.book.key)">quick_reference_all</button>
       <button class="material-symbols-outlined" @click="emit('deleteBook', [props.book.key])">delete</button>
     </div>
@@ -26,14 +26,15 @@
 </template>
 
 <script setup lang="ts">
+import LoadingButton from './LoadingButton.vue';
 import type { Book } from '@/main.ts'
-
 
 const props = defineProps<{
   book: Book
   showBox: boolean
   checked?: boolean
   audio: boolean
+  loading?: { [action: string]: string }
 }>()
 const emit = defineEmits<{
   (e: 'checkboxClick', payload: { event: MouseEvent; key: string }): void

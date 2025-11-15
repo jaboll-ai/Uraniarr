@@ -33,7 +33,7 @@ import type { Series } from '@/main.ts'
 
 defineProps<{
   items: Series[]
-  seriesID: string
+  seriesID?: string
   visible: boolean
 }>()
 

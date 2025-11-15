@@ -31,7 +31,8 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
             continue
         eds = sorted(eds, key=lambda x: medium_priority.get(x["medium"], 10))
         if any([ed["key"] in in_db for ed in eds]):
-            get_logger().warning(f"Skipping {eds[0]['key']} because it already exists")
+            get_logger().debug(f"Skipping {eds[0]['key']} because it already exists")
+            continue
         book = Book(autor_key=author.key)
         book.name, book.bild, book.position = clean_title(eds[0].get("titel")), eds[0].get("bild"), eds[0].get("_pos")
         if series_title:

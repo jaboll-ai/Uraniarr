@@ -17,6 +17,7 @@
         :showBox="showBox"
         :checked="selected.includes(book.key)"
         :audio="audio"
+        :loading="loadingBooks[book.key]"
         @checkboxClick="onCheckboxClick($event, index)"
         @downloadBook="downloadBook"
         @searchBook="$emit('searchBook', $event)"
@@ -32,7 +33,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import BookItem from '@/components/BookItem.vue'
 import type { Book } from '@/main.ts'
-
+import { loadingBooks } from '@/utils';
 
 const props = defineProps<{
   books: Book[]
