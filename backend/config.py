@@ -114,7 +114,11 @@ class ConfigManager:
             "known_bundles": {
                 "value": "Krimi Box,Krimi-Box,3er-Box",
                 "input_type": "text"
-            }
+            },
+            "import_unfinished": {
+                "value": False,
+                "input_type": "checkbox"
+            },
             # "devTest": {
             #     "value": "",
             #     "input_type": "select",

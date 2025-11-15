@@ -420,11 +420,12 @@ async def reimport_files(state):
         ).order_by(func.length(Book.name).desc()))
         books: list[Book] = query.scalars().all()
         if len(books) == 0: return
-        try:
-            cat_dir = await downloader.get_cat_dir(cfg)
-        except Exception:
-            cat_dir = None
-            get_logger().debug(f"Failed to get category dir trying reimport with {cfg.audio_path} and {cfg.book_path} only")
+        cat_dir = None
+        if cfg.import_unfinished:
+            try:
+                cat_dir = await downloader.get_cat_dir(cfg)
+            except Exception:
+                get_logger().debug(f"Failed to get category dir trying reimport with {cfg.audio_path} and {cfg.book_path} only")
         if os.getenv("DEV") and cat_dir is not None:
             cat_dir = Path(os.getenv("DEV")) / cat_dir[1:] # DEV
         get_logger().log(5, f"Also checking reimport with: {cat_dir}")
