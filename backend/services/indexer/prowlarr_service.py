@@ -12,20 +12,26 @@ class ProwlarrService(BaseIndexer):
             "limit": 100,
             "offset": 0
         }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(self.normalize(cfg.indexer_url).rstrip("/")+"/v1/search", params=params)
-        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(self.normalize(cfg.indexer_url).rstrip("/")+"/v1/search", params=params)
+        except httpx.ConnectError as e:
+            raise IndexerError(status_code=404, detail="Could not connect to indexer", exception=e)
+        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail="Could not connect to prowlarr", exc=response.text)
         response.encoding = 'utf-8'
-        if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
+        if "error" in response.text: raise IndexerError(status_code=403, detail="Could not connect to prowlarr", exception=response.text)
         data = response.json()
         return data
 
     async def grab(self, download, cfg):
-        async with httpx.AsyncClient() as client:
-            response = await client.get(download, follow_redirects=True)
-        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(download, follow_redirects=True)
+        except httpx.ConnectError as e:
+            raise IndexerError(status_code=404, detail="Could not connect to indexer", exception=e)
+        if response.status_code != 200: raise IndexerError(status_code=response.status_code,detail="Could not connect to prowlarr", exc=response.text)
         response.encoding = 'utf-8'
-        if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
+        if "error" in response.text: raise IndexerError(status_code=403, detail="Could not connect to prowlarr", exception=response.text)
         return response.content
 
 
@@ -40,7 +46,7 @@ class ProwlarrService(BaseIndexer):
                 "download": item["downloadUrl"]
             } for item in data]
         except KeyError as e:
-            raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab?\nFurther info: {e}")
+            raise IndexerError(status_code=500, detail="Ran into a key error. Are we pointing to prowlarr or newznab?", exception=e)
         return { "query": base_queries[page], "nzbs": response , "pages": len(base_queries) }
 
 
@@ -56,6 +62,6 @@ class ProwlarrService(BaseIndexer):
             guid = item["guid"]
             download = item["downloadUrl"]
         except KeyError as e:
-            raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab?\nFurther info: {e}")
+            raise IndexerError(status_code=500, detail="Ran into a key error. Are we pointing to prowlarr or newznab?", exception=e)
         return name, guid, download
 

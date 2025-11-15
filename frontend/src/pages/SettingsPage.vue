@@ -47,6 +47,7 @@
 <script setup lang="ts">
 import { ref, onMounted, toRaw } from 'vue'
 import { api } from '@/main.ts'
+import { notify } from '@kyvg/vue3-notification'
 
 interface ConfigEntry {
   value: string
@@ -120,8 +121,12 @@ async function getSettings() {
     const { data } = await api.get<Record<string, ConfigEntry>>('/settings')
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
-  } catch (err) {
-    console.error('Failed to load settings', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -150,8 +155,13 @@ async function saveSettings() {
     await api.patch('/settings', patch)
     alert('Settings saved!')
     await getSettings()
-  } catch (err: any) {
-    alert('Could not save settings:\n' + (err.response?.data?.detail || ''))
+  } catch (error: any) {
+    console.log(error)
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
     await getSettings()
   }
 }

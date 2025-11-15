@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { dapi } from '@/main'
+import { notify } from "@kyvg/vue3-notification";
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
 interface DownloadItem {
@@ -65,8 +66,12 @@ async function cancelDownload(id: string) {
     await dapi.delete(`/activity/${id}`)
     await fetchQueue()
     showCancel.value = false
-  } catch (error) {
-    console.error('Failed to cancel download:', error)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -74,8 +79,12 @@ async function fetchQueue() {
   try {
     const response = await dapi.get<DownloadItem[]>("/activities")
     downloads.value = response.data
-  } catch (error) {
-    console.error('Failed to fetch books:', error)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 </script>

@@ -1,5 +1,6 @@
 
 <template>
+  <notifications position="bottom right" />
   <TopBar/>
   <Sidebar/>
   <div class="page-container">
@@ -8,6 +9,7 @@
 </template>
 
 <script setup lang="ts">
+import { Notifications } from '@kyvg/vue3-notification';
 import Sidebar from './components/Sidebar.vue';
 import TopBar from './components/TopBar.vue';
 </script>

@@ -37,7 +37,7 @@ async def scrape_book_editions(book_id: str, cfg)-> tuple[list[dict], str]:
     data = json.load(BytesIO(data))[0]
     editions = []
     series_name = None
-    for k in data["kategoriePfade"]:
+    for k in data.get("kategoriePfade", []):
         for j in k:
             if j["text"] == "Bundles":
                 return editions, series_name

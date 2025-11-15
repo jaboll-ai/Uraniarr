@@ -42,29 +42,35 @@ def compute_template(book: Book, template: str):
         if "series." not in s and idx >= domain["series"]: domain["series"] -= 1
     for p in pattern.finditer(template):
         length = p.end() - p.start() -1
-        tree = p.group(1).split(".")
-        if len(tree) > 3 or len(tree) < 1: raise FileError(f"Too few/many levels in template: {p.group(1)} ({len(tree)})")
-        if len(tree) == 1 or tree[0] == "book":
-            obj = book
-        elif hasattr(book, tree[0]):
-            obj = getattr(book, tree[0])
-        else:
-            get_logger().error(f"Template error: {tree[0]} is not a known namespace")
-            obj = object()
-        if obj is None or hasattr(obj, tree[-1]) and getattr(obj, tree[-1]) is None:
-            sl = ""
-        elif hasattr(obj, tree[-1]) and getattr(obj, tree[-1]) is not None:
-            value = str(getattr(obj, tree[-1]))
-            if tree[-1] == "position" and isinstance(obj, Book):
-                if book.position % 1 != 0:
-                    value = f"{str(int(book.position)).zfill(padding)}.{str(book.position).split('.')[-1]}"
-                else:
-                    value=f"{str(int(book.position)).zfill(padding)}"
-            sl = p.group(0)[1:-1].replace("{"+f"{p.group(1)}"+"}", value)
-            attrs_used.add(tree[0])
-        else:
-            get_logger().debug(f"Unknown attribute: {tree[-1]}")
-            sl = re.sub(r"[{}]", "", p.group(0))
+        alternatives = p.group(1).replace(" ", "").split("??")
+        trees = [alt.split(".") for alt in alternatives]
+        for tree in trees:
+            if len(tree) > 3 or len(tree) < 1: raise FileError(f"Too few/many levels in template: {p.group(1)} ({len(tree)})")
+            if len(tree) == 1 or tree[0] == "book":
+                obj = book
+            elif hasattr(book, tree[0]):
+                obj = getattr(book, tree[0])
+            else:
+                get_logger().error(f"Template error: {tree[0]} is not a known namespace")
+                obj = object()
+            if obj is None or hasattr(obj, tree[-1]) and getattr(obj, tree[-1]) is None:
+                sl = ""
+            elif tree[0] == "series" and book.author.is_series:
+                sl = ""
+            elif hasattr(obj, tree[-1]):
+                if getattr(obj, tree[-1]) is not None:
+                    value = str(getattr(obj, tree[-1]))
+                    if tree[-1] == "position" and isinstance(obj, Book):
+                        if book.position % 1 != 0:
+                            value = f"{str(int(book.position)).zfill(padding)}.{str(book.position).split('.')[-1]}"
+                        else:
+                            value=f"{str(int(book.position)).zfill(padding)}"
+                sl = p.group(0)[1:-1].replace("{"+f"{p.group(1)}"+"}", value)
+                attrs_used.add(tree[0])
+            else:
+                get_logger().debug(f"Unknown attribute: {tree[-1]}")
+                sl = re.sub(r"[{}]", "", p.group(0))
+            if sl: continue
         response[p.start():p.end()] = [sl] + [""] * length
     response = "".join(response)
     resp = {
@@ -282,7 +288,7 @@ async def delete_audio_book(book_id: str, session: AsyncSession):
         raise FileError(status_code=404, detail=f"Book '{book_id}' not found or not downloaded")
     await asyncio.to_thread(shutil.rmtree, book.a_dl_loc)
     book.a_dl_loc = None
-    session.commit()
+    await session.commit()
 
 async def delete_audio_series(series_id: str, session: AsyncSession):
     series = await session.get(Series, series_id)
@@ -290,7 +296,7 @@ async def delete_audio_series(series_id: str, session: AsyncSession):
         raise FileError(status_code=404, detail=f"Series '{series_id}' not found or not downloaded")
     await asyncio.to_thread(shutil.rmtree, series.a_dl_loc)
     series.a_dl_loc = None
-    session.commit()
+    await session.commit()
 
 async def delete_audio_author(author_id: str, session: AsyncSession):
     author = await session.get(Author, author_id)
@@ -306,7 +312,7 @@ async def get_files_of_book(book: Book):
     try:
         a, b = await asyncio.gather(get_file_stats(p_a), get_file_stats(p_b))
     except Exception as e:
-        raise FileError(status_code=404, detail=f"{e}: Error while getting files of book '{book.name}'")
+        raise FileError(status_code=404, detail=f"Error while getting files of book '{book.name}'", exception=e)
     return {
         "audio": a,
         "book": b

@@ -4,11 +4,6 @@ import httpx
 from time import time
 import asyncio
 
-def normalize(url: str) -> str:
-    url=url.rstrip("/")
-    url=url.rstrip("/api") + "/api"
-    return url
-
 class NewznabService(BaseIndexer):
     async def search(self, q, cfg, audio):
         if (timeout:=time() - self.last_hit) < cfg.indexer_timeout:
@@ -21,11 +16,14 @@ class NewznabService(BaseIndexer):
             "q": q,
             "apikey": cfg.indexer_apikey
         }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(normalize(cfg.indexer_url), params=search)
-        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(self.normalize(cfg.indexer_url), params=search)
+        except httpx.ConnectError as e:
+            raise IndexerError(status_code=404, detail="Could not connect to indexer", exception=e)
+        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail="Could not connect to indexer", exception=response.text)
         response.encoding = 'utf-8'
-        if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
+        if "error" in response.text: raise IndexerError(status_code=403, detail="Could not connect to indexer", exception=response.text)
         data = response.json()
         return data
 
@@ -39,11 +37,14 @@ class NewznabService(BaseIndexer):
             "o" : "json",
             "apikey": cfg.indexer_apikey
         }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(normalize(cfg.indexer_url), params=get, follow_redirects=True)
-        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail=response.text)
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(self.normalize(cfg.indexer_url), params=get, follow_redirects=True)
+        except httpx.ConnectError as e:
+            raise IndexerError(status_code=404, detail="Could not connect to indexer", exception=e)
+        if response.status_code != 200: raise IndexerError(status_code=response.status_code, detail="Could not connect to indexer", exception=response.text)
         response.encoding = 'utf-8'
-        if "error" in response.text: raise IndexerError(status_code=403, detail=response.text)
+        if "error" in response.text: raise IndexerError(status_code=403, detail="Could not connect to indexer", exception=response.text)
         return response.content
 
     async def query_manual(self, book, page, cfg, audio):
@@ -65,7 +66,7 @@ class NewznabService(BaseIndexer):
                         i["size"] = attribute["@attributes"]["value"]
                 response.append(i)
         except KeyError as e:
-            raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab\n Further info: {e}")
+            raise IndexerError(status_code=500, detail="Ran into a key error. Are we pointing to prowlarr or newznab?", exception=e)
         return { "query": base_queries[page], "nzbs": response , "pages": len(base_queries) }
         # for author, name in base_queries:
         #     used_term = f"{author} {name}"
@@ -77,7 +78,7 @@ class NewznabService(BaseIndexer):
 
     async def query_book(self, book, cfg, audio):
         try:
-            base_queries = await self.build_queries(book)
+            base_queries = self.build_queries(book)
             for q in base_queries: #TODO
                 data = await self.search(q, cfg=cfg, audio=audio)
                 query = data["channel"]
@@ -90,6 +91,6 @@ class NewznabService(BaseIndexer):
                 if attribute["@attributes"]["name"] == "guid":
                     guid = attribute["@attributes"]["value"]
         except KeyError as e:
-            raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab?\nFurther info: {e}")
+            raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab?", exception=e)
         return name, guid, guid
 

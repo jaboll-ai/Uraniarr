@@ -129,10 +129,10 @@ async def delete_activity(request: Request, activity_id: str, session: AsyncSess
     cfg = request.app.state.cfg_manager
     resp = await downloader.remove_from_queue(cfg, activity_id)
     if resp:
-        activity = session.get(Activity, activity_id)
+        activity = await session.get(Activity, activity_id)
         if activity:
             activity.status = ActivityStatus.canceled
-            session.commit()
+            await session.commit()
     return activity_id
 
 async def schedule_download(guid: str, release_title: str, nzb : bytes, downloader: BaseDownloader, cfg: ConfigManager, session: AsyncSession, book: Book, audio: bool):
