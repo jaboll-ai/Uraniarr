@@ -23,7 +23,7 @@
 - **Downloading**
   Uraniarr currently supports SABnzbd as a downloader.
 - **File Management**
-  Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. Currently no custimization options
+  Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. For customization see the [Templating Guide](https://github.com/jaboll-ai/Uraniarr/wiki#templating-guide) in the wiki.
 - **TODO**
   1. RSS Feed automation
   2. Scan for existing files and sort them into DB
@@ -32,21 +32,40 @@
 ## Getting Started
 1. **Docker Compose**
    Uncomment and adjust volume mounts as needed in `docker-compose.yml`:
-   ```yaml
-    services:
-      uraniarr:
-        container_name: uraniarr
-        build: https://github.com/jaboll-ai/Uraniarr.git#main
-        image: uraniarr
-        ports:
-          - "11562:8000"
-        environment:
-          - CONFIG_DIR=/config
-          # Necessary! change to the book vendor named after the greek muse
-          - VENDOR=https://www.t****.de
-        # volumes: #make sure the folder exists on host
-        #   - <on-host-config>:/config #e.g. /etc/uraniarr
-        #   - <on-host-data>:/data #internal must match data_path in your config
+  ```yaml
+  services:
+    uraniarr:
+      container_name: uraniarr
+      build: https://github.com/jaboll-ai/Uraniarr.git#main
+      image: uraniarr
+      ports:
+        - "11562:8000"
+      environment:
+        - CONFIG_DIR=/config
+        - TZ=Europe/Berlin
+        - PUID=1000
+        - PGID=1000
+        # Necessary! change to the book vendor named after the greek muse
+        - VENDOR=https://www.t****.de
+        # - ACCESS_LOG=false # default: false (Log every API hit in backend)
+        # - LOG_LEVEL=DEBUG # default: INFO ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE']
+        # - ALLOWED_URLS=https://example.com,http://localhost # default: * (Should be set if exposed to internet)
+        # - ALLOWED_METHODS=* # DEVELOPMENT ONLY
+        # - ALLOWED_HEADERS=* # DEVELOPMENT ONLY
+      # volumes: #make sure the folder exists on host
+      #   - <on-host-config>:/config #e.g. /etc/uraniarr
+      # ╭────────────────────────────────────────────────────────────────────────────────────────╮
+      # │   The <internal-data-path> should match the path of your downloaders mount path        │
+      # │ this means if sab reports the download to be in /data but on your host this is mounted │
+      # │     at /volume1/sink/downloads then you should mount either the entire /volume1        │
+      # │                 (useful when library is on the same disk)                              │
+      # │          or mount the exact path like '/volume1/sink/downloads:/data'                  │
+      # │                  !! If this confuses you but you followed the                          │
+      # │              https://trash-guides.info/File-and-Folder-Structure/                      │
+      # │                             it should just work with '/data'!!                         │
+      # ╰────────────────────────────────────────────────────────────────────────────────────────╯
+      #   - <on-host-data>:<internal-data-path> #e.g. /data
+      #   - <on-host-libary>:<internal-lib-path> #e.g. /library (if libary is on the same disk as <internal-data-path> this is not needed)
 
 **ALTERNATIVE: Run the application bare-bones (please don't)**
 
