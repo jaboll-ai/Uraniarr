@@ -82,7 +82,8 @@ const settingNames: Record<string, string> = {
   playwright: 'Enable Playwright Scraping',
   skip_cache: 'Skip Cache',
   ignore_safe_delete: 'Ignore Safe Delete',
-  known_bundles: 'Known Bundle Names'
+  known_bundles: 'Known Bundle Names',
+  import_unfinished: 'EXPERIMENTAL: Import Unfinished Files'
 }
 
 const tooltips: Record<string, string> = {
@@ -109,7 +110,8 @@ const tooltips: Record<string, string> = {
   playwright: 'Use playwright instead of cloudscraper. (Only toggle if necessary)',
   skip_cache: 'Force skip of local cache (useful for debugging).',
   ignore_safe_delete: 'ONLY enable if Uraniarr is importing from a custom category.',
-  known_bundles: 'List of known boxset/bundle names (comma-separated).'
+  known_bundles: 'List of known boxset/bundle names (comma-separated).',
+  import_unfinished: 'Import all files from downloader folder, even if they are not finished yet. (EXPERIMENTAL)'
 }
 
 onMounted(async () => {
