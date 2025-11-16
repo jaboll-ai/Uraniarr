@@ -82,6 +82,8 @@ def compute_template(book: Book, template: str):
 
 def get_destination_dir(book: Book, audio: bool, cfg) -> tuple[str, Optional[str], Path]:
     template = cfg.audiobook_template if audio else cfg.book_template
+    path_str = cfg.audio_path if audio else cfg.book_path
+    if not path_str: raise FileError(status_code=404, detail=f"{'Audio' if audio else 'Book'} path not configured but tried to import.")
     dst_base = Path(cfg.audio_path if audio else cfg.book_path)
     author_dir, series_dir, book_dst = None, None, None
     if template:
@@ -267,10 +269,11 @@ def preview_retag(book: Book, cfg: ConfigManager):
 
 async def retag_book(book: Book, cfg: ConfigManager, overwrite: bool = False):
     moved = []
-    if book.a_dl_loc:
+    prv = preview_retag(book, cfg)
+    if book.a_dl_loc and prv["retag"]["new_audio"]:
         a = Path(book.a_dl_loc)
         moved.append(asyncio.to_thread(import_book_from_acitivity, None, book, True, Path(book.a_dl_loc), cat_dir=a.parent, cfg=cfg, overwrite=overwrite))
-    if book.b_dl_loc:
+    if book.b_dl_loc and prv["retag"]["new_book"]:
         b = Path(book.b_dl_loc)
         moved.append(asyncio.to_thread(import_book_from_acitivity, None, book, False, Path(book.b_dl_loc), cat_dir=b.parent, cfg=cfg, overwrite=overwrite))
     r = await asyncio.gather(*moved)
