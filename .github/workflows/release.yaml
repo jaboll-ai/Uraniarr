@@ -55,8 +55,8 @@ jobs:
             # Static development tag
             type=raw,value=development,enable=${{ github.event_name == 'push' && github.ref_name == 'development' }}
           
-            # Unique SHA tag for dev builds (recommended)
-            type=sha,prefix=dev-,enable=${{ github.event_name == 'push' && github.ref_name == 'development' }}
+            # Unique SHA tag for dev builds
+            type=sha,prefix=development-,enable=${{ github.event_name == 'push' && github.ref_name == 'development' }}
           
             # Manual Test Tags (manual trigger)
             type=raw,value=${{ github.event.inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
