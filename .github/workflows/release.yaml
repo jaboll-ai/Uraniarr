@@ -2,8 +2,8 @@
 # It is designed to handle three distinct scenarios:
 # Production Releases: Triggered when a new Release is 'published' on GitHub.
 #    - Tags the image with semantic versions (e.g., 1.2.3, 1.2, 1) and 'latest'.
-# Development Builds: Triggered on every push to the 'dev' branch.
-#    - Tags the image with 'dev'.
+# Development Builds: Triggered on every push to the 'development' branch.
+#    - Tags the image with 'development'.
 # Manual Test Builds: Triggered manually via 'workflow_dispatch'.
 #    - Tags the image with the version provided as input (e.g., 'test-1.0.0').
 
@@ -15,7 +15,7 @@ on:
   release:
     types: [published]
 
-  # Dev: Runs on every push to the 'dev' branch
+  # development: Runs on every push to the 'development' branch
   push:
     branches:
       - 'development'
@@ -86,11 +86,11 @@ jobs:
             type=semver,pattern={{major}},enable=${{ github.event_name == 'release' }}
             type=raw,value=latest,enable=${{ github.event_name == 'release' }}
           
-            # Dev Tags (when pushing to 'dev' branch)
+            # Dev Tags (when pushing to 'development' branch)
             # Static dev tag
-            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref_name == 'dev' }}
+            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref_name == 'development' }}
             # Unique SHA tag for dev builds (recommended)
-            type=sha,prefix=dev-,enable=${{ github.event_name == 'push' && github.ref_name == 'dev' }}
+            type=sha,prefix=dev-,enable=${{ github.event_name == 'push' && github.ref_name == 'development' }}
           
             # Manual Test Tags (manual trigger)
             type=raw,value=${{ github.event.inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
