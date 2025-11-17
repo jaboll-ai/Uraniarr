@@ -150,7 +150,7 @@ const files = ref<{ audio: { path: string; size: number }[]; book: { path: strin
   audio: [],
   book: [],
 })
-const audio = ref(true)
+const audio = ref<boolean>((localStorage.getItem('audio')?? "true") === "true")
 const isAnimating = ref(false);
 const prv = ref<PreviewRetag>()
 
@@ -218,7 +218,7 @@ async function downloadBook(keys: string[]) {
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name, i_idx: nzb.i_idx}, { params: { audio : audio.value } })
   } catch (error: any) {
     notify({
       title: 'Error',
@@ -294,6 +294,7 @@ async function closeManualSearch() {
 
 async function animate() {
   audio.value = !audio.value
+  localStorage.setItem('audio', audio.value.toString())
   if (audio.value) {
     document.documentElement.style.removeProperty('--mainColor');
   } else {

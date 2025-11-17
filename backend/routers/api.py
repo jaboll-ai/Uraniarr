@@ -237,13 +237,10 @@ async def update_settings(settings: dict[str, Any], request: Request):
             await reload_scraper(state)
         elif key == "indexer_prowlarr":
             state.indexer = ProwlarrService() if settings[key] else NewznabService()
-        elif key == "downloader_type":
-            if cfg.downloader_type == "sab":
-                state.downloader = SABDownloader()
-            else:
-                cfg.downloader_type = "sab" #TODO other downloaders
-                state.downloader = SABDownloader()
-                raise HTTPException(status_code=500, detail="Only SABDownloader supported currently")
+        elif key == "downloaders":
+            state.downloaders = downloader_factory(cfg)
+        elif key == "indexers":
+            state.indexers = indexer_factory(cfg)
         elif key.endswith("_interval"):
             await restart_job(state, get_job_by_interval(key))
     return state.cfg_manager.get()

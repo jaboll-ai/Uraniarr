@@ -27,41 +27,13 @@ class ConfigManager:
                 "value": "",
                 "input_type": "text",
             },
-            "indexer_url": {
-                "value": "",
-                "input_type": "text",
+            "indexers": {
+                "value": [],
+                "input_type": "indexer"
             },
-            "indexer_apikey": {
-                "value": "",
-                "input_type": "password",
-            },
-            "indexer_prowlarr": {
-                "value": False,
-                "input_type": "checkbox",
-            },
-            "indexer_audio_category": {
-                "value": "3000",
-                "input_type": "text",
-            },
-            "indexer_book_category": {
-                "value": "7000",
-                "input_type": "text",
-            },
-            "downloader_url": {
-                "value": "",
-                "input_type": "text",
-            },
-            "downloader_apikey": {
-                "value": "",
-                "input_type": "password",
-            },
-            "downloader_type": {
-                "value": "sab",
-                "input_type": "text",
-            },
-            "downloader_category": {
-                "value": "",
-                "input_type": "text",
+            "downloaders": {
+                "value": [],
+                "input_type": "downloader"
             },
             "audio_path": {
                 "value": "",

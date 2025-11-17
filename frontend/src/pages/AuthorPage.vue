@@ -142,7 +142,7 @@ const tabs = [
 
 const isAnimating = ref(false);
 const current = ref<string>('BookList')
-const audio = ref<boolean>(true)
+const audio = ref<boolean>((localStorage.getItem('audio')?? "true") === "true")
 const componentsMap: Record<string, any> = {
   BookList,
   SeriesList,
@@ -239,8 +239,9 @@ async function downloadBook(keys: string[]) {
 }
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
+  console.log(nzb)
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name, i_idx: nzb.i_idx}, { params: { audio : audio.value } })
     interactiveSearch.value = false
   } catch (error: any) {
     notify({
@@ -267,7 +268,7 @@ async function downloadSeries(key: string) {
 async function downloadAuthor() {
   try {
     downloadingAuthor.value = "throbber"
-    await dapi.post(`/author/${route.params.key}`)
+    await dapi.post(`/author/${route.params.key}`, null , { params: { audio : audio.value } })
     downloadingAuthor.value = "download"
   } catch (error: any) {
     notify({
@@ -393,12 +394,9 @@ async function editBook(book: Book) {
   fetchBooks()
 }
 
-onBeforeUnmount(async () => {
-  document.documentElement.style.removeProperty('--mainColor');
-})
-
 async function animate() {
   audio.value = !audio.value
+  localStorage.setItem('audio', audio.value.toString())
   if (audio.value) {
     document.documentElement.style.removeProperty('--mainColor');
   } else {

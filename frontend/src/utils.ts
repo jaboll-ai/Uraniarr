@@ -58,23 +58,25 @@ export async function runBatch(keys: string[], requestFn:(key: string) => Promis
 
   const resets = []
   for (const r of await Promise.allSettled(promises)) {
+    var key = null
     if (r.status === 'fulfilled') {
-      const key = r.value._bookKey
-      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'success' }
+      key = r.value._bookKey
+      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'check' }
     } else {
-      const key = r.reason._bookKey
+      key = r.reason._bookKey
       loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'error' }
-      console.log(r)
-      notify({
-        title: 'Error',
-        text: r.reason.response.data.detail,
-        type: 'error'
-      })
-      resets.push((async () => {
-        await new Promise(res => setTimeout(res, timeoutMs))
-        loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: field }
-      })())
+      try {
+        notify({
+          title: 'Error',
+          text: r.reason.response.data.detail,
+          type: 'error'
+        })
+      } catch {}
     }
+    resets.push((async () => {
+      await new Promise(res => setTimeout(res, timeoutMs))
+      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: field }
+    })())
   }
-  await Promise.all(resets)
+  Promise.all(resets)
 }

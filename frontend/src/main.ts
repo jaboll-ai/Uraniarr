@@ -73,6 +73,7 @@ export interface BookNzb {
   guid: string
   size: string | number
   download: string
+  i_idx: number
 }
 
 export interface Author {
@@ -86,6 +87,26 @@ export interface Series {
   autor_key: string
   key: string
   name: string
+}
+export interface Indexer {
+  name: string;
+  url: string;
+  apikey: string;
+  type: string;
+  book: boolean;
+  audio: boolean;
+  audio_categories: string;
+  book_categories: string;
+}
+
+export interface Downloader {
+  name: string;
+  url: string;
+  apikey: string;
+  type: string;
+  audio: boolean;
+  book: boolean;
+  download_categories: string;
 }
 
 const BASE = import.meta.env.VITE_API_BASE || '';

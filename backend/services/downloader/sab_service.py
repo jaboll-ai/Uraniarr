@@ -14,11 +14,13 @@ class SABDownloader(BaseDownloader):
             data = {
                 "mode": "addfile",
                 "nzbname": nzbname,
-                "cat": cfg.downloader_category or "*",
+                "cat": self.download_category or "*",
             }
-            params = {"apikey": cfg.downloader_apikey}
+            with open(".test.nzb", "wb") as f:
+                f.write(nzb)
+            params = {"apikey": self.apikey}
             async with httpx.AsyncClient() as client:
-                resp = await client.post(self.normalize(cfg.downloader_url), params=params, data=data, files=files)
+                resp = await client.post(self.url, params=params, data=data, files=files)
         except Exception:
             raise NzbsError(status_code=404, detail="Could not queue item for SABnzbd. Is the service running?")
         if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail="Error from SABnzbd", exception=resp.text)
@@ -31,12 +33,12 @@ class SABDownloader(BaseDownloader):
     async def get_history(self, cfg):
         try:
             get_hst = {
-                "apikey": cfg.downloader_apikey,
+                "apikey": self.apikey,
                 "mode":"history",
                 "output":"json"
             }
             async with httpx.AsyncClient() as client:
-                resp = await client.get(self.normalize(cfg.downloader_url), params=get_hst)
+                resp = await client.get(self.url, params=get_hst)
         except Exception as e:
             raise NzbsError(status_code=404, detail="Could not get history from SABnzbd. Is the service running?", exception=e)
         data = resp.json()
@@ -51,14 +53,14 @@ class SABDownloader(BaseDownloader):
     async def remove_from_history(self, cfg, nzo_id):
         try:
             rm_hst = {
-                "apikey": cfg.downloader_apikey,
+                "apikey": self.apikey,
                 "mode": "history",
                 "name": "delete",
                 "value": ",".join([nzo_id] if isinstance(nzo_id, str) else nzo_id),
                 "output": "json",
             }
             async with httpx.AsyncClient() as client:
-                resp = await client.get(self.normalize(cfg.downloader_url), params=rm_hst)
+                resp = await client.get(self.url, params=rm_hst)
         except Exception as e:
             raise NzbsError(status_code=404, detail="Could not get history from SABnzbd. Is the service running?", exception=e)
         if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail="Error from SABnzbd", exception=resp.text)
@@ -67,14 +69,14 @@ class SABDownloader(BaseDownloader):
     async def remove_from_queue(self, cfg, nzo_id):
         try:
             rm_q = {
-                "apikey": cfg.downloader_apikey,
+                "apikey": self.apikey,
                 "mode": "queue",
                 "name": "delete",
                 "value": ",".join([nzo_id] if isinstance(nzo_id, str) else nzo_id),
                 "output": "json",
             }
             async with httpx.AsyncClient() as client:
-                resp = await client.get(self.normalize(cfg.downloader_url), params=rm_q)
+                resp = await client.get(self.url, params=rm_q)
         except Exception as e:
             raise NzbsError(status_code=404, detail="Could not queue item from SABnzbd. Is the service running?", exception=e)
         if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail="Error from SABnzbd", exception=resp.text)
@@ -83,12 +85,12 @@ class SABDownloader(BaseDownloader):
     async def get_queue(self, cfg):
         try:
             get_q = {
-                "apikey": cfg.downloader_apikey,
+                "apikey": self.apikey,
                 "mode": "queue",
                 "output": "json",
             }
             async with httpx.AsyncClient() as client:
-                resp = await client.get(self.normalize(cfg.downloader_url), params=get_q)
+                resp = await client.get(self.url, params=get_q)
         except Exception as e:
             raise NzbsError(status_code=404, detail="Could not get history from SABnzbd. Is the service running?", exception=e)
         if resp.status_code != 200: raise NzbsError(status_code=resp.status_code, detail="Error from SABnzbd", exception=resp.text)
@@ -102,12 +104,12 @@ class SABDownloader(BaseDownloader):
 
     async def get_cat_dir(self, cfg):
         p = {
-            "apikey": cfg.downloader_apikey,
+            "apikey": self.apikey,
             "mode": "get_config",
         }
         try:
             async with httpx.AsyncClient() as client:
-                coros = [client.get(self.normalize(cfg.downloader_url), params={**p, "section": s}) for s in ["misc", "categories"]]
+                coros = [client.get(self.url, params={**p, "section": s}) for s in ["misc", "categories"]]
                 misc, categories = await asyncio.gather(*coros)
         except Exception as e:
             get_logger().debug(e)
@@ -118,7 +120,7 @@ class SABDownloader(BaseDownloader):
         base_folder = None
         try:
             for c in categories.json()["config"]["categories"]:
-                if c["name"] == cfg.downloader_category:
+                if c["name"] == self.download_category:
                     cat_folder = c["dir"]
             base_folder = Path(misc.json()["config"]["misc"]["complete_dir"])
         except Exception as e:

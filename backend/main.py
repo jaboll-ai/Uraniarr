@@ -18,8 +18,6 @@ from backend.services.indexer import *
 from backend.services.downloader import *
 from backend.dependencies import get_error_logger, get_logger
 
-
-
 def init_err_log(cfg: ConfigManager):
     uraniarr_err = get_error_logger()
     uraniarr_err.propagate = False
@@ -37,15 +35,11 @@ def init_err_log(cfg: ConfigManager):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     cfg = ConfigManager(os.getenv("CONFIG_DIR", "./config"))
+    app.state.cfg_manager = cfg
     init_err_log(cfg)
     app.state.engine = await init_db(cfg)
-    app.state.cfg_manager = cfg
-    app.state.indexer = ProwlarrService() if cfg.indexer_prowlarr else NewznabService()
-    if cfg.downloader_type == "sab":
-        app.state.downloader = SABDownloader()
-    else:
-        cfg.downloader_type = "sab" #TODO other downloaders
-        app.state.downloader = SABDownloader()
+    app.state.indexers = indexer_factory(cfg)
+    app.state.downloaders = downloader_factory(cfg)
     init_jobs(app.state)
     try:
         await reload_scraper(app.state)

@@ -74,8 +74,8 @@ function choose(file: BookNzb) {
 }
 
 async function paginate(p: number) {
-  emit('paginate', props.book, page.value)
   page.value = Math.min(Math.max(p, 0), props.pages-1)
+  emit('paginate', props.book, page.value)
 }
 </script>
 

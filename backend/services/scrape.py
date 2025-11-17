@@ -137,7 +137,7 @@ async def scrape_book_series(book_id: str, cfg: ConfigManager):
     return books
 
 def get_language(cfg: ConfigManager):
-    mapping = lang_map = {
+    mapping = {
         "en": 1, "eng": 1,
         "de": 3, "deu": 3, "ger": 3,
         "fr": 2, "fra": 2, "fre": 2,

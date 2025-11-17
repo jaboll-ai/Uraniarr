@@ -362,28 +362,29 @@ def get_dirs_of_ext(base_paths, exts):
 
 async def scan_and_move_all_files(state):
     cfg = state.cfg_manager
-    downloader: BaseDownloader = state.downloader
-    hist, cat_dir = await asyncio.gather(
-        downloader.get_history(cfg),
-        downloader.get_cat_dir(cfg)
-    )
+    downloaders: list[BaseDownloader] = state.downloaders[True] + state.downloaders[False]
     async with AsyncSession(state.engine) as session:
-        moved = []
-        for key, slot in hist.items():
-            activity = await session.get(Activity, key, options=[
-                selectinload(Activity.book).selectinload(Book.author),
-                selectinload(Activity.book).selectinload(Book.series).selectinload(Series.books),
-                selectinload(Activity.book).selectinload(Book.activities)
-            ])
-            if not activity:
-                get_logger().debug(f"Activity {key} of our category not found in db")
-                continue
-            if not slot["status"] == "Completed": continue
-            src = Path(slot["storage"])
-            if os.getenv("DEV"):
-                src = Path(os.getenv("DEV")) / str(slot["storage"])[1:] # DEV
-            moved.append(asyncio.to_thread(import_book_from_acitivity, activity, activity.book, activity.audio, src, cat_dir=Path(cat_dir), cfg=cfg))
-        await downloader.remove_from_history(cfg, [nzo_id for nzo_id in await asyncio.gather(*moved) if nzo_id is not None])
+        for downloader in downloaders:
+            hist, cat_dir = await asyncio.gather(
+                downloader.get_history(cfg),
+                downloader.get_cat_dir(cfg)
+            )
+            moved = []
+            for key, slot in hist.items():
+                activity = await session.get(Activity, key, options=[
+                    selectinload(Activity.book).selectinload(Book.author),
+                    selectinload(Activity.book).selectinload(Book.series).selectinload(Series.books),
+                    selectinload(Activity.book).selectinload(Book.activities)
+                ])
+                if not activity:
+                    get_logger().debug(f"Activity {key} of our category not found in db")
+                    continue
+                if not slot["status"] == "Completed": continue
+                src = Path(slot["storage"])
+                if os.getenv("DEV"):
+                    src = Path(os.getenv("DEV")) / str(slot["storage"])[1:] # DEV
+                moved.append(asyncio.to_thread(import_book_from_acitivity, activity, activity.book, activity.audio, src, cat_dir=Path(cat_dir), cfg=cfg))
+            await downloader.remove_from_history(cfg, [nzo_id for nzo_id in await asyncio.gather(*moved) if nzo_id is not None])
         await session.commit()
 
 async def rescan_files(state):
@@ -414,7 +415,7 @@ async def rescan_files(state):
 
 async def reimport_files(state):
     cfg = state.cfg_manager
-    downloader: BaseDownloader = state.downloader
+    downloaders: list[BaseDownloader]= state.downloaders[True] + state.downloaders[False]
     async with AsyncSession(state.engine) as session:
         query = await session.exec(select(Book).options(
             selectinload(Book.author),
@@ -423,32 +424,34 @@ async def reimport_files(state):
         ).order_by(func.length(Book.name).desc()))
         books: list[Book] = query.scalars().all()
         if len(books) == 0: return
-        cat_dir = None
+        cat_dirs = []
         if cfg.import_unfinished:
-            try:
-                cat_dir = await downloader.get_cat_dir(cfg)
-            except Exception:
-                get_logger().debug(f"Failed to get category dir trying reimport with {cfg.audio_path} and {cfg.book_path} only")
-        if os.getenv("DEV") and cat_dir is not None:
-            cat_dir = Path(os.getenv("DEV")) / cat_dir[1:] # DEV
-        get_logger().log(5, f"Also checking reimport with: {cat_dir}")
+            coros = [downloader.get_cat_dir(cfg) for downloader in downloaders]
+            for d in await asyncio.gather(*coros, return_exceptions=True):
+                if isinstance(d, Exception):
+                    get_logger().debug(f"Failed to get category dir of a downloader")
+                else:
+                    if os.getenv("DEV") and d is not None:
+                        d = Path(os.getenv("DEV")) / d[1:] # DEV
+                    cat_dirs.append(d)
+        get_logger().log(5, f"Also checking reimport with: {cat_dirs}")
         a_paths, b_paths = await asyncio.gather(
-            asyncio.to_thread(get_dirs_of_ext, [cfg.audio_path, cat_dir], cfg.audio_extensions_rating), # add cat dir?
-            asyncio.to_thread(get_dirs_of_ext, [cfg.book_path, cat_dir], cfg.book_extensions),
+            asyncio.to_thread(get_dirs_of_ext, [cfg.audio_path, *cat_dirs], cfg.audio_extensions_rating), # add cat dir?
+            asyncio.to_thread(get_dirs_of_ext, [cfg.book_path, *cat_dirs], cfg.book_extensions),
         )
 
         book_names = [b.name for b in books]
-        a_idx, b_idx = [], []
+        ai_idx, bi_idx = [], []
         a_fuzz_coros = [asyncio.to_thread(process.extractOne, p.name, book_names, scorer=get_scorer()) for p in a_paths]
         b_fuzz_coros = [asyncio.to_thread(process.extractOne, p.name, book_names, scorer=get_scorer()) for p in b_paths]
         a_results, b_results = await asyncio.gather(
             asyncio.gather(*a_fuzz_coros),
             asyncio.gather(*b_fuzz_coros)
         )
-        a_idx = [(p, index, score) for p, (name, score, index) in zip(a_paths, a_results) if score > 80]
-        b_idx = [(p, index, score) for p, (name, score, index) in zip(b_paths, b_results) if score > 80]
+        ai_idx = [(p, index, score) for p, (name, score, index) in zip(a_paths, a_results) if score > 80]
+        bi_idx = [(p, index, score) for p, (name, score, index) in zip(b_paths, b_results) if score > 80]
         # moved = []
-        for p, idx, score in a_idx:
+        for p, idx, score in ai_idx:
             if Path(books[idx].a_dl_loc or "").resolve() == p.resolve(): continue
             get_logger().info(f"Found {books[idx].name} at {p} with {score=}")
             mark_overwritten_activity(books[idx], True)
@@ -456,7 +459,7 @@ async def reimport_files(state):
             session.add(activity)
             # moved.append(asyncio.to_thread(move_file, activity, activity.book, activity.audio, p, cat_dir=cat_dir, cfg=cfg))
             books[idx].a_dl_loc = str(p)
-        for p, idx, score in b_idx:
+        for p, idx, score in bi_idx:
             if Path(books[idx].b_dl_loc or "").resolve() == p.resolve(): continue
             get_logger().info(f"Found {books[idx].name} at {p} with {score=}")
             mark_overwritten_activity(books[idx], False)

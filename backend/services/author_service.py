@@ -75,9 +75,14 @@ async def clean_series_duplicates(series: Series, session: AsyncSession):
         if not book.position or not book2.position: continue
         if float(book.position) == float(book2.position) and (
             (_b1:=clean_title(book.name, series.name, book.position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
-            clean_title(book2.name, series.name, book2.position, can_be_empty=True)=="" or
+            (_b2:=clean_title(book2.name, series.name, book2.position, can_be_empty=True)=="") or
             get_scorer()(book.name, book2.name) > 80): # we basically have the same book twice
-            if _b1: book, book2 = book2, book
+            print(_b1)
+            if _b1:
+                book, book2 = book2, book
+            elif not _b2:
+                book, book2 = (book, book2) if len(book.name) < len(book2.name) else (book2, book)
+            print(book.name, book2.name)
             book.editions.extend(book2.editions)
             await session.delete(book2)
 
