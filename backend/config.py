@@ -20,15 +20,26 @@ class ConfigManager:
         user_data = json.loads(self.config_file.read_text(encoding="utf-8")) if self.config_file.exists() else {}
         default_data = {
             "book_template": {
-                "value": "",
+                "value": "{{author.name}}/{{series.name}}/{{book.position} - }{{book.name}}",
                 "input_type": "text",
             },
             "audiobook_template": {
-                "value": "",
+                "value": "{{author.name}}/{{series.name}}/{{book.position} - }{{book.name}}",
                 "input_type": "text",
             },
             "indexers": {
-                "value": [],
+                "value": [
+                    {
+                        "name": "Indexer",
+                        "url": "https://example.com",
+                        "apikey": "XXXXXXXXXXXXXXX",
+                        "type": "newznab",
+                        "book": True,
+                        "audio": True,
+                        "audio_categories": "3000",
+                        "book_categories": "7100"
+                    }
+                ],
                 "input_type": "indexer"
             },
             "downloaders": {

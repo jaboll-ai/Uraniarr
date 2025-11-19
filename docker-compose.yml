@@ -1,8 +1,7 @@
 services:
   uraniarr:
+    image: ghcr.io/jaboll-ai/uraniarr:latest #:development
     container_name: uraniarr
-    build: https://github.com/jaboll-ai/Uraniarr.git#main
-    image: uraniarr
     ports:
       - "11562:8000"
     environment:
@@ -19,6 +18,9 @@ services:
       # - ALLOWED_HEADERS=* # DEVELOPMENT ONLY
     # volumes: #make sure the folder exists on host
     #   - <on-host-config>:/config #e.g. /etc/uraniarr
+    #   - <on-host-data>:<internal-data-path> #e.g. /data
+    #   - <on-host-libary>:<internal-lib-path> #e.g. /library (if libary is on the same disk as <internal-data-path> this is not needed)
+    #
     # ╭────────────────────────────────────────────────────────────────────────────────────────╮
     # │   The <internal-data-path> should match the path of your downloaders mount path        │
     # │ this means if sab reports the download to be in /data but on your host this is mounted │
@@ -29,5 +31,3 @@ services:
     # │              https://trash-guides.info/File-and-Folder-Structure/                      │
     # │                             it should just work with '/data'!!                         │
     # ╰────────────────────────────────────────────────────────────────────────────────────────╯
-    #   - <on-host-data>:<internal-data-path> #e.g. /data
-    #   - <on-host-libary>:<internal-lib-path> #e.g. /library (if libary is on the same disk as <internal-data-path> this is not needed)
