@@ -5,15 +5,15 @@ services:
     ports:
       - "11562:8000"
     environment:
-      - CONFIG_DIR=/config
       - TZ=Europe/Berlin
       - PUID=1000
       - PGID=1000
       # Necessary! change to the book vendor named after the greek muse
       - VENDOR=https://www.t****.de
-      # - ACCESS_LOG=false # default: false (Log every API hit in backend)
-      # - LOG_LEVEL=DEBUG # default: INFO ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE']
-      # - ALLOWED_URLS=https://example.com,http://localhost # default: * (Should be set if exposed to internet)
+      - CONFIG_DIR=/config
+      - ACCESS_LOG=false # default: false (Log every API hit in backend)
+      - LOG_LEVEL=INFO # default: INFO ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE']
+      - ALLOWED_URLS=* # default: * (Should be set if exposed to internet)
       # - ALLOWED_METHODS=* # DEVELOPMENT ONLY
       # - ALLOWED_HEADERS=* # DEVELOPMENT ONLY
     # volumes: #make sure the folder exists on host

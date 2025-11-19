@@ -35,25 +35,27 @@
   ```yaml
   services:
     uraniarr:
+      image: ghcr.io/jaboll-ai/uraniarr:latest #:development
       container_name: uraniarr
-      build: https://github.com/jaboll-ai/Uraniarr.git#main
-      image: uraniarr
       ports:
         - "11562:8000"
       environment:
-        - CONFIG_DIR=/config
         - TZ=Europe/Berlin
         - PUID=1000
         - PGID=1000
         # Necessary! change to the book vendor named after the greek muse
         - VENDOR=https://www.t****.de
-        # - ACCESS_LOG=false # default: false (Log every API hit in backend)
-        # - LOG_LEVEL=DEBUG # default: INFO ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE']
-        # - ALLOWED_URLS=https://example.com,http://localhost # default: * (Should be set if exposed to internet)
+        - CONFIG_DIR=/config
+        - ACCESS_LOG=false # default: false (Log every API hit in backend)
+        - LOG_LEVEL=INFO # default: INFO ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE']
+        - ALLOWED_URLS=* # default: * (Should be set if exposed to internet)
         # - ALLOWED_METHODS=* # DEVELOPMENT ONLY
         # - ALLOWED_HEADERS=* # DEVELOPMENT ONLY
       # volumes: #make sure the folder exists on host
       #   - <on-host-config>:/config #e.g. /etc/uraniarr
+      #   - <on-host-data>:<internal-data-path> #e.g. /data
+      #   - <on-host-libary>:<internal-lib-path> #e.g. /library (if libary is on the same disk as <internal-data-path> this is not needed)
+      #
       # ╭────────────────────────────────────────────────────────────────────────────────────────╮
       # │   The <internal-data-path> should match the path of your downloaders mount path        │
       # │ this means if sab reports the download to be in /data but on your host this is mounted │
@@ -64,9 +66,7 @@
       # │              https://trash-guides.info/File-and-Folder-Structure/                      │
       # │                             it should just work with '/data'!!                         │
       # ╰────────────────────────────────────────────────────────────────────────────────────────╯
-      #   - <on-host-data>:<internal-data-path> #e.g. /data
-      #   - <on-host-libary>:<internal-lib-path> #e.g. /library (if libary is on the same disk as <internal-data-path> this is not needed)
-
+```
 **ALTERNATIVE: Run the application bare-bones (please don't)**
 
 1. **Build the frontend assets**
