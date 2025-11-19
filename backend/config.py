@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 class ConfigManager:
@@ -10,10 +11,12 @@ class ConfigManager:
     _SPECIAL_ATTRS = {"config_dir", "config_file", "_data", "_save"}
 
 
-    def __init__(self, config_dir = None):
-        # Set up paths without triggering __setattr__ for config data
-        config_dir = Path(config_dir if config_dir else "./config")
+    def __init__(self, config_dir: str):
+        if os.getenv("DEV"):
+            config_dir = Path(os.getenv("DEV")) / config_dir[1:] # DEV
+        config_dir = Path(config_dir)
         config_dir.mkdir(parents=True, exist_ok=True)
+        # Set up paths without triggering __setattr__ for config data
         object.__setattr__(self, "config_dir", config_dir)
         object.__setattr__(self, "config_file", self.config_dir / "config.json")
         # Load or initialize data

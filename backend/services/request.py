@@ -14,7 +14,10 @@ from playwright_stealth import Stealth
 from cloudscraper import create_scraper
 
 try:
-    cache_dir = Path(os.getenv("CONFIG_DIR", "./config")) / "cache"
+    cache_dir = os.getenv("CONFIG_DIR", "/config")
+    if os.getenv("DEV"):
+        cache_dir = Path(os.getenv("DEV")) / cache_dir[1:]
+    cache_dir = Path(cache_dir) / "cache"
 except Exception as exc:
     get_logger().error(f"Failed to get cache directory")
     get_error_logger().exception(exc)

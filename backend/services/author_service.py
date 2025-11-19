@@ -77,12 +77,10 @@ async def clean_series_duplicates(series: Series, session: AsyncSession):
             (_b1:=clean_title(book.name, series.name, book.position, can_be_empty=True)=="") or # one of our books is just Series Name - Series Position like "Skulduggery Pleasant - 17"
             (_b2:=clean_title(book2.name, series.name, book2.position, can_be_empty=True)=="") or
             get_scorer()(book.name, book2.name) > 80): # we basically have the same book twice
-            print(_b1)
             if _b1:
                 book, book2 = book2, book
             elif not _b2:
                 book, book2 = (book, book2) if len(book.name) < len(book2.name) else (book2, book)
-            print(book.name, book2.name)
             book.editions.extend(book2.editions)
             await session.delete(book2)
 
@@ -121,10 +119,10 @@ async def union_series(series_id: str, series_ids: list[str], session: AsyncSess
     if not series:
         raise AuthorError(status_code=404, detail="Series not found")
     r2s = await session.exec(select(Series).where(Series.key.in_(series_ids)).options(selectinload(Series.books)))
-    series = r2s.scalars().all()
+    lst_series: list[Series] = r2s.scalars().all()
     # if len(r2s) != len(series_ids):
     #     raise AuthorError(status_code=404, detail="Series not found")
-    for series2 in series:
+    for series2 in lst_series:
         for book in series2.books:
             book.name = clean_title(book.name, series.name, book.position)
         series.books.extend(series2.books)
