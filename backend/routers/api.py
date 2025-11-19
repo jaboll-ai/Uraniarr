@@ -104,9 +104,14 @@ async def add_author(author_id: str, session: AsyncSession = Depends(get_session
 
 @router.post("/author/complete/{author_id}")
 async def complete_author(author_id: str, session: AsyncSession = Depends(get_session), cfg: ConfigManager = Depends(get_cfg_manager)):
-    author = await session.get(Author, author_id, options=[selectinload(Author.series).selectinload(Series.books), selectinload(Author.books)])
+    author = await session.get(Author, author_id, options=[selectinload(Author.series).selectinload(Series.books).selectinload(Book.editions), selectinload(Author.books).selectinload(Book.editions)])
     if not author:
         raise HTTPException(status_code=404, detail="Author not found")
+    if author.is_series:
+        ed_id = min(author.series[0].books, key=lambda b: (b.position or 999)).editions[0].key
+        data = await scrape_book_series(ed_id, cfg)
+        resp = await complete_series_in_db(author.series[0].key, session, data)
+        return resp
     data = await scrape_all_author_data(author.key, cfg, author.name)
     resp = await add_books_to_author(author, session, data["books"])
     return resp
@@ -232,13 +237,10 @@ async def update_settings(settings: dict[str, Any], request: Request):
             await reload_scraper(state)
         elif key == "indexer_prowlarr":
             state.indexer = ProwlarrService() if settings[key] else NewznabService()
-        elif key == "downloader_type":
-            if cfg.downloader_type == "sab":
-                state.downloader = SABDownloader()
-            else:
-                cfg.downloader_type = "sab" #TODO other downloaders
-                state.downloader = SABDownloader()
-                raise HTTPException(status_code=500, detail="Only SABDownloader supported currently")
+        elif key == "downloaders":
+            state.downloaders = downloader_factory(cfg)
+        elif key == "indexers":
+            state.indexers = indexer_factory(cfg)
         elif key.endswith("_interval"):
             await restart_job(state, get_job_by_interval(key))
     return state.cfg_manager.get()
@@ -292,15 +294,16 @@ async def delete_book(book_id: str, session: AsyncSession = Depends(get_session)
     if block:
         book.blocked = True
         book.series_key = None
-        if len(series.books) == 0:
-            session.delete(series)
-        await session.commit()
-        return {"blocked": book_id}
-    if len(series.books) == 1:
+    else:
+        await session.delete(book)
+
+    _s = series.key
+    await session.commit() #DONT flush. We need to commit for async to work
+    series = await session.get(Series, _s, options=[selectinload(Series.books)])
+    if len(series.books) == 0:
         await session.delete(series)
-    await session.delete(book)
     await session.commit()
-    return {"deleted": book_id}
+    return {"blocked" if block else "deleted": book_id}
 
 @router.delete("/book/{book_id}/files")
 async def delete_book_files(book_id: str, session: AsyncSession = Depends(get_session)):

@@ -15,16 +15,9 @@
           </span>
         </div>
 
-        <input
-          v-if="cfg.input_type !== 'select'"
-          :id="key + '-input'"
-          v-model="cfg.value"
-          :type="cfg.input_type"
-          class="setting-input"
-        />
 
         <select
-          v-else
+          v-if ="cfg.input_type === 'select'"
           :id="key + '-input'"
           v-model="cfg.value"
           class="setting-select"
@@ -37,19 +30,39 @@
             {{ opt }}
           </option>
         </select>
+        <IndexerList v-else-if="key === 'indexers'" :indexers="(settings.indexers?.value as Indexer[]) || []"
+        @edit-indexer="editIndexer"/>
+        <DownloaderList v-else-if="key === 'downloaders'" :downloaders="(settings.downloaders?.value as Downloader[]) || []"
+        @edit-downloader="editDownloader"/>
+        <input
+          v-else
+          :id="key + '-input'"
+          v-model="cfg.value"
+          :type="cfg.input_type"
+          class="setting-input"
+        />
       </div>
 
       <button type="submit" class="btn material-symbols-outlined">save</button>
     </form>
   </div>
+  <EditIndexerModal v-if="indexer" :indexer="indexer" :idx="indexerIdx" :visible="showModalIndexer"
+  @close="showModalIndexer=false" @save="changeIndexer"/>
+  <EditDownloaderModal v-if="downloader" :downloader="downloader" :idx="downloaderIdx" :visible="showModalDownloader"
+  @close="showModalDownloader=false" @save="changeDownloader"/>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, toRaw } from 'vue'
-import { api } from '@/main.ts'
+import { api, type Downloader, type Indexer } from '@/main.ts'
+import { notify } from '@kyvg/vue3-notification'
+import IndexerList from '@/components/IndexerList.vue'
+import EditIndexerModal from '@/components/EditIndexerModal.vue'
+import DownloaderList from '@/components/DownloaderList.vue'
+import EditDownloaderModal from '@/components/EditDownloaderModal.vue'
 
 interface ConfigEntry {
-  value: string
+  value: string | number | boolean | Indexer[] | Downloader[]
   input_type: string
   options?: string[]
 }
@@ -60,15 +73,8 @@ const settings = ref<Record<string, ConfigEntry>>({})
 const settingNames: Record<string, string> = {
   book_template: 'Book Template',
   audiobook_template: 'Audiobook Template',
-  indexer_url: 'Indexer URL',
-  indexer_apikey: 'Indexer API Key',
-  indexer_prowlarr: 'Use Prowlarr Integration',
-  indexer_audio_category: 'Audio Category ID',
-  indexer_book_category: 'Book Category ID',
-  downloader_url: 'Downloader URL',
-  downloader_apikey: 'Downloader API Key',
-  downloader_type: 'Downloader Type',
-  downloader_category: 'Downloader Category',
+  indexers: 'Add Indexers',
+  downloaders: 'Add Downloaders',
   audio_path: 'Audio Storage Path',
   book_path: 'Book Storage Path',
   import_poll_interval: 'Import Poll Interval (seconds)',
@@ -81,21 +87,13 @@ const settingNames: Record<string, string> = {
   playwright: 'Enable Playwright Scraping',
   skip_cache: 'Skip Cache',
   ignore_safe_delete: 'Ignore Safe Delete',
-  known_bundles: 'Known Bundle Names'
+  known_bundles: 'Known Bundle Names',
+  import_unfinished: 'EXPERIMENTAL: Import Unfinished Files'
 }
 
 const tooltips: Record<string, string> = {
   book_template: 'Replaces placeholders like {{attr}} with values from the selected object. Supports simple formatting inside braces like {{book.position} - }',
   audiobook_template: 'Replaces placeholders like {{attr}} with values from the selected object. Supports simple formatting inside braces like {{book.position} - }',
-  indexer_url: 'Base URL of your indexer (e.g. Prowlarr or Newznab).',
-  indexer_apikey: 'API key used to authenticate with your indexer.',
-  indexer_prowlarr: 'Toggle if your indexer runs via Prowlarr integration.',
-  indexer_audio_category: 'Category ID for audio downloads (e.g. 3000).',
-  indexer_book_category: 'Category ID for ebook downloads (e.g. 7000).',
-  downloader_url: 'Base URL of your downloader (e.g. SABnzbd, NZBGet).',
-  downloader_apikey: 'API key for your downloader.',
-  downloader_type: 'Downloader type (e.g. sab or nzbget).',
-  downloader_category: 'Category name in your downloader for this app.',
   audio_path: 'Folder path where audio files will be stored.',
   book_path: 'Folder path where book files will be stored.',
   import_poll_interval: 'Interval in seconds between import checks for downloaded files. (0 to disable imports)',
@@ -108,20 +106,81 @@ const tooltips: Record<string, string> = {
   playwright: 'Use playwright instead of cloudscraper. (Only toggle if necessary)',
   skip_cache: 'Force skip of local cache (useful for debugging).',
   ignore_safe_delete: 'ONLY enable if Uraniarr is importing from a custom category.',
-  known_bundles: 'List of known boxset/bundle names (comma-separated).'
+  known_bundles: 'List of known boxset/bundle names (comma-separated).',
+  import_unfinished: 'Import all files from downloader folder, even if they are not finished yet. (EXPERIMENTAL)'
 }
+
+const showModalIndexer = ref(false)
+const showModalDownloader = ref(false)
+const indexer = ref<Indexer>()
+const indexerIdx = ref(-1)
+const downloader = ref<Downloader>()
+const downloaderIdx = ref(-1)
+
 
 onMounted(async () => {
   getSettings()
 })
+
+async function editIndexer(idx: number) {
+  indexer.value = (settings.value.indexers?.value as Indexer[])[idx] || {
+    name: '',
+    type: 'prowlarr',
+    url: '',
+    apikey: '',
+    book: false,
+    audio: false,
+    audio_categories: [],
+    book_categories: []
+  }
+  indexerIdx.value = idx
+  showModalIndexer.value = true
+}
+
+async function editDownloader(idx: number) {
+  downloader.value = (settings.value.downloaders?.value as Downloader[])[idx] || {
+    name: '',
+    type: 'sab',
+    url: '',
+    apikey: '',
+    audio: false,
+    download_categories: [],
+  }
+  downloaderIdx.value = idx
+  showModalDownloader.value = true
+}
+
+async function changeIndexer({idx, indexer}: { idx: number; indexer: Indexer }) {
+  if (!settings.value.indexers) return
+  const editedIndexers = (settings.value.indexers.value as Indexer[]) || []
+  if (idx < 0) idx = editedIndexers.length
+  editedIndexers[idx] = indexer
+  showModalIndexer.value = false
+  settings.value.indexers.value = editedIndexers
+  await saveSettings()
+}
+
+async function changeDownloader({idx, downloader}: { idx: number; downloader: Downloader }) {
+  if (!settings.value.downloaders) return
+  const editedDownloaders = (settings.value.downloaders.value as Downloader[]) || []
+  if (idx < 0) idx = editedDownloaders.length
+  editedDownloaders[idx] = downloader
+  showModalDownloader.value = false
+  settings.value.downloaders.value = editedDownloaders
+  await saveSettings()
+}
 
 async function getSettings() {
   try {
     const { data } = await api.get<Record<string, ConfigEntry>>('/settings')
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
-  } catch (err) {
-    console.error('Failed to load settings', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -143,15 +202,28 @@ function getChangedFields() {
 async function saveSettings() {
   const patch = getChangedFields()
   if (Object.keys(patch).length === 0) {
-    alert('Nothing changed')
+    notify({
+      title: 'No changes detected',
+      text: 'Nothing to do.',
+      type: 'warn'
+    })
     return
   }
   try {
     await api.patch('/settings', patch)
-    alert('Settings saved!')
+    notify({
+      title: 'Success',
+      text: 'Settings saved.',
+      type: 'success'
+    })
     await getSettings()
-  } catch (err: any) {
-    alert('Could not save settings:\n' + (err.response?.data?.detail || ''))
+  } catch (error: any) {
+    console.log(error)
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
     await getSettings()
   }
 }

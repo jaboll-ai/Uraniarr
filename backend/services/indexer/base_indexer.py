@@ -8,8 +8,13 @@ import asyncio
 from time import time
 
 class BaseIndexer(ABC):
-    def __init__(self):
+    def __init__(self, idx_cfg: dict, indexeri_idx: int):
         self.last_hit = 0
+        self.url = self.normalize(idx_cfg["url"])
+        self.apikey = idx_cfg["apikey"].strip()
+        self.audio_categories = idx_cfg["audio_categories"]
+        self.book_categories = idx_cfg["book_categories"]
+        self.i_idx = indexeri_idx
 
     @abstractmethod
     async def search(self, q: str, cfg: ConfigManager, audio: bool):

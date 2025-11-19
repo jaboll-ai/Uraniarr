@@ -1,4 +1,5 @@
 
+from contextlib import suppress
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -17,63 +18,81 @@ router = APIRouter(prefix="/dapi", tags=["NZB"])
 @router.post("/book/{book_id}")
 async def download_book(request: Request, book_id: str,  audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
-    indexer: BaseIndexer = request.app.state.indexer
-    downloader: BaseDownloader = request.app.state.downloader
+    indexers: list[BaseIndexer] = request.app.state.indexers[audio]
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
     book = await session.get(Book, book_id, options=[selectinload(Book.series), selectinload(Book.author)])
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    name, guid, download = await indexer.query_book(book, cfg=cfg, audio=audio)
-    if not guid:
+    for indexer in indexers:
+        name, guid, download = await indexer.query_book(book, cfg=cfg, audio=audio)
+        if not download:
+            continue
+        nzb = await indexer.grab(download, cfg=cfg)
+        break
+    else:
         raise HTTPException(status_code=404, detail=f"Book {book.name} not found")
-    nzb = await indexer.grab(download, cfg=cfg)
-    await schedule_download(guid, name, nzb, book=book, downloader=downloader, cfg=cfg, session=session, audio=audio)
+    await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=audio)
     return book_id
 
 @router.post("/guid")
 async def download_guid(request: Request, data: ManualGUIDDownload, audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
-    indexer: BaseIndexer = request.app.state.indexer
-    downloader: BaseDownloader = request.app.state.downloader
+    indexers: list[BaseIndexer] = request.app.state.indexers[audio]
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
     book = await session.get(Book, data.book_key)
-    nzb = await indexer.grab(data.download, cfg=cfg)
-    await schedule_download(data.guid, data.name, nzb, book=book, downloader=downloader, cfg=cfg, session=session, audio=audio)
+    nzb = await indexers[data.i_idx].grab(data.download, cfg=cfg)
+    await schedule_download(data.guid, data.name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=audio)
     return data.guid
 
 @router.get("/manual/{book_id}")
 async def search_manual(request: Request, book_id: str, page:int = 0, audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
-    indexer: BaseIndexer = request.app.state.indexer
+    indexers: list[BaseIndexer] = request.app.state.indexers[audio]
     book = await session.get(Book, book_id, options=[selectinload(Book.series), selectinload(Book.author)])
-    data = await indexer.query_manual(book, page, cfg=cfg, audio=audio)
-    if not data:
+    data = None
+    nzbs = []
+    for indexer in indexers:
+        data = await indexer.query_manual(book, page, cfg=cfg, audio=audio)
+        if not data:
+            continue
+        nzbs.extend(data["nzbs"])
+    if not nzbs:
         raise HTTPException(status_code=404, detail=f"Book {book_id} not found")
-    return data
+    return { **data, "nzbs": nzbs }
 
 @router.post("/author/{author_id}")
-async def download_author(request: Request, author_id: str, session: AsyncSession = Depends(get_session)):
+async def download_author(request: Request, author_id: str, audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
-    indexer: BaseIndexer = request.app.state.indexer
-    downloader: BaseDownloader = request.app.state.downloader
+    indexers: list[BaseIndexer] = request.app.state.indexers[audio]
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
     author = await session.get(Author, author_id)
     if not author:
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
     for book in author.books: #TODO Make use of parallelism TODO
         if book.a_dl_loc or book.blocked: continue
-        name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=True)
-        if not guid:
+        for indexer in indexers:
+            name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=True)
+            if not guid:
+                continue
+            nzb = await indexer.grab(download, cfg=cfg)
+            break
+        else:
             not_found.append(book.key)
             continue
-        nzb = await indexer.grab(download, cfg=cfg)
-        await schedule_download(guid, name, nzb, book=book, downloader=downloader, cfg=cfg, session=session, audio=True)
+        await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=True)
     for book in author.books:
         if book.b_dl_loc or book.blocked: continue
-        name, guid, download = await indexer.query_book(book, cfg=cfg, audio=False)
-        if not guid:
+        for indexer in indexers:
+            name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=False)
+            if not guid:
+                continue
+            nzb = await indexer.grab(download, cfg=cfg)
+            break
+        else:
             not_found.append(book.key)
             continue
-        nzb = await indexer.grab(download, cfg=cfg)
-        await schedule_download(guid, name, nzb, book=book, downloader=downloader, cfg=cfg, session=session, audio=False)
+        await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=False)
     if not_found:
         return {"partial_success": author_id, "not_found": not_found}
     return {"success": author_id}
@@ -81,36 +100,45 @@ async def download_author(request: Request, author_id: str, session: AsyncSessio
 @router.post("/series/{series_id}")
 async def download_series(request: Request, series_id: str, audio: bool = True, session: AsyncSession = Depends(get_session)):
     cfg = request.app.state.cfg_manager
-    indexer: BaseIndexer = request.app.state.indexer
-    downloader: BaseDownloader = request.app.state.downloader
+    indexers: list[BaseIndexer] = request.app.state.indexers[audio]
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
     series = await session.get(Series, series_id)
     if not series:
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
     for book in series.books:
         if (audio and book.a_dl_loc) or (not audio and book.b_dl_loc) or book.blocked: continue
-        name, guid, download = await indexer.query_book(book, cfg=cfg, audio=audio)
-        if not guid:
+        for indexer in indexers:
+            name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=audio)
+            if not guid:
+                continue
+            nzb = await indexer.grab(download, cfg=cfg)
+            break
+        else:
             not_found.append(book.key)
             continue
-        nzb = await indexer.grab(download, cfg=cfg)
-        await schedule_download(guid, name, nzb, book=book, downloader=downloader, cfg=cfg, session=session, audio=audio)
+        await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=audio)
     if not_found:
         return {"partial_success": series_id, "not_found": not_found}
     return series_id
 
 @router.delete("/book/{book_id}")
-async def delete_book_from_history(request: Request, book_id: str):
-    downloader: BaseDownloader = request.app.state.downloader
+async def delete_book_from_history(request: Request, book_id: str, audio: bool = True):
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
     cfg = request.app.state.cfg_manager
-    return await downloader.remove_from_history(cfg, book_id)
+    coros = [downloader.remove_from_queue(cfg, book_id) for downloader in downloaders]
+    r = await asyncio.gather(*coros, return_exceptions=True)
+    return any([not isinstance(x, Exception) for x in r])
 
 @router.get("/activities")
 async def get_activities(request: Request, session: AsyncSession = Depends(get_session)): #TODO shift logic to downloader
-    downloader: BaseDownloader = request.app.state.downloader
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[True] + request.app.state.downloaders[False]
     cfg = request.app.state.cfg_manager
-    queue, history = await asyncio.gather(downloader.get_queue(cfg=cfg), downloader.get_history(cfg=cfg))
-    result = queue | history
+    result = {}
+    for downloader in downloaders:
+        queue, history = await asyncio.gather(downloader.get_queue(cfg=cfg), downloader.get_history(cfg=cfg))
+        combine = queue | history
+        result = result | combine
     query = await session.exec(select(Activity).where(Activity.nzo_id.in_(result.keys())).options(selectinload(Activity.book)))
     nzbs = query.scalars().all()
     resp =  [{
@@ -125,18 +153,22 @@ async def get_activities(request: Request, session: AsyncSession = Depends(get_s
 
 @router.delete("/activity/{activity_id}")
 async def delete_activity(request: Request, activity_id: str, session: AsyncSession = Depends(get_session)):
-    downloader: BaseDownloader = request.app.state.downloader
+    downloaders: list[BaseDownloader] = request.app.state.downloaders[True] + request.app.state.downloaders[False]
     cfg = request.app.state.cfg_manager
-    resp = await downloader.remove_from_queue(cfg, activity_id)
-    if resp:
-        activity = session.get(Activity, activity_id)
+    coros = [downloader.remove_from_queue(cfg, activity_id) for downloader in downloaders]
+    r = await asyncio.gather(*coros, return_exceptions=True)
+    for resp in r:
+        if isinstance(resp, Exception): continue
+        activity = await session.get(Activity, activity_id)
         if activity:
             activity.status = ActivityStatus.canceled
-            session.commit()
+            await session.commit()
+            break
     return activity_id
 
-async def schedule_download(guid: str, release_title: str, nzb : bytes, downloader: BaseDownloader, cfg: ConfigManager, session: AsyncSession, book: Book, audio: bool):
-    data = await downloader.download(nzb, nzbname=release_title, cfg=cfg)
+async def schedule_download(guid: str, release_title: str, nzb : bytes, downloaders: list[BaseDownloader], cfg: ConfigManager, session: AsyncSession, book: Book, audio: bool):
+    for downloader in downloaders:
+        data = await downloader.download(nzb, nzbname=release_title, cfg=cfg)
     if not data:
         raise HTTPException(status_code=500, detail="Download failed")
     try:

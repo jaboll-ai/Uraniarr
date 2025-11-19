@@ -1,3 +1,6 @@
+import { ref } from "vue"
+import { notify } from "@kyvg/vue3-notification";
+
 export function getInitials(name: string) {
   const names = name.split(' ')
   let initials = ''
@@ -39,4 +42,41 @@ export function diffDisplay(oldPath: string, newPath: string): string {
 
 function escapeHtml(s: string) {
     return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+}
+
+export const loadingBooks = ref<{ [bookKey: string]: { [action: string]: string } }>({})
+
+export async function runBatch(keys: string[], requestFn:(key: string) => Promise<any>, field: string, timeoutMs: number) {
+  const promises = []
+  for (const key of keys) {
+    loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'loading' }
+    const p = requestFn(key)
+      .then(res => ({ ...res, _bookKey: key }))
+      .catch(err => { err._bookKey = key; throw err })
+    promises.push(p)
+  }
+
+  const resets = []
+  for (const r of await Promise.allSettled(promises)) {
+    var key = null
+    if (r.status === 'fulfilled') {
+      key = r.value._bookKey
+      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'check' }
+    } else {
+      key = r.reason._bookKey
+      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'error' }
+      try {
+        notify({
+          title: 'Error',
+          text: r.reason.response.data.detail,
+          type: 'error'
+        })
+      } catch {}
+    }
+    resets.push((async () => {
+      await new Promise(res => setTimeout(res, timeoutMs))
+      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: field }
+    })())
+  }
+  Promise.all(resets)
 }

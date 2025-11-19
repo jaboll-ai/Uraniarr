@@ -6,14 +6,8 @@
         <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
-          <button class="ctrl-btn material-symbols-outlined" title="Download every book and audiobook" @click="downloadAuthor">
-            <VueSpinner v-if="downloadingAuthor=='throbber'"/>
-            <span v-else>{{ downloadingAuthor }}</span>
-          </button>
-          <button class="ctrl-btn material-symbols-outlined" title="Try to find missing books" @click="completeAuthor">
-            <VueSpinner v-if="completingAuthor=='throbber'"/>
-            <span v-else>{{ completingAuthor }}</span>
-          </button>
+          <LoadingButton class="ctrl-btn" :loading="downloadingAuthor=='throbber'" title="Download every book and audiobook" :text="downloadingAuthor" @click="downloadAuthor"/>
+          <LoadingButton class="ctrl-btn" :loading="completingAuthor=='throbber'" title="Try to find missing books"  :text="completingAuthor" @click="completeAuthor"/>
           <button class="ctrl-btn material-symbols-outlined" title="Delete the author from DB" @click="showConfirmAuthor = true">delete</button>
           <button class="ctrl-btn material-symbols-outlined" title="Retag all Books of author" @click="previewRetagAuthor">graph_1</button>
           <button class="ctrl-btn material-symbols-outlined"
@@ -81,12 +75,13 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { VueSpinner } from 'vue3-spinners'
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { api, dapi as dapi } from '@/main.ts'
+import { getInitials, runBatch } from '@/utils.ts'
+import { notify } from '@kyvg/vue3-notification'
+import LoadingButton from '@/components/LoadingButton.vue'
 import BookList from '@/components/BookList.vue'
 import SeriesList from '@/components/SeriesList.vue'
-import { getInitials } from '@/utils.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
 import EditModal from '@/components/EditModal.vue'
@@ -124,8 +119,12 @@ onMounted(async () => {
   try {
     const response = await api.get<Author>(`/author/${route.params.key}`)
     author.value = response.data
-  } catch (error) {
-    console.error('Failed to fetch books:', error)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBooks()
   timer.value = window.setInterval(fetchBooks, 20_000)
@@ -143,7 +142,7 @@ const tabs = [
 
 const isAnimating = ref(false);
 const current = ref<string>('BookList')
-const audio = ref<boolean>(true)
+const audio = ref<boolean>((localStorage.getItem('audio')?? "true") === "true")
 const componentsMap: Record<string, any> = {
   BookList,
   SeriesList,
@@ -163,8 +162,12 @@ async function fetchBooks() {
         books: books.value.filter((b) => b.series_key === s.key),
       })
     }
-  } catch (err) {
-    console.error('Failed to load series or books', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -174,8 +177,12 @@ async function previewRetagAuthor() {
     showRetag.value = true
     const response = await api.get<RetagAuthor>(`/retag/author/${route.params.key}`)
     prv.value = response.data
-  } catch(err){
-    console.log(err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -183,8 +190,12 @@ async function retagBooks(keys: string[]) {
   showRetag.value = false
   try {
     await api.post(`/retag/books`, keys)
-  } catch (err) {
-    console.error('Failed to retag author', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBooks()
 }
@@ -200,9 +211,13 @@ async function searchBookPaginate(key: string, page: number) {
     query.value = response.data.query
     manualSearchPages.value = response.data.pages
     manualSearchKey.value = key
-  } catch(err){
-    console.log(err)
+  } catch (error: any) {
     interactiveSearch.value = true
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -219,38 +234,48 @@ async function uniteSeries(data: { series_id: string; series_ids: string[] }) {
 }
 
 async function downloadBook(keys: string[]) {
-  try {
-    for (const key of keys) {
-      await dapi.post(`/book/${key}`, null, { params: { audio : audio.value } })
-    }
-  } catch (err) {
-    console.error('Failed to download book', err)
-  }
+  await runBatch(keys, key => dapi.post(`/book/${key}`, null, { params:{audio:audio.value} }), 'download', 3000)
+  fetchBooks()
 }
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
+  console.log(nzb)
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
-  } catch (err) {
-    console.error('Failed to download book', err)
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name, i_idx: nzb.i_idx}, { params: { audio : audio.value } })
+    interactiveSearch.value = false
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
+  fetchBooks()
 }
 
 async function downloadSeries(key: string) {
   try {
     await dapi.post(`/series/${key}`, null, { params: { audio : audio.value } })
-  } catch (err) {
-    console.error('Failed to download Series', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
 async function downloadAuthor() {
   try {
     downloadingAuthor.value = "throbber"
-    await dapi.post(`/author/${route.params.key}`)
+    await dapi.post(`/author/${route.params.key}`, null , { params: { audio : audio.value } })
     downloadingAuthor.value = "download"
-  } catch (err) {
-    console.error('Failed to download Author', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
     downloadingAuthor.value = "error"
     await new Promise(resolve => setTimeout(resolve, 3000))
     downloadingAuthor.value = "download"
@@ -263,8 +288,12 @@ async function completeAuthor() {
     await api.post(`/author/complete/${route.params.key}`)
     completingAuthor.value = "matter"
     fetchBooks()
-  } catch (err) {
-    console.error('Failed to download Author', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
     completingAuthor.value = "error"
     await new Promise(resolve => setTimeout(resolve, 3000))
     completingAuthor.value = "matter"
@@ -275,8 +304,12 @@ async function completeAuthor() {
 async function completeSeries(key: string) {
   try {
     await api.post(`/series/complete/${key}`)
-  } catch (err) {
-    console.error('Failed to complete series', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBooks()
 }
@@ -285,8 +318,12 @@ async function cleanupSeries(key: string, name: string) {
   console.log(key, name)
   try {
     await api.post(`/series/cleanup/${key}`, null, { "params": { "name" : name }})
-  } catch (err) {
-    console.error('Failed to cleanup series', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBooks()
 }
@@ -309,24 +346,20 @@ async function confirmDeleteSeries(key: string) {
 }
 
 async function deleteBook(blocking?: boolean) {
-  console.log(blocking)
   showConfirmBook.value = false
-  try {
-    for (const key of shouldDeleteBooks.value) {
-      await api.delete(`/book/${key}`, { params: { block: blocking } })
-    }
-  } catch (err) {
-    console.error('Failed to delete book', err)
-  }
+  await runBatch(shouldDeleteBooks.value, key => api.delete(`/book/${key}`, { params: { block: blocking } }), 'delete', 3000)
   fetchBooks()
 }
-
 async function deleteSeries() {
   showConfirmSeries.value = false
   try {
     await api.delete(`/series/${shouldDeleteSeries.value}`)
-  } catch (err) {
-    console.error('Failed to delete series', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBooks()
 }
@@ -336,8 +369,12 @@ async function deleteAuthor(key: string | undefined) {
   if (!key) return
   try {
     await api.delete(`/author/${key}`)
-  } catch (err) {
-    console.error('Failed to delete Author', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   router.push({ name: 'Library' })
 }
@@ -346,18 +383,20 @@ async function editBook(book: Book) {
   try {
     const { key, ...data } = book
     await api.patch(`/book/${key}`, data)
-  } catch (err) {
-    console.error('Failed to edit book', err)
+    showEditor.value = false
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBooks()
 }
 
-onBeforeUnmount(async () => {
-  document.documentElement.style.removeProperty('--mainColor');
-})
-
 async function animate() {
   audio.value = !audio.value
+  localStorage.setItem('audio', audio.value.toString())
   if (audio.value) {
     document.documentElement.style.removeProperty('--mainColor');
   } else {

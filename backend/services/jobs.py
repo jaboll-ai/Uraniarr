@@ -77,6 +77,7 @@ async def periodic_task(state, interval_attr: str, task_coro, name: Optional[str
         try:
             get_logger().debug(f"Running {name or task_coro.__name__} ...")
             await task_coro(state)
+            get_logger().debug(f"Finished {name or task_coro.__name__} ...")
         except BaseException as e:
             get_error_logger().exception(e)
             get_logger().error(f"{name or task_coro.__name__} failed: {e}")

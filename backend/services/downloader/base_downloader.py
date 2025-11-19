@@ -3,6 +3,13 @@ from backend.config import ConfigManager
 
 class BaseDownloader(ABC):
 
+    def __init__(self, dwn_cfg: dict, downloaderi_idx: int):
+        self.last_hit = 0
+        self.url = self.normalize(dwn_cfg["url"])
+        self.apikey = dwn_cfg["apikey"].strip()
+        self.download_category = dwn_cfg["download_categories"]
+        self.i_idx = downloaderi_idx
+
     @abstractmethod
     async def download(self, nzb : bytes, cfg: ConfigManager, nzbname: str):
         pass

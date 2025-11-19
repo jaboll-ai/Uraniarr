@@ -10,14 +10,16 @@ class UnionSeries(BaseModel):
 
 class ManualGUIDDownload(BaseModel):
     book_key: str
-    guid: str
+    guid: str = None
     name: str
-    download: str
+    download: str = None
+    i_idx: int
 
 class BookNzb(BaseModel):
   name: str
   guid: str
   size: str | int
+  i_idx: int
 
 class ReturnInteractiveSearch(BaseModel):
     query: str

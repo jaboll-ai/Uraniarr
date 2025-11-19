@@ -20,48 +20,31 @@ class ConfigManager:
         user_data = json.loads(self.config_file.read_text(encoding="utf-8")) if self.config_file.exists() else {}
         default_data = {
             "book_template": {
-                "value": "",
+                "value": "{{author.name}}/{{series.name}}/{{book.position} - }{{book.name}}",
                 "input_type": "text",
             },
             "audiobook_template": {
-                "value": "",
+                "value": "{{author.name}}/{{series.name}}/{{book.position} - }{{book.name}}",
                 "input_type": "text",
             },
-            "indexer_url": {
-                "value": "",
-                "input_type": "text",
+            "indexers": {
+                "value": [
+                    {
+                        "name": "Indexer",
+                        "url": "https://example.com",
+                        "apikey": "XXXXXXXXXXXXXXX",
+                        "type": "newznab",
+                        "book": True,
+                        "audio": True,
+                        "audio_categories": "3000",
+                        "book_categories": "7100"
+                    }
+                ],
+                "input_type": "indexer"
             },
-            "indexer_apikey": {
-                "value": "",
-                "input_type": "password",
-            },
-            "indexer_prowlarr": {
-                "value": False,
-                "input_type": "checkbox",
-            },
-            "indexer_audio_category": {
-                "value": "3000",
-                "input_type": "text",
-            },
-            "indexer_book_category": {
-                "value": "7000",
-                "input_type": "text",
-            },
-            "downloader_url": {
-                "value": "",
-                "input_type": "text",
-            },
-            "downloader_apikey": {
-                "value": "",
-                "input_type": "password",
-            },
-            "downloader_type": {
-                "value": "sab",
-                "input_type": "text",
-            },
-            "downloader_category": {
-                "value": "",
-                "input_type": "text",
+            "downloaders": {
+                "value": [],
+                "input_type": "downloader"
             },
             "audio_path": {
                 "value": "",
@@ -114,7 +97,11 @@ class ConfigManager:
             "known_bundles": {
                 "value": "Krimi Box,Krimi-Box,3er-Box",
                 "input_type": "text"
-            }
+            },
+            "import_unfinished": {
+                "value": False,
+                "input_type": "checkbox"
+            },
             # "devTest": {
             #     "value": "",
             #     "input_type": "select",

@@ -22,7 +22,8 @@
 
         <div class="book-actions" v-if ="book">
           <button class="ctrl-btn material-symbols-outlined" @click="showEditor = true">edit</button>
-          <button class="ctrl-btn material-symbols-outlined" @click="downloadBook([book.key])">download</button>
+          <LoadingButton :loading="loadingBooks[book.key]?.download === 'loading'" :text="loadingBooks[book.key]?.download ?? 'download'"
+            class="ctrl-btn" @click="downloadBook([book.key])"/>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmDelete = true">delete</button>
           <button class="ctrl-btn material-symbols-outlined" @click="searchBook(book.key)">quick_reference_all</button>
           <button class="ctrl-btn material-symbols-outlined" @click="previewRetagBook(book.key)">graph_1</button>
@@ -125,13 +126,15 @@ import { api, dapi } from '@/main.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import EditModal from '@/components/EditModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
-import { getInitials, formatSize } from '@/utils.ts'
-import { useRoute } from 'vue-router'
+import { getInitials, formatSize, runBatch, loadingBooks } from '@/utils.ts'
+import { useRoute, useRouter } from 'vue-router'
 import type { BookNzb, Book, InteractiveSearch, PreviewRetag } from '@/main.ts'
 import RetagModal from '@/components/RetagBookModal.vue'
-
+import LoadingButton from '@/components/LoadingButton.vue'
+import { notify } from '@kyvg/vue3-notification'
 
 const route = useRoute()
+const router = useRouter()
 const book = ref<Book>()
 const authorName = ref('')
 const showConfirmDelete = ref(false)
@@ -147,7 +150,7 @@ const files = ref<{ audio: { path: string; size: number }[]; book: { path: strin
   audio: [],
   book: [],
 })
-const audio = ref(true)
+const audio = ref<boolean>((localStorage.getItem('audio')?? "true") === "true")
 const isAnimating = ref(false);
 const prv = ref<PreviewRetag>()
 
@@ -155,8 +158,12 @@ async function editBook(book: Book) {
   try {
     const { key, ...data } = book
     await api.patch(`/book/${key}`, data)
-  } catch (err) {
-    console.error('Failed to edit book', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchInfo()
 }
@@ -179,8 +186,12 @@ async function fetchFiles() {
   try {
     const { data } = await api.get(`/book/files/${route.params.key}`)
     files.value = data
-  } catch (err) {
-    console.error('Failed to fetch files:', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -190,37 +201,38 @@ async function fetchBook() {
     book.value = data
     const author = await api.get<{ name: string }>(`/author/${data.autor_key}`)
     authorName.value = author.data.name
-  } catch (err) {
-    console.error('Failed to fetch book:', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
 async function downloadBook(keys: string[]) {
-  try {
-    for (const key of keys) {
-      await dapi.post(`/book/${key}`, null, { params: { audio : audio.value } })
-    }
-  } catch (err) {
-    console.error('Failed to download book', err)
-  }
+  await runBatch(keys, key => dapi.post(`/book/${key}`, null, { params:{audio:audio.value} }), 'download', 3000)
+  fetchBook()
 }
+
 
 async function downloadBookManual(key: string, nzb: BookNzb) {
   try {
-    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name}, { params: { audio : audio.value } })
-  } catch (err) {
-    console.error('Failed to download book', err)
+    await dapi.post('/guid', {book_key : key, guid : nzb.guid, download : nzb.download, name : nzb.name, i_idx: nzb.i_idx}, { params: { audio : audio.value } })
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
-async function deleteBook() {
-  if (!book.value?.key) return
-  try {
-    await api.delete(`/book/${book.value.key}`)
-    showConfirmDelete.value = false
-  } catch (err) {
-    console.error('Failed to delete book:', err)
-  }
+async function deleteBook(blocking?: boolean) {
+  if (!book.value) return
+  showConfirmDelete.value = false
+  await runBatch([book.value.key], key => api.delete(`/book/${key}`, { params: { block: blocking } }), 'delete', 3000)
+  router.push({ name: 'Author', params: { key: book.value?.autor_key } })
 }
 
 async function previewRetagBook(key: string) {
@@ -228,8 +240,12 @@ async function previewRetagBook(key: string) {
     showRetag.value = true
     const response = await api.get<PreviewRetag>(`/retag/book/${key}`)
     prv.value = response.data
-  } catch(err){
-    console.log(err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
 }
 
@@ -238,8 +254,12 @@ async function retagBooks(keys: string[]) {
   showRetag.value = false
   try {
     await api.post(`/retag/books`, keys)
-  } catch (err) {
-    console.error('Failed to retag author', err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
   }
   fetchBook()
 }
@@ -255,8 +275,12 @@ async function searchBookPaginate(key: string, page: number) {
     query.value = response.data.query
     manualSearchPages.value = response.data.pages
     manualSearchKey.value = key
-  } catch(err){
-    console.log(err)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
     interactiveSearch.value = true
   }
 }
@@ -270,6 +294,7 @@ async function closeManualSearch() {
 
 async function animate() {
   audio.value = !audio.value
+  localStorage.setItem('audio', audio.value.toString())
   if (audio.value) {
     document.documentElement.style.removeProperty('--mainColor');
   } else {
