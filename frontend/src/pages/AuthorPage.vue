@@ -24,7 +24,7 @@
         @click="current = tab.name;"
         :class="{ active: current === tab.name }"
       >
-        {{ tab.label }}
+        {{ audio? `Audio${tab.label.toLowerCase()}` : tab.label }}
       </button>
     </div>
     <div class="panel">

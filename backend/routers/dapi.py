@@ -32,6 +32,7 @@ async def download_book(request: Request, book_id: str,  audio: bool = True, ses
     else:
         raise HTTPException(status_code=404, detail=f"Book {book.name} not found")
     await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=audio)
+    await session.commit()
     return book_id
 
 @router.post("/guid")
@@ -42,6 +43,7 @@ async def download_guid(request: Request, data: ManualGUIDDownload, audio: bool 
     book = await session.get(Book, data.book_key)
     nzb = await indexers[data.i_idx].grab(data.download, cfg=cfg)
     await schedule_download(data.guid, data.name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=audio)
+    await session.commit()
     return data.guid
 
 @router.get("/manual/{book_id}")
@@ -65,14 +67,14 @@ async def download_author(request: Request, author_id: str, audio: bool = True, 
     cfg = request.app.state.cfg_manager
     indexers: list[BaseIndexer] = request.app.state.indexers[audio]
     downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
-    author = await session.get(Author, author_id)
+    author = await session.get(Author, author_id, options=[selectinload(Author.books).selectinload(Book.series), selectinload(Author.books).selectinload(Book.author)])
     if not author:
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
     for book in author.books: #TODO Make use of parallelism TODO
         if book.a_dl_loc or book.blocked: continue
         for indexer in indexers:
-            name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=True)
+            name, guid, download = await indexer.query_book(book, cfg=cfg, audio=True)
             if not guid:
                 continue
             nzb = await indexer.grab(download, cfg=cfg)
@@ -84,7 +86,7 @@ async def download_author(request: Request, author_id: str, audio: bool = True, 
     for book in author.books:
         if book.b_dl_loc or book.blocked: continue
         for indexer in indexers:
-            name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=False)
+            name, guid, download = await indexer.query_book(book, cfg=cfg, audio=False)
             if not guid:
                 continue
             nzb = await indexer.grab(download, cfg=cfg)
@@ -95,6 +97,7 @@ async def download_author(request: Request, author_id: str, audio: bool = True, 
         await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=False)
     if not_found:
         return {"partial_success": author_id, "not_found": not_found}
+    await session.commit()
     return {"success": author_id}
 
 @router.post("/series/{series_id}")
@@ -102,14 +105,14 @@ async def download_series(request: Request, series_id: str, audio: bool = True, 
     cfg = request.app.state.cfg_manager
     indexers: list[BaseIndexer] = request.app.state.indexers[audio]
     downloaders: list[BaseDownloader] = request.app.state.downloaders[audio]
-    series = await session.get(Series, series_id)
+    series = await session.get(Series, series_id, options=[selectinload(Series.books).selectinload(Book.series), selectinload(Series.books).selectinload(Book.author)])
     if not series:
         raise HTTPException(status_code=404, detail="Author not found")
     not_found = []
     for book in series.books:
         if (audio and book.a_dl_loc) or (not audio and book.b_dl_loc) or book.blocked: continue
         for indexer in indexers:
-            name, guid, download = await indexer.query_book(book, session=session, cfg=cfg, audio=audio)
+            name, guid, download = await indexer.query_book(book, cfg=cfg, audio=audio)
             if not guid:
                 continue
             nzb = await indexer.grab(download, cfg=cfg)
@@ -120,6 +123,7 @@ async def download_series(request: Request, series_id: str, audio: bool = True, 
         await schedule_download(guid, name, nzb, book=book, downloaders=downloaders, cfg=cfg, session=session, audio=audio)
     if not_found:
         return {"partial_success": series_id, "not_found": not_found}
+    await session.commit()
     return series_id
 
 @router.delete("/book/{book_id}")
@@ -176,4 +180,4 @@ async def schedule_download(guid: str, release_title: str, nzb : bytes, download
     except:
         raise HTTPException(status_code=500, detail="Could not queue item for SABnzbd. Internal Error. SAB gave the following data back: " + str(data))
     session.add(activity)
-    await session.commit()
+    # await session.commit()
