@@ -9,10 +9,12 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import axios from 'axios'
 import { createRouter, createWebHistory } from 'vue-router'
+import Blocklist from './pages/BlocklistPage.vue'
 
 const routes = [
   { path: '/',    name: 'Library', component: Library },
   { path: '/settings', name: 'Settings',  component: Settings  },
+  { path: '/blocklist', name: 'Blocklist',  component: Blocklist  },
   { path: '/author/:key', name: 'Author',  component: Author  },
   { path: '/book/:key', name: 'Book',  component: Book  },
   { path: '/search', name: 'Search',  component: Search  },

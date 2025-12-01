@@ -36,11 +36,11 @@ async def get_author_series(author_id: str, session: AsyncSession = Depends(get_
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/author/{author_id}/books")
-async def get_author_books(author_id: str, session: AsyncSession = Depends(get_session)):
+async def get_author_books(author_id: str, session: AsyncSession = Depends(get_session), blocked: bool = False):
     if author := await session.get(Author, author_id, options=[selectinload(Author.books).selectinload(Book.activities)]):
         books = []
         for book in author.books:
-            if book.blocked: continue
+            if book.blocked != blocked: continue
             resp = book.model_dump()
             resp["activities"] = book.activities
             books.append(resp)
@@ -66,6 +66,12 @@ async def get_book(book_id: str, session: AsyncSession = Depends(get_session)):
         resp["activities"] = book.activities
         return resp
     raise HTTPException(status_code=404, detail="Book not found")
+
+@router.get("/books/blocked")
+async def get_blocked_books(session: AsyncSession = Depends(get_session)):
+    query = await session.exec(select(Book).where(Book.blocked.is_(True)))
+    books: list[Book] = query.scalars().all()
+    return [{**b.model_dump(), "activities": []}  for b in books]
 
 @router.get("/book/titles/{book_id}")
 async def get_alternative_titles(book_id: str, session: AsyncSession = Depends(get_session)):
@@ -299,13 +305,14 @@ async def delete_series_files(series_id: str, session: AsyncSession = Depends(ge
 async def delete_book(book_id: str, session: AsyncSession = Depends(get_session), files: bool = False, block: bool = False):
     if files:
         await delete_audio_book(book_id, session)
-    book = await session.get(Book, book_id, options=[selectinload(Book.series).selectinload(Series.books)])
+    book = await session.get(Book, book_id, options=[selectinload(Book.series).selectinload(Series.books), selectinload(Book.activities)])
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     series = book.series
     if not series:
         if block:
             book.blocked = True
+            book.activities = []
             await session.commit()
             return {"blocked": book_id}
         await session.delete(book)

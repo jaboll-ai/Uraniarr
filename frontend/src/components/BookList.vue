@@ -18,6 +18,7 @@
         :checked="selected.includes(book.key)"
         :audio="audio"
         :loading="loadingEntities[book.key]"
+        :suppressMap="suppressMap"
         @checkboxClick="onCheckboxClick($event, index)"
         @downloadBook="downloadBook"
         @searchBook="$emit('searchBook', $event)"
@@ -40,6 +41,7 @@ const props = defineProps<{
   showBox: boolean
   seriesGroups: any
   audio: boolean
+  suppressMap?: { [action: string]: boolean }
 }>()
 
 const emit = defineEmits<{
@@ -123,6 +125,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--borderColor);
   background-color: var(--offWhite);
   border-radius: 8px;
+  flex: 1;
 }
 
 .spacer1{
