@@ -49,6 +49,10 @@ class ConfigManager:
                 "value": [],
                 "input_type": "downloader"
             },
+            "name_ratio": {
+                "value": 80,
+                "input_type": "number"
+            },
             "audio_path": {
                 "value": "",
                 "input_type": "text",

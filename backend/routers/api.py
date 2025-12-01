@@ -245,6 +245,26 @@ async def update_settings(settings: dict[str, Any], request: Request):
             await restart_job(state, get_job_by_interval(key))
     return state.cfg_manager.get()
 
+@router.patch("/author/{author_id}")
+async def edit_author(fields: dict[str, Any], author_id: str, session: AsyncSession = Depends(get_session)):
+    author = await session.get(Author, author_id)
+    if not author:raise HTTPException(status_code=404, detail="Author not found")
+    for key in fields:
+        if hasattr(author, key): setattr(author, key, fields[key])
+        else: raise HTTPException(status_code=404, detail=f"Unknown field: {key}")
+    await session.commit()
+    return {"edited": author_id}
+
+@router.patch("/series/{series_id}")
+async def edit_series(fields: dict[str, Any], series_id: str, session: AsyncSession = Depends(get_session)):
+    series = await session.get(Series, series_id)
+    if not series:raise HTTPException(status_code=404, detail="Series not found")
+    for key in fields:
+        if hasattr(series, key): setattr(series, key, fields[key])
+        else: raise HTTPException(status_code=404, detail=f"Unknown field: {key}")
+    await session.commit()
+    return {"edited": series_id}
+
 @router.delete("/author/{author_id}")
 async def delete_author(author_id: str, session: AsyncSession = Depends(get_session), files: bool = False):
     if files:

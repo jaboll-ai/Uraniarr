@@ -44,12 +44,12 @@ function escapeHtml(s: string) {
     return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 }
 
-export const loadingBooks = ref<{ [bookKey: string]: { [action: string]: string } }>({})
+export const loadingEntities = ref<{ [bookKey: string]: { [action: string]: string } }>({})
 
 export async function runBatch(keys: string[], requestFn:(key: string) => Promise<any>, field: string, timeoutMs: number) {
   const promises = []
   for (const key of keys) {
-    loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'loading' }
+    loadingEntities.value[key] = { ...loadingEntities.value[key], [field]: 'loading' }
     const p = requestFn(key)
       .then(res => ({ ...res, _bookKey: key }))
       .catch(err => { err._bookKey = key; throw err })
@@ -61,10 +61,10 @@ export async function runBatch(keys: string[], requestFn:(key: string) => Promis
     var key = null
     if (r.status === 'fulfilled') {
       key = r.value._bookKey
-      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'check' }
+      loadingEntities.value[key] = { ...loadingEntities.value[key], [field]: 'check' }
     } else {
       key = r.reason._bookKey
-      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: 'error' }
+      loadingEntities.value[key] = { ...loadingEntities.value[key], [field]: 'error' }
       try {
         notify({
           title: 'Error',
@@ -75,7 +75,7 @@ export async function runBatch(keys: string[], requestFn:(key: string) => Promis
     }
     resets.push((async () => {
       await new Promise(res => setTimeout(res, timeoutMs))
-      loadingBooks.value[key] = { ...loadingBooks.value[key], [field]: field }
+      loadingEntities.value[key] = { ...loadingEntities.value[key], [field]: field }
     })())
   }
   Promise.all(resets)

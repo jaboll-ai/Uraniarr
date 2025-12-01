@@ -34,11 +34,8 @@ class BaseIndexer(ABC):
 
     def build_queries(self, book: Book): #TODO revisit
         base_queries = [f"{book.author.name} {book.name}"]
-        base_queries.append(book.name)
         if has_umlaut(book.author.name) or has_umlaut(book.name):
             base_queries.append(f"{fix_umlaut(book.author.name)} {fix_umlaut(book.name)}")
-        if has_umlaut(book.name):
-            base_queries.append(f"{fix_umlaut(book.name)}")
 
         if book.series_key and book.position:
             if book.position % 1 != 0:
@@ -50,7 +47,14 @@ class BaseIndexer(ABC):
                     base_queries.append(f"{fix_umlaut(book.series.name)} {book.position}")
                 else:
                     base_queries.append(f"{fix_umlaut(book.series.name)} {int(book.position)}")
+        elif book.series_key:
+            base_queries.append(f"{book.series.name} {book.name}")
+            if has_umlaut(book.series.name) or has_umlaut(book.name):
+                base_queries.append(f"{fix_umlaut(book.series.name)} {fix_umlaut(book.name)}")
 
+        base_queries.append(book.name)
+        if has_umlaut(book.name):
+            base_queries.append(f"{fix_umlaut(book.name)}")
         return base_queries
 
     def normalize(self, url: str) -> str:

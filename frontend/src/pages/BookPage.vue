@@ -22,7 +22,7 @@
 
         <div class="book-actions" v-if ="book">
           <button class="ctrl-btn material-symbols-outlined" @click="showEditor = true">edit</button>
-          <LoadingButton :loading="loadingBooks[book.key]?.download === 'loading'" :text="loadingBooks[book.key]?.download ?? 'download'"
+          <LoadingButton :loading="loadingEntities[book.key]?.download === 'loading'" :text="loadingEntities[book.key]?.download ?? 'download'"
             class="ctrl-btn" @click="downloadBook([book.key])"/>
           <button class="ctrl-btn material-symbols-outlined" @click="showConfirmDelete = true">delete</button>
           <button class="ctrl-btn material-symbols-outlined" @click="searchBook(book.key)">quick_reference_all</button>
@@ -126,7 +126,7 @@ import { api, dapi } from '@/main.ts'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import EditModal from '@/components/EditModal.vue'
 import ManualSearch from '@/components/ManualSearch.vue'
-import { getInitials, formatSize, runBatch, loadingBooks } from '@/utils.ts'
+import { getInitials, formatSize, runBatch, loadingEntities } from '@/utils.ts'
 import { useRoute, useRouter } from 'vue-router'
 import type { BookNzb, Book, InteractiveSearch, PreviewRetag } from '@/main.ts'
 import RetagModal from '@/components/RetagBookModal.vue'
