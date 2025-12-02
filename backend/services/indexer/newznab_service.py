@@ -77,13 +77,14 @@ class NewznabService(BaseIndexer):
                 data = ET.parse(BytesIO(data))
                 if (resp:=data.find(".//newznab:response", ns)) is None or resp.attrib["total"] == "0":
                     continue
+                items = data.findall(".//item")
+                for item in items:
+                    ratio = get_scorer()(book.name, item.find("title").text)
+                    get_logger().log(5, f"Testing {item.find('title').text} == {book.name}. {ratio=}")
+                    if ratio > cfg.name_ratio: break
+                else:
+                    continue
                 break
-            else: return None, None, None
-            items = data.findall(".//item")
-            for item in items:
-                ratio = get_scorer()(book.name, item.find("title").text)
-                get_logger().log(5, f"Testing {item.find('title').text} == {book.name}. {ratio=}")
-                if ratio > cfg.name_ratio: break
             else:
                 get_logger().info(f"Could not find a match for {book.name}, try raising your name ratio in the settings.")
                 return None, None, None

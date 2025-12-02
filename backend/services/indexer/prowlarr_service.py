@@ -57,12 +57,14 @@ class ProwlarrService(BaseIndexer):
             base_queries = self.build_queries(book)
             for q in base_queries: #TODO
                 data = await self.search(q, cfg=cfg, audio=audio)
-                if len(data) != 0: break
-            else: return None, None, None
-            for item in data:
-                ratio = get_scorer()(book.name, item["title"])
-                get_logger().log(5, f"Testing {item['title']} == {book.name}. {ratio=}")
-                if ratio > cfg.name_ratio: break
+                if len(data) == 0: continue
+                for item in data:
+                    ratio = get_scorer()(book.name, item["title"])
+                    get_logger().log(5, f"Testing {item['title']} == {book.name}. {ratio=}")
+                    if ratio > cfg.name_ratio: break
+                else:
+                    continue
+                break
             else:
                 get_logger().info(f"Could not find a match for {book.name}, try raising your name ratio in the settings.")
                 return None, None, None
