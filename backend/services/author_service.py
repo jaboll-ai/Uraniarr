@@ -1,7 +1,7 @@
 import asyncio
 from itertools import combinations
 from rapidfuzz import fuzz
-from sqlalchemy import select
+from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.datamodels import *
@@ -24,7 +24,7 @@ async def add_books_to_author(author: Author, session: AsyncSession, books_data:
     found_series: dict[str, Series] = {}
     sanity_dedub = set() # see A1040945738 for funky shit
     result = await session.exec(select(Edition.key))
-    in_db = set(result.scalars().all())
+    in_db = set(result.all())
     for eds, series_title in books_data:
         if not eds:
             get_logger().debug(f"Skipping book because it has no editions")
@@ -101,7 +101,7 @@ async def make_author_from_series(name:str, session: AsyncSession, scraped: dict
     author = Author(key=id_generator(), name=name, is_series=True)
     series = Series(name=name)
     result = await session.exec(select(Edition.key))
-    in_db = set(result.scalars().all())
+    in_db = set(result.all())
     for book_data in scraped:
         if book_data.get("key") in in_db:
             raise AuthorError(status_code=409, detail="Book already exists for diffrent author")
@@ -119,7 +119,7 @@ async def union_series(series_id: str, series_ids: list[str], session: AsyncSess
     if not series:
         raise AuthorError(status_code=404, detail="Series not found")
     r2s = await session.exec(select(Series).where(Series.key.in_(series_ids)).options(selectinload(Series.books)))
-    lst_series: list[Series] = r2s.scalars().all()
+    lst_series = r2s.all()
     # if len(r2s) != len(series_ids):
     #     raise AuthorError(status_code=404, detail="Series not found")
     for series2 in lst_series:

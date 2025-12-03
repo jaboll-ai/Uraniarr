@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import re
 import shutil
-from sqlalchemy import func, select
+from sqlmodel import func, select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.config import ConfigManager
@@ -396,7 +396,7 @@ async def rescan_files(state):
         ]
         for model, fields in targets:
             result = await session.exec(select(model))
-            instances = result.scalars().all()
+            instances = result.all()
             coros = [asyncio.to_thread(check_missing_paths, instance, fields) for instance in instances]
             missing_results = await asyncio.gather(*coros)
 
@@ -409,7 +409,7 @@ async def rescan_files(state):
             (Activity.audio.is_(True) & Book.a_dl_loc.is_(None)) |
             (Activity.audio.is_(False) & Book.b_dl_loc.is_(None))
         )))
-        for a in query.scalars().all():
+        for a in query.all():
             a.status = ActivityStatus.deleted
         await session.commit()
 
@@ -422,7 +422,7 @@ async def reimport_files(state):
             selectinload(Book.series).selectinload(Series.books),
             selectinload(Book.activities)
         ).order_by(func.length(Book.name).desc()))
-        books: list[Book] = query.scalars().all()
+        books: list[Book] = query.all()
         if len(books) == 0: return
         cat_dirs = []
         if cfg.import_unfinished:

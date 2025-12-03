@@ -1,7 +1,7 @@
 
 from contextlib import suppress
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select
+from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 import asyncio
@@ -156,7 +156,7 @@ async def get_activities(request: Request, session: AsyncSession = Depends(get_s
         combine = queue | history
         result = result | combine
     query = await session.exec(select(Activity).where(Activity.nzo_id.in_(result.keys())).options(selectinload(Activity.book)))
-    nzbs = query.scalars().all()
+    nzbs = query.all()
     resp =  [{
         "id": activity.nzo_id,
         "percentage": result[activity.nzo_id]["percentage"],

@@ -16,8 +16,6 @@ class SABDownloader(BaseDownloader):
                 "nzbname": nzbname,
                 "cat": self.download_category or "*",
             }
-            with open(".test.nzb", "wb") as f:
-                f.write(nzb)
             params = {"apikey": self.apikey}
             async with httpx.AsyncClient() as client:
                 resp = await client.post(self.url, params=params, data=data, files=files)

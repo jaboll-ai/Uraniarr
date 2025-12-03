@@ -2,7 +2,7 @@ import asyncio
 from typing import Any
 from fastapi import HTTPException, Depends, APIRouter, Request
 from backend.dependencies import get_logger, get_session, get_cfg_manager
-from sqlalchemy import select
+from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.datamodels import *
@@ -70,7 +70,7 @@ async def get_book(book_id: str, session: AsyncSession = Depends(get_session)):
 @router.get("/books/blocked")
 async def get_blocked_books(session: AsyncSession = Depends(get_session)):
     query = await session.exec(select(Book).where(Book.blocked.is_(True)))
-    books: list[Book] = query.scalars().all()
+    books = query.all()
     return [{**b.model_dump(), "activities": []}  for b in books]
 
 @router.get("/book/titles/{book_id}")
@@ -211,7 +211,7 @@ async def do_retag_books(data: list[str], session: AsyncSession = Depends(get_se
     ))
     downloaded = await session.exec(select(Book).where(Book.a_dl_loc.isnot(None) | Book.b_dl_loc.isnot(None)))
     count = len(downloaded.all())
-    books: list[Book] = list(query.scalars().all())
+    books = list(query.all())
     missing = set(b.key for b in books).difference(set(data))
     if missing: raise HTTPException(status_code=404, detail=f"Books dont exist: {', '.join(missing)}")
     retags = []
