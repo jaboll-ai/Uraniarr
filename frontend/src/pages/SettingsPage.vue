@@ -186,6 +186,23 @@ async function getSettings() {
   }
 }
 
+const INDEXER_KEYS = ["name","url","apikey","type","book","audio","audio_categories","book_categories"] as const satisfies readonly (keyof Indexer)[]
+const DOWNLOADER_KEYS = ["name","url","apikey","type","audio","book","download_categories"] as const satisfies readonly (keyof Downloader)[]
+
+function changedObjects<T extends object>(newArr: T[], oldArr: T[], keys: readonly (keyof T)[]): T[] {
+  const changed: T[] = []
+  for (let i = 0; i < newArr.length; i++) {
+    const n = newArr[i]
+    const o = oldArr[i]
+    if (!o) { changed.push(n); continue }
+    for (const k of keys) {
+      if (n[k] !== o[k]) { changed.push(n); break }
+    }
+  }
+  return changed
+}
+
+
 function getChangedFields() {
   const patch: Record<string, unknown> = {}
   const current = toRaw(settings.value)
@@ -194,10 +211,20 @@ function getChangedFields() {
   for (const [key, cfg] of Object.entries(current)) {
     const oldVal = (original[key] || {}).value
     const newVal = cfg.value
-    if (newVal !== oldVal) {
+    if (key === "indexers") {
+      const changedIdxs = changedObjects(newVal as Indexer[], oldVal as Indexer[], INDEXER_KEYS)
+      if (changedIdxs.length) patch[key] = changedIdxs
+    }
+    else if (key === "downloaders") {
+      const changedDls = changedObjects(newVal as Downloader[], oldVal as Downloader[], DOWNLOADER_KEYS)
+      if (changedDls.length) patch[key] = changedDls
+    }
+    else if (newVal !== oldVal) {
       patch[key] = newVal
     }
   }
+  console.log(patch)
+  return {}
   return patch
 }
 

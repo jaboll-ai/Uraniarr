@@ -21,7 +21,11 @@
 
         <label>
           Type:
-          <input v-model="form.type" required />
+          <select v-model="form.type" required>
+            <option disabled value="">Select a type..</option>
+            <option value="newznab">Newznab</option>
+            <option value="prowlarr">Prowlarr</option>
+          </select>
         </label>
 
         <label class="checkbox">
