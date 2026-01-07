@@ -61,6 +61,10 @@ class ConfigManager:
                 "value": "",
                 "input_type": "text",
             },
+            "ingest_path": {
+                "value": "",
+                "input_type": "text",
+            },
             "import_poll_interval": {
                 "value": 60,
                 "input_type": "number"
@@ -97,17 +101,9 @@ class ConfigManager:
                 "value": False,
                 "input_type": "checkbox"
             },
-            "ignore_safe_delete": {
-                "value": False,
-                "input_type": "checkbox"
-            },
             "known_bundles": {
                 "value": "Krimi Box,Krimi-Box,3er-Box",
                 "input_type": "text"
-            },
-            "import_unfinished": {
-                "value": False,
-                "input_type": "checkbox"
             },
             # "devTest": {
             #     "value": "",
