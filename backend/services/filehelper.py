@@ -162,10 +162,10 @@ def move_files(src: Path, dst_dir: Path, audio: bool, cfg):
                 shutil.move(str(file), str(dst_dir))
 
 
-def cleanup_source(src: Path, cat_dir: Path, was_file: bool = False):
+def cleanup_source(src: Path, cat_dir: Path, cfg: ConfigManager, was_file: bool = False):
     get_logger().log(5, f"Cleanup called for {src}")
     if was_file and src.parent.is_dir():
-        if src.parent.resolve() != cat_dir.resolve() or not list(src.parent.iterdir()):
+        if src.parent.resolve() != cat_dir.resolve() and src.parent.resolve() != Path(cfg.ingest_path or "/").resolve() and not list(src.parent.iterdir()):
             shutil.rmtree(src.parent)
     if not src.exists():
         return
@@ -216,7 +216,7 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
         if activity is not None:
             overwritten_act = mark_overwritten_activity(book, audio)
         move_files(src, dst_dir, audio, cfg)
-        cleanup_source(src, cat_dir, was_file=is_file)
+        cleanup_source(src, cat_dir, cfg, was_file=is_file)
         if activity is not None:
             activity.status = ActivityStatus.imported
         if audio:
