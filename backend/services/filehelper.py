@@ -208,7 +208,7 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
             return
         autor_dir, series_dir, dst_dir = get_destination_dir(book, audio, cfg)
         if is_file:
-            dst_dir = dst_dir.with_suffix(src.suffix)
+            dst_dir = dst_dir.with_name(dst_dir.name + src.suffix)
         if src.resolve() == dst_dir.resolve():
             raise Exception(f"Source and destination are the same: {src}")
         if dst_dir.exists():
@@ -258,7 +258,7 @@ def preview_retag(book: Book, cfg: ConfigManager):
         old = Path(book.a_dl_loc).resolve()
         author_dir, series_dir, book_dir = get_destination_dir(book, True, cfg)
         if old.is_file():
-            book_dir = book_dir.with_suffix(old.suffix)
+            book_dir = book_dir.with_name(book_dir.name + old.suffix)
         new = book_dir.resolve()
         get_logger().log(5, f"{old} == {new}: {old == new}")
         if old == new:
@@ -271,7 +271,7 @@ def preview_retag(book: Book, cfg: ConfigManager):
         author_dir, series_dir, book_dir = get_destination_dir(book, False, cfg)
         get_logger().debug(f"Calculated {author_dir=}, {series_dir=}")
         if old.is_file():
-            book_dir = book_dir.with_suffix(old.suffix)
+            book_dir = book_dir.with_name(book_dir.name + old.suffix)
         new = book_dir.resolve()
         get_logger().log(5, f"{old} == {new}: {old == new}")
         if old == new:
@@ -325,7 +325,7 @@ async def delete_audio_author(author_id: str, session: AsyncSession):
 
 async def get_files_of_book(book: Book):
     p_a = await asyncio.to_thread(get_files_from_disk, book.a_dl_loc)
-    p_b = [Path(book.b_dl_loc)]
+    p_b = [Path(book.b_dl_loc)] if book.b_dl_loc else None
     try:
         a, b = await asyncio.gather(get_file_stats(p_a), get_file_stats(p_b))
     except Exception as e:
@@ -489,9 +489,3 @@ async def reimport_files(state):
             books[idx].b_dl_loc = str(p)
         # await asyncio.gather(*moved) #TODO log
         await session.commit()
-
-
-
-
-
-

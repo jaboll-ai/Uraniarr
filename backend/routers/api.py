@@ -139,7 +139,7 @@ async def complete_series_of_author(series_id: str, session: AsyncSession = Depe
 
 @router.post("/series/cleanup/{series_id}")
 async def cleanup_series(series_id: str, name: str, session: AsyncSession = Depends(get_session)):
-    series = await session.get(Series, series_id)
+    series = await session.get(Series, series_id, options=[selectinload(Series.books)])
     if not series: raise HTTPException(status_code=404, detail="Series not found")
     updates = 0
     for book in series.books:

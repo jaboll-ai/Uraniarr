@@ -223,8 +223,6 @@ function getChangedFields() {
       patch[key] = newVal
     }
   }
-  console.log(patch)
-  return {}
   return patch
 }
 
