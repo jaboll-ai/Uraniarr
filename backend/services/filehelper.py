@@ -350,7 +350,7 @@ def check_missing_paths(model_instance, fields: list[str]):
 def get_dirs_of_ext(base_paths, exts):
     audio_dirs = set()
     paths = [p for p in base_paths if p is not None]
-    get_logger().log(5, f"Trying reimport with: {paths}")
+    get_logger().log(5, f"Trying reimport audibooks with: {paths}")
     for base_path in map(Path, paths):
         if not base_path.exists():
             continue
@@ -359,6 +359,17 @@ def get_dirs_of_ext(base_paths, exts):
             if any(Path(f).suffix.lower() in exts for f in files):
                 audio_dirs.add(Path(root))
     return audio_dirs
+
+def get_files_of_ext(base_paths, exts):
+    book_dirs = set()
+    paths = [p for p in base_paths if p is not None]
+    get_logger().log(5, f"Trying reimport books with: {paths}")
+    for base_path in map(Path, paths):
+        if not base_path.exists():
+            continue
+        for ext in exts:
+            book_dirs.update(set(base_path.rglob(f"*.{ext}")))
+    return book_dirs
 
 async def scan_and_move_all_files(state):
     cfg = state.cfg_manager
@@ -436,8 +447,8 @@ async def reimport_files(state):
                     cat_dirs.append(d)
         get_logger().log(5, f"Also checking reimport with: {cat_dirs}")
         a_paths, b_paths = await asyncio.gather(
-            asyncio.to_thread(get_dirs_of_ext, [cfg.audio_path, *cat_dirs], cfg.audio_extensions_rating), # add cat dir?
-            asyncio.to_thread(get_dirs_of_ext, [cfg.book_path, *cat_dirs], cfg.book_extensions),
+            asyncio.to_thread(get_dirs_of_ext, [cfg.audio_path, *cat_dirs], cfg.audio_extensions_rating.split(",")), # add cat dir?
+            asyncio.to_thread(get_files_of_ext, [cfg.book_path, *cat_dirs], cfg.book_extensions.split(",")),
         )
 
         book_names = [b.name for b in books]
