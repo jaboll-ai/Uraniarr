@@ -82,38 +82,18 @@ def compute_template(book: Book, template: str):
 
 def get_destination_dir(book: Book, audio: bool, cfg) -> tuple[str, Optional[str], Path]:
     template = cfg.audiobook_template if audio else cfg.book_template
+    template = template or "{{author.name}}/{{series.name}}/{{book.position} - }{{book.name}}"
     path_str = cfg.audio_path if audio else cfg.book_path
     if not path_str: raise FileError(status_code=404, detail=f"{'Audio' if audio else 'Book'} path not configured but tried to import.")
     dst_base = Path(cfg.audio_path if audio else cfg.book_path)
     author_dir, series_dir, book_dst = None, None, None
-    if template:
-        book_dst, attrs = compute_template(book, template)
-        if attrs.get("author"):
-            author_dir = str(dst_base/attrs.get("author"))
-        if attrs.get("series"):
-            series_dir = str(dst_base/attrs.get("series"))
-        if book_dst:
-            return author_dir, series_dir, dst_base/book_dst
-
-    dst_dir = dst_base / book.author.name
-    author_dir = str(dst_dir)
-
-    if book.series_key:
-        dst_dir = dst_dir / book.series.name
-        series_dir = str(dst_dir)
-        if book.position is not None:
-            max_pos = max(b.position or 0 for b in book.series.books)
-            padding = len(str(int(max_pos)))
-            if book.position % 1 != 0:
-                dst_dir = dst_dir / f"{str(int(book.position)).zfill(padding)}.{str(book.position).split('.')[-1]} - {book.name}"
-            else:
-                dst_dir = dst_dir / f"{str(int(book.position)).zfill(padding)} - {book.name}"
-        else:
-            dst_dir = dst_dir / book.name
-    else:
-        dst_dir = dst_dir / book.name
-
-    return author_dir, series_dir, dst_dir
+    book_dst, attrs = compute_template(book, template)
+    if attrs.get("author"):
+        author_dir = str(dst_base/attrs.get("author"))
+    if attrs.get("series"):
+        series_dir = str(dst_base/attrs.get("series"))
+    if book_dst:
+        return author_dir, series_dir, dst_base/book_dst
 
 
 def mark_overwritten_activity(book, audio: bool):
@@ -125,47 +105,28 @@ def mark_overwritten_activity(book, audio: bool):
             return act
     return None
 
-
-def select_wanted_ext(src: Path, cfg) -> str:
-    counts = {}
-    for file in src.rglob("*"):
-        if file.is_file():
-            ext = file.suffix.lower()
-            if ext:
-                counts[ext] = counts.get(ext, 0) + 1
-    exts = sorted(counts, key=counts.get, reverse=True)
-    for ext in cfg.audio_extensions_rating.split(","):
-        if ext in exts:
-            return ext
-    return exts[0] if exts else ""
-
-
 def move_files(src: Path, dst_dir: Path, audio: bool, cfg):
     if src.is_dir():
         dst_dir.mkdir(parents=True)
     else:
         dst_dir.parent.mkdir(parents=True, exist_ok=True)
-    if audio:
-        if src.is_file() and src.suffix.lower() in cfg.audio_extensions.split(","):
-            shutil.move(str(src), str(dst_dir))
-            return
-        wanted_ext = select_wanted_ext(src, cfg)
-        for file in src.rglob("*"):
-            if file.is_file() and file.suffix.lower() == wanted_ext:
-                shutil.move(str(file), str(dst_dir))
-    else:
-        if src.is_file() and src.suffix.lower() in cfg.book_extensions.split(","):
-            shutil.move(str(src), str(dst_dir))
-            return
-        for file in src.rglob("*"):
-            if file.is_file() and file.suffix.lower() in cfg.book_extensions.split(","):
-                shutil.move(str(file), str(dst_dir))
+    attr = "audio_extensions" if audio else "book_extensions"
+    itr = [src] if src.is_file() else src.rglob("*")
+    double_release = False
+    for file in itr:
+        if file.is_file() and file.suffix.lower() in getattr(cfg, attr).split(","):
+            shutil.move(str(file), str(dst_dir))
+            if audio and file.suffix.lower() in cfg.book_extensions.split(","):
+                double_release = True
+    return double_release
 
 
 def cleanup_source(src: Path, cat_dir: Path, cfg: ConfigManager, was_file: bool = False):
     get_logger().log(5, f"Cleanup called for {src}")
-    if was_file and src.parent.is_dir():
-        if src.parent.resolve() != cat_dir.resolve() and src.parent.resolve() != Path(cfg.ingest_path or "/").resolve() and not list(src.parent.iterdir()):
+    if (was_file and src.parent.is_dir()
+        and src.parent.resolve() != cat_dir.resolve()
+        and src.parent.resolve() != Path(cfg.ingest_path or "/").resolve()
+        and not list(src.parent.iterdir())):
             shutil.rmtree(src.parent)
     if not src.exists():
         return
@@ -197,7 +158,7 @@ def cleanup_backup(bak_dir: Optional[Path], dst_dir: Optional[Path]):
         get_logger().error(f"Final cleanup of {bak_dir} failed with: {e}")
 
 
-def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: bool, src: Path, cat_dir: Path, cfg: ConfigManager, overwrite: bool = False):
+def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: bool, src: Path, cat_dir: Path, cfg: ConfigManager, overwrite: bool = False, session:Optional[AsyncSession]=None):
     is_file = src.is_file()
 
     bak_dir = None
@@ -215,22 +176,21 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
             bak_dir = ensure_backup(dst_dir)
         if activity is not None:
             overwritten_act = mark_overwritten_activity(book, audio)
-        move_files(src, dst_dir, audio, cfg)
+        double_release = move_files(src, dst_dir, audio, cfg)
+        if double_release and activity is not None:
+            if session is None:
+                raise Exception("Session is required for double release")
+            session.add(Activity(nzo_id=activity.nzo_id+"_dr", release_title=activity.release_title, guid=activity.guid, book=book, audio=False))
+            import_book_from_acitivity(activity, book, False, src, cat_dir, cfg, overwrite=overwrite, session=session)
         cleanup_source(src, cat_dir, cfg, was_file=is_file)
         if activity is not None:
             activity.status = ActivityStatus.imported
-        if audio:
-            book.a_dl_loc = str(dst_dir)
-            if not overwrite:
-                return activity.nzo_id if activity else "retag"
-            book.author.a_dl_loc = autor_dir
-            book.series.a_dl_loc = series_dir
-        else:
-            book.b_dl_loc = str(dst_dir)
-            if not overwrite:
-                return activity.nzo_id if activity else "retag"
-            book.author.b_dl_loc = autor_dir
-            book.series.b_dl_loc = series_dir
+        attr = "a_dl_loc" if audio else "b_dl_loc"
+        getattr(book, attr) = str(dst_dir)
+        if not overwrite:
+            return activity.nzo_id if activity else "retag"
+        getattr(book.author, attr) = autor_dir
+        getattr(book.series, attr) = series_dir
         return activity.nzo_id if activity else "retag"
     except Exception as e:
         get_error_logger().exception(e)
@@ -408,7 +368,7 @@ async def scan_and_move_all_files(state):
                 src = Path(slot["storage"])
                 if os.getenv("DEV"):
                     src = Path(os.getenv("DEV")) / str(slot["storage"])[1:] # DEV
-                moved.append(asyncio.to_thread(import_book_from_acitivity, activity, activity.book, activity.audio, src, cat_dir=Path(cat_dir), cfg=cfg))
+                moved.append(asyncio.to_thread(import_book_from_acitivity, activity, activity.book, activity.audio, src, cat_dir=Path(cat_dir), cfg=cfg, session=session))
             await downloader.remove_from_history(cfg, [nzo_id for nzo_id in await asyncio.gather(*moved) if nzo_id is not None])
         await session.commit()
 
