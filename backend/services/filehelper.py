@@ -186,11 +186,11 @@ def import_book_from_acitivity(activity: Optional[Activity], book: Book, audio: 
         if activity is not None:
             activity.status = ActivityStatus.imported
         attr = "a_dl_loc" if audio else "b_dl_loc"
-        getattr(book, attr) = str(dst_dir)
+        setattr(book, attr, str(dst_dir))
         if not overwrite:
             return activity.nzo_id if activity else "retag"
-        getattr(book.author, attr) = autor_dir
-        getattr(book.series, attr) = series_dir
+        setattr(book.author, attr, autor_dir)
+        setattr(book.series, attr, series_dir)
         return activity.nzo_id if activity else "retag"
     except Exception as e:
         get_error_logger().exception(e)
@@ -361,13 +361,16 @@ async def scan_and_move_all_files(state):
                     selectinload(Activity.book).selectinload(Book.series).selectinload(Series.books),
                     selectinload(Activity.book).selectinload(Book.activities)
                 ])
-                if not activity:
-                    get_logger().debug(f"Activity {key} of our category not found in db")
-                    continue
                 if not slot["status"] == "Completed": continue
                 src = Path(slot["storage"])
                 if os.getenv("DEV"):
                     src = Path(os.getenv("DEV")) / str(slot["storage"])[1:] # DEV
+                if not activity:
+                    get_logger().debug(f"Activity {key} of our category not found in db")
+                    if src.is_file() and src.parent.resolve() != Path(cat_dir).resolve():
+                        src = src.parent
+                    shutil.move(src, cfg.ingest_path)
+                    continue
                 moved.append(asyncio.to_thread(import_book_from_acitivity, activity, activity.book, activity.audio, src, cat_dir=Path(cat_dir), cfg=cfg, session=session))
             await downloader.remove_from_history(cfg, [nzo_id for nzo_id in await asyncio.gather(*moved) if nzo_id is not None])
         await session.commit()
