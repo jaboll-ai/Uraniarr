@@ -171,7 +171,10 @@ async def get_activities(request: Request, session: AsyncSession = Depends(get_s
 async def delete_activity(request: Request, activity_id: str, session: AsyncSession = Depends(get_session)):
     downloaders: list[BaseDownloader] = request.app.state.downloaders[True] + request.app.state.downloaders[False]
     cfg = request.app.state.cfg_manager
-    coros = [downloader.remove_from_queue(cfg, activity_id) for downloader in downloaders]
+    coros = []
+    for downloader in downloaders:
+        coros.append(downloader.remove_from_queue(cfg, activity_id))
+        coros.append(downloader.remove_from_history(cfg, activity_id))
     r = await asyncio.gather(*coros, return_exceptions=True)
     for resp in r:
         if isinstance(resp, Exception): continue
