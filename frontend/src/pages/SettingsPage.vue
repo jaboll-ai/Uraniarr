@@ -86,9 +86,10 @@ const settingNames: Record<string, string> = {
   language: 'Language',
   playwright: 'Enable Playwright Scraping',
   skip_cache: 'Skip Cache',
-  ignore_safe_delete: 'Ignore Safe Delete',
   known_bundles: 'Known Bundle Names',
-  import_unfinished: 'EXPERIMENTAL: Import Unfinished Files'
+  import_unfinished: 'DANGEROUS: Import Unfinished Files',
+  name_ratio: 'Fuzzy Name Ratio',
+  ingest_path: 'Ingest Folder',
 }
 
 const tooltips: Record<string, string> = {
@@ -105,9 +106,10 @@ const tooltips: Record<string, string> = {
   language: 'Desired Language of Uraniarr, only one supported at a time currently. (ISO 639-1 or -2 e.g. "eng")',
   playwright: 'Use playwright instead of cloudscraper. (Only toggle if necessary)',
   skip_cache: 'Force skip of local cache (useful for debugging).',
-  ignore_safe_delete: 'ONLY enable if Uraniarr is importing from a custom category.',
   known_bundles: 'List of known boxset/bundle names (comma-separated).',
-  import_unfinished: 'Import all files from downloader folder, even if they are not finished yet. (EXPERIMENTAL)'
+  import_unfinished: 'Import all files from downloader folder, even if they are not finished yet. (DANGEROUS)',
+  name_ratio: 'Fuzzy ratio to match the release and the bookname (set to 0 to disable)',
+  ingest_path: 'Folder to ingest books and audiobooks from. (leave blank to not ingest anything) [UNTESTED]',
 }
 
 const showModalIndexer = ref(false)
@@ -184,6 +186,23 @@ async function getSettings() {
   }
 }
 
+const INDEXER_KEYS = ["name","url","apikey","type","book","audio","audio_categories","book_categories"] as const satisfies readonly (keyof Indexer)[]
+const DOWNLOADER_KEYS = ["name","url","apikey","type","audio","book","download_categories"] as const satisfies readonly (keyof Downloader)[]
+
+function changedObjects<T extends object>(newArr: T[], oldArr: T[], keys: readonly (keyof T)[]): T[] {
+  const changed: T[] = []
+  for (let i = 0; i < newArr.length; i++) {
+    const n = newArr[i]
+    const o = oldArr[i]
+    if (!o) { changed.push(n); continue }
+    for (const k of keys) {
+      if (n[k] !== o[k]) { changed.push(n); break }
+    }
+  }
+  return changed
+}
+
+
 function getChangedFields() {
   const patch: Record<string, unknown> = {}
   const current = toRaw(settings.value)
@@ -192,7 +211,15 @@ function getChangedFields() {
   for (const [key, cfg] of Object.entries(current)) {
     const oldVal = (original[key] || {}).value
     const newVal = cfg.value
-    if (newVal !== oldVal) {
+    if (key === "indexers") {
+      const changedIdxs = changedObjects(newVal as Indexer[], oldVal as Indexer[], INDEXER_KEYS)
+      if (changedIdxs.length) patch[key] = changedIdxs
+    }
+    else if (key === "downloaders") {
+      const changedDls = changedObjects(newVal as Downloader[], oldVal as Downloader[], DOWNLOADER_KEYS)
+      if (changedDls.length) patch[key] = changedDls
+    }
+    else if (newVal !== oldVal) {
       patch[key] = newVal
     }
   }

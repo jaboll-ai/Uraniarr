@@ -16,8 +16,6 @@ class SABDownloader(BaseDownloader):
                 "nzbname": nzbname,
                 "cat": self.download_category or "*",
             }
-            with open(".test.nzb", "wb") as f:
-                f.write(nzb)
             params = {"apikey": self.apikey}
             async with httpx.AsyncClient() as client:
                 resp = await client.post(self.url, params=params, data=data, files=files)
@@ -128,4 +126,18 @@ class SABDownloader(BaseDownloader):
             raise NzbsError(status_code=500, detail=f"Unexpected response from SABnzbd", exception=e)
         if base_folder is None or cat_folder is None: raise NzbsError(status_code=500, detail="Could not get SABnzbd category directory")
         return str(base_folder / cat_folder)
+
+    async def test(self, cfg):
+        try:
+            p = {
+                "apikey": self.apikey,
+                "mode": "status",
+            }
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(self.url, params=p)
+        except Exception as e:
+            return False
+        if resp.status_code != 200: False
+        return True
+
 

@@ -1,4 +1,5 @@
 import httpx
+from backend.dependencies import get_logger, get_scorer
 from backend.services.indexer.base_indexer import BaseIndexer
 from backend.exceptions import IndexerError
 
@@ -56,9 +57,17 @@ class ProwlarrService(BaseIndexer):
             base_queries = self.build_queries(book)
             for q in base_queries: #TODO
                 data = await self.search(q, cfg=cfg, audio=audio)
-                if len(data) != 0: break
-            else: return None, None, None
-            item = data[0]
+                if len(data) == 0: continue
+                for item in data:
+                    ratio = get_scorer()(book.name, item["title"])
+                    get_logger().log(5, f"Testing {item['title']} == {book.name}. {ratio=}")
+                    if ratio > cfg.name_ratio: break
+                else:
+                    continue
+                break
+            else:
+                get_logger().info(f"Could not find a match for {book.name}, try raising your name ratio in the settings.")
+                return None, None, None
             name = item["title"]
             guid = item["guid"]
             download = item["downloadUrl"]

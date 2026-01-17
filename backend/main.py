@@ -34,7 +34,7 @@ def init_err_log(cfg: ConfigManager):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cfg = ConfigManager(os.getenv("CONFIG_DIR", "./config"))
+    cfg = ConfigManager(os.getenv("CONFIG_DIR", "/config"))
     app.state.cfg_manager = cfg
     init_err_log(cfg)
     app.state.engine = await init_db(cfg)

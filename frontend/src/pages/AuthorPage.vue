@@ -1,9 +1,15 @@
 <template>
   <div class="author-page">
-    <div class="author-header">
+    <div v-if="author" class="author-header">
       <div class="author-info">
-        <h2 class="author-name">{{ author?.name }}</h2>
-        <img v-if="author?.bild" :src="author.bild" :alt="author.name" class="author-image" />
+        <div class="author-name">
+          <span v-if="!showEditAuthor">
+            {{ author.name }}
+          </span>
+          <input v-else type="text" v-model="newNameAuthor" @keyup.enter="editAuthor" @keyup.esc="newNameAuthor = author.name; showEditAuthor = false"/>
+          <button v-if="!showEditAuthor" class="edit-btn material-symbols-outlined" @click="showEditAuthor = true; newNameAuthor = author.name;" title="Edit the author name">edit</button>
+        </div>
+        <img v-if="author.bild" :src="author.bild" :alt="author.name" class="author-image" />
         <div v-else-if="author" class="author-image">{{ getInitials(author.name) }}</div>
         <div class="download-all">
           <LoadingButton class="ctrl-btn" :loading="downloadingAuthor=='throbber'" title="Download every book and audiobook" :text="downloadingAuthor" @click="downloadAuthor"/>
@@ -15,7 +21,7 @@
           :class="{ active: isAnimating }" @animationend="isAnimating = false">{{ audio ? "headphones" : "book" }}</button>
         </div>
       </div>
-      <p class="author-bio">{{ author?.bio }}</p>
+      <p class="author-bio">{{ author.bio }}</p>
     </div>
     <div class="tabs">
       <button
@@ -24,7 +30,7 @@
         @click="current = tab.name;"
         :class="{ active: current === tab.name }"
       >
-        {{ tab.label }}
+        {{ audio? `Audio${tab.label.toLowerCase()}` : tab.label }}
       </button>
     </div>
     <div class="panel">
@@ -32,7 +38,7 @@
         <component :is="currentComponent"
           @downloadBook="downloadBook" @completeSeries="completeSeries"
           @downloadSeries="downloadSeries" @deleteSeries="confirmDeleteSeries" @deleteBook="confirmDeleteBook" @editBook="confirmEditBook"
-          @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries" @searchBook="searchBook"
+          @cleanupSeries="cleanupSeries" @uniteSeries="uniteSeries" @searchBook="searchBook" @editSeries="editSeries"
           :showBox="showBox" :books="books" :seriesGroups="seriesGroups" :audio="audio"/>
       </keep-alive>
     </div>
@@ -97,6 +103,8 @@ const showBox = ref(false)
 const interactiveSearch = ref(false)
 const showConfirmAuthor = ref(false)
 const showConfirmBook = ref(false)
+const showEditAuthor = ref(false)
+const newNameAuthor = ref("")
 const messageConfirmBook = ref("")
 const shouldDeleteBooks = ref<string[]>([])
 const showConfirmSeries = ref(false)
@@ -254,15 +262,7 @@ async function downloadBookManual(key: string, nzb: BookNzb) {
 }
 
 async function downloadSeries(key: string) {
-  try {
-    await dapi.post(`/series/${key}`, null, { params: { audio : audio.value } })
-  } catch (error: any) {
-    notify({
-      title: 'Error',
-      text: error.response.data.detail,
-      type: 'error'
-    })
-  }
+  await runBatch([key], key => dapi.post(`/series/${key}`, null, { params:{audio:audio.value} }), 'download', 3000)
 }
 
 async function downloadAuthor() {
@@ -379,6 +379,42 @@ async function deleteAuthor(key: string | undefined) {
   router.push({ name: 'Library' })
 }
 
+async function editAuthor() {
+  try {
+    await api.patch<Author>(`/author/${route.params.key}`, { name: newNameAuthor.value })
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
+  }
+  try {
+    const response = await api.get<Author>(`/author/${route.params.key}`)
+    author.value = response.data
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
+  }
+  showEditAuthor.value = false
+}
+
+async function editSeries(key: string, payload: {}) {
+  try {
+    await api.patch(`/series/${key}`, payload)
+  } catch (error: any) {
+    notify({
+      title: 'Error',
+      text: error.response.data.detail,
+      type: 'error'
+    })
+  }
+  fetchBooks()
+}
+
 async function editBook(book: Book) {
   try {
     const { key, ...data } = book
@@ -437,6 +473,10 @@ async function animate() {
 .author-name {
   display: flex;
   justify-content: center;
+  font-size: 16pt;
+  margin: 10px;
+  font-weight: 700;
+  min-height: 40px;
 }
 .author-header {
   display: flex;
@@ -488,6 +528,16 @@ div.author-image {
 }
 .ctrl-btn.active {
   animation: growAndTilt 0.35s ease forwards;
+}
+
+.edit-btn{
+  font-size: 12pt;
+  margin: 0 6px;
+  display: none;
+}
+
+.author-name:hover .edit-btn{
+  display: block;
 }
 
 @media (max-width: 600px) {

@@ -11,6 +11,10 @@ class BaseDownloader(ABC):
         self.i_idx = downloaderi_idx
 
     @abstractmethod
+    async def test(self, cfg: ConfigManager) -> bool:
+        pass
+
+    @abstractmethod
     async def download(self, nzb : bytes, cfg: ConfigManager, nzbname: str):
         pass
 

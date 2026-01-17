@@ -5,6 +5,7 @@
   --fontColor: #252525;
   --borderColor: #dad6cd;
   --backgroundWhite: #fafaf5;
+  --cleanWhite: #fffffd;
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -32,6 +33,16 @@ a {
 
 input {
   accent-color: var(--mainColor);
+  background-color: var(--cleanWhite);
+}
+
+select{
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: var(--cleanWhite);
 }
 
 body {
@@ -97,7 +108,7 @@ button:disabled{
     --backgroundWhite: #252525;
     --borderColor: #252525;
     --offWhite: #454545;
-
+    --cleanWhite: #222222;
   }
 }
 

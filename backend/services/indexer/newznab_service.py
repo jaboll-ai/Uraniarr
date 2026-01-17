@@ -1,6 +1,6 @@
 from io import BytesIO
 from urllib.parse import urlencode
-from backend.dependencies import get_logger
+from backend.dependencies import get_logger, get_scorer
 from backend.exceptions import IndexerError
 from backend.services.indexer.base_indexer import BaseIndexer
 import xml.etree.ElementTree as ET
@@ -11,6 +11,7 @@ import asyncio
 class NewznabService(BaseIndexer):
     async def search(self, q, cfg, audio):
         if (timeout:=time() - self.last_hit) < cfg.indexer_timeout:
+            get_logger().log(5, f"Sleeping {cfg.indexer_timeout - timeout} seconds")
             await asyncio.sleep(cfg.indexer_timeout - timeout)
         self.last_hit = time()
         search = {
@@ -70,16 +71,23 @@ class NewznabService(BaseIndexer):
             base_queries = self.build_queries(book)
             for q in base_queries: #TODO
                 data = await self.search(q, cfg=cfg, audio=audio)
-                with open(f"{q}.xml", "wb") as f: f.write(data)
                 ns = {}
                 for event, (prefix, uri) in ET.iterparse(BytesIO(data), events=("start-ns",)):
                     ns[prefix] = uri
                 data = ET.parse(BytesIO(data))
                 if (resp:=data.find(".//newznab:response", ns)) is None or resp.attrib["total"] == "0":
                     continue
+                items = data.findall(".//item")
+                for item in items:
+                    ratio = get_scorer()(book.name, item.find("title").text)
+                    get_logger().log(5, f"Testing {item.find('title').text} == {book.name}. {ratio=}")
+                    if ratio > cfg.name_ratio: break
+                else:
+                    continue
                 break
-            else: return None, None, None
-            item = data.find(".//item")
+            else:
+                get_logger().info(f"Could not find a match for {book.name}, try raising your name ratio in the settings.")
+                return None, None, None
             name = item.find("title").text
             guid = None
             download = item.find("link").text
@@ -89,5 +97,6 @@ class NewznabService(BaseIndexer):
                     break
         except KeyError as e:
             raise IndexerError(status_code=500, detail=f"Ran into a key error. Are we pointing to prowlarr or newznab?", exception=e)
+        get_logger().log(5, f"Found release {name} for {book.name}")
         return name, guid, download
 

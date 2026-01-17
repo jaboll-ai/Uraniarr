@@ -17,5 +17,4 @@ def indexer_factory(cfg):
             if indexer.get("audio"): r[True].append(ProwlarrService(indexer, len(r[True])))
         else:
             get_logger().error(f"Unknown indexer type: {indexer['type']}")
-            return
     return r

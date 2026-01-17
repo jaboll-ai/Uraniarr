@@ -2,7 +2,7 @@ import asyncio
 from typing import Any
 from fastapi import HTTPException, Depends, APIRouter, Request
 from backend.dependencies import get_logger, get_session, get_cfg_manager
-from sqlalchemy import select
+from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from backend.datamodels import *
@@ -36,11 +36,11 @@ async def get_author_series(author_id: str, session: AsyncSession = Depends(get_
     raise HTTPException(status_code=404, detail="Author not found")
 
 @router.get("/author/{author_id}/books")
-async def get_author_books(author_id: str, session: AsyncSession = Depends(get_session)):
+async def get_author_books(author_id: str, session: AsyncSession = Depends(get_session), blocked: bool = False):
     if author := await session.get(Author, author_id, options=[selectinload(Author.books).selectinload(Book.activities)]):
         books = []
         for book in author.books:
-            if book.blocked: continue
+            if book.blocked != blocked: continue
             resp = book.model_dump()
             resp["activities"] = book.activities
             books.append(resp)
@@ -66,6 +66,12 @@ async def get_book(book_id: str, session: AsyncSession = Depends(get_session)):
         resp["activities"] = book.activities
         return resp
     raise HTTPException(status_code=404, detail="Book not found")
+
+@router.get("/books/blocked")
+async def get_blocked_books(session: AsyncSession = Depends(get_session)):
+    query = await session.exec(select(Book).where(Book.blocked.is_(True)))
+    books = query.all()
+    return [{**b.model_dump(), "activities": []}  for b in books]
 
 @router.get("/book/titles/{book_id}")
 async def get_alternative_titles(book_id: str, session: AsyncSession = Depends(get_session)):
@@ -133,7 +139,7 @@ async def complete_series_of_author(series_id: str, session: AsyncSession = Depe
 
 @router.post("/series/cleanup/{series_id}")
 async def cleanup_series(series_id: str, name: str, session: AsyncSession = Depends(get_session)):
-    series = await session.get(Series, series_id)
+    series = await session.get(Series, series_id, options=[selectinload(Series.books)])
     if not series: raise HTTPException(status_code=404, detail="Series not found")
     updates = 0
     for book in series.books:
@@ -205,7 +211,7 @@ async def do_retag_books(data: list[str], session: AsyncSession = Depends(get_se
     ))
     downloaded = await session.exec(select(Book).where(Book.a_dl_loc.isnot(None) | Book.b_dl_loc.isnot(None)))
     count = len(downloaded.all())
-    books: list[Book] = list(query.scalars().all())
+    books = list(query.all())
     missing = set(b.key for b in books).difference(set(data))
     if missing: raise HTTPException(status_code=404, detail=f"Books dont exist: {', '.join(missing)}")
     retags = []
@@ -245,6 +251,26 @@ async def update_settings(settings: dict[str, Any], request: Request):
             await restart_job(state, get_job_by_interval(key))
     return state.cfg_manager.get()
 
+@router.patch("/author/{author_id}")
+async def edit_author(fields: dict[str, Any], author_id: str, session: AsyncSession = Depends(get_session)):
+    author = await session.get(Author, author_id)
+    if not author:raise HTTPException(status_code=404, detail="Author not found")
+    for key in fields:
+        if hasattr(author, key): setattr(author, key, fields[key])
+        else: raise HTTPException(status_code=404, detail=f"Unknown field: {key}")
+    await session.commit()
+    return {"edited": author_id}
+
+@router.patch("/series/{series_id}")
+async def edit_series(fields: dict[str, Any], series_id: str, session: AsyncSession = Depends(get_session)):
+    series = await session.get(Series, series_id)
+    if not series:raise HTTPException(status_code=404, detail="Series not found")
+    for key in fields:
+        if hasattr(series, key): setattr(series, key, fields[key])
+        else: raise HTTPException(status_code=404, detail=f"Unknown field: {key}")
+    await session.commit()
+    return {"edited": series_id}
+
 @router.delete("/author/{author_id}")
 async def delete_author(author_id: str, session: AsyncSession = Depends(get_session), files: bool = False):
     if files:
@@ -279,13 +305,14 @@ async def delete_series_files(series_id: str, session: AsyncSession = Depends(ge
 async def delete_book(book_id: str, session: AsyncSession = Depends(get_session), files: bool = False, block: bool = False):
     if files:
         await delete_audio_book(book_id, session)
-    book = await session.get(Book, book_id, options=[selectinload(Book.series).selectinload(Series.books)])
+    book = await session.get(Book, book_id, options=[selectinload(Book.series).selectinload(Series.books), selectinload(Book.activities)])
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     series = book.series
     if not series:
         if block:
             book.blocked = True
+            book.activities = []
             await session.commit()
             return {"blocked": book_id}
         await session.delete(book)

@@ -55,6 +55,7 @@ const checked = ref(false)
   text-align: center;
   font-weight: 500;
   font-size: large;
+  white-space: pre-line;
 }
 
 .selector {

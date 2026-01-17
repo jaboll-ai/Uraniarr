@@ -12,6 +12,11 @@
         Settings
       </button>
     </router-link>
+    <router-link to="/blocklist" custom v-slot="{ navigate, isActive }">
+      <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
+        Blocklist
+      </button>
+    </router-link>
     <router-link to="/activity" custom v-slot="{ navigate, isActive }">
       <button class="sidebar-button" :class="{ active: isActive }" @click="navigate" type="button">
         Activity

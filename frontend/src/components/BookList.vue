@@ -17,7 +17,8 @@
         :showBox="showBox"
         :checked="selected.includes(book.key)"
         :audio="audio"
-        :loading="loadingBooks[book.key]"
+        :loading="loadingEntities[book.key]"
+        :suppressMap="suppressMap"
         @checkboxClick="onCheckboxClick($event, index)"
         @downloadBook="downloadBook"
         @searchBook="$emit('searchBook', $event)"
@@ -33,13 +34,14 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import BookItem from '@/components/BookItem.vue'
 import type { Book } from '@/main.ts'
-import { loadingBooks } from '@/utils';
+import { loadingEntities } from '@/utils';
 
 const props = defineProps<{
   books: Book[]
   showBox: boolean
   seriesGroups: any
   audio: boolean
+  suppressMap?: { [action: string]: boolean }
 }>()
 
 const emit = defineEmits<{
@@ -123,6 +125,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--borderColor);
   background-color: var(--offWhite);
   border-radius: 8px;
+  flex: 1;
 }
 
 .spacer1{
