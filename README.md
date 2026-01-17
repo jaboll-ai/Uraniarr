@@ -23,11 +23,10 @@
 - **Downloading**
   Uraniarr currently supports SABnzbd as a downloader.
 - **File Management**
-  Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. For customization see the [Templating Guide](https://github.com/jaboll-ai/Uraniarr/wiki#templating-guide) in the wiki.
+  Background polling of finished downloads, moving files into organized folders by `author/series/book` structure. Following ABS schemes by default. For customization see the [Templating Guide](https://github.com/Uraniarr/Uraniarr/wiki#templating-guide) in the wiki.
 - **TODO**
   1. RSS Feed automation
-  2. Scan for existing files and sort them into DB
-  3. Refining of visuals
+  2. Refining of visuals
 
 ## Getting Started
 1. **Docker Compose**
@@ -35,7 +34,7 @@
   ```yaml
   services:
     uraniarr:
-      image: ghcr.io/jaboll-ai/uraniarr:latest #:development
+      image: ghcr.io/uraniarr/uraniarr:latest #:development
       container_name: uraniarr
       ports:
         - "11562:8000"
@@ -82,7 +81,7 @@
 
 ## Contributing
 1. Create your `venv` and install the `requirements.txt`
-2. Run `VENDOR=https://www.t****.de uvicorn backend.main:app --reload`
+2. Run `VENDOR=https://www.t****.de DEV=.local uvicorn backend.main:app --reload`
 3. Make a file `frontend/.env.devolopment` with `VITE_API_BASE=http://localhost:<uvicorn-port>`
 4. Run Vue with `cd fronted && npm run dev --host`
 
