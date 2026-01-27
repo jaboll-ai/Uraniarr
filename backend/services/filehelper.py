@@ -405,7 +405,7 @@ async def reimport_files(state):
     cfg = state.cfg_manager
     downloaders: list[BaseDownloader]= state.downloaders[True] + state.downloaders[False]
     async with AsyncSession(state.engine) as session:
-        query = await session.exec(select(Book).options(
+        query = await session.exec(select(Book).where(Book.blocked.is_(False)).options(
             selectinload(Book.author),
             selectinload(Book.series).selectinload(Series.books),
             selectinload(Book.activities)
@@ -419,8 +419,8 @@ async def reimport_files(state):
             book_paths.append(cfg.ingest_path)
         get_logger().log(5, f"Also checking reimport with: {cfg.ingest_path}")
         a_paths, b_paths = await asyncio.gather(
-            asyncio.to_thread(get_dirs_of_ext, audio_paths, cfg.audio_extensions_rating.split(",")),
-            asyncio.to_thread(get_files_of_ext, book_paths, cfg.book_extensions.split(",")),
+            asyncio.to_thread(get_dirs_of_ext, audio_paths, cfg.audio_extensions_rating.strip().split(",")),
+            asyncio.to_thread(get_files_of_ext, book_paths, cfg.book_extensions.strip().split(",")),
         )
 
         book_names = [b.name for b in books]

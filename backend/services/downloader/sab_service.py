@@ -33,7 +33,8 @@ class SABDownloader(BaseDownloader):
             get_hst = {
                 "apikey": self.apikey,
                 "mode":"history",
-                "output":"json"
+                "output":"json",
+                "cat": self.download_category or "*",
             }
             async with httpx.AsyncClient() as client:
                 resp = await client.get(self.url, params=get_hst)
@@ -86,6 +87,7 @@ class SABDownloader(BaseDownloader):
                 "apikey": self.apikey,
                 "mode": "queue",
                 "output": "json",
+                "cat": self.download_category or "*",
             }
             async with httpx.AsyncClient() as client:
                 resp = await client.get(self.url, params=get_q)
